@@ -97,8 +97,7 @@ it — the pin itself survives too.
 
 A change that breaks a rule is refused unless it is explicitly forced. Forced
 or not, the schedule keeps telling the truth: the validation summary at the top
-of the job page counts the violation. An assignment can also be **pinned**, so
-the next solve leaves it alone.
+of the job page counts the violation.
 
 Through the API: `POST /api/jobs/{id}/assignments/{dutyId}/review` to ask,
 `POST /api/jobs/{id}/assignments/{dutyId}` to save (409 with the reasons when it
