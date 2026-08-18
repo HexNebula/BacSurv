@@ -1,5 +1,6 @@
 package ma.bacsurv.web.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -17,11 +18,15 @@ import java.util.concurrent.Executor;
 public class AsyncConfig {
 
     @Bean("solverExecutor")
-    public Executor solverExecutor() {
+    public Executor solverExecutor(
+            @Value("${bacsurv.solver.threads:0}") int configuredThreads) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         int cores = Runtime.getRuntime().availableProcessors();
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(Math.max(1, cores / 2));
+        // half the machine by default: solving is CPU-bound and the box has
+        // other work to do, such as serving the pages that poll the job
+        int threads = configuredThreads > 0 ? configuredThreads : Math.max(1, cores / 2);
+        executor.setCorePoolSize(threads);
+        executor.setMaxPoolSize(threads);
         executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("solver-");
         executor.initialize();

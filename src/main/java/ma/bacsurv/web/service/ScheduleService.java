@@ -33,7 +33,8 @@ public class ScheduleService {
 
     /** A schedule in domain form, with the pool it was built from. */
     public record Materialised(ExamOperation operation, List<Duty> duties,
-                               OperationAssembler.Pool pool) {}
+                               OperationAssembler.Pool pool,
+                               ma.bacsurv.rules.SchedulingPolicy policy) {}
 
     private final SolveJobRepository jobs;
     private final AssignmentRepository assignments;
@@ -64,7 +65,7 @@ public class ScheduleService {
             if (row.getTeacher() != null) teacherIdByDuty.put(row.getDutyId(), row.getTeacher().getId());
         });
 
-        List<Duty> duties = new DutyGenerator().generate(domain);
+        List<Duty> duties = new DutyGenerator().generate(domain, assembler.staffingOf(operation));
         for (Duty duty : duties) {
             Long teacherId = teacherIdByDuty.get(duty.id());
             if (teacherId != null) {
@@ -72,14 +73,16 @@ public class ScheduleService {
                 if (teacher != null) duty.assign(teacher);
             }
         }
-        return Optional.of(new Materialised(domain, duties, pool));
+        return Optional.of(new Materialised(domain, duties, pool,
+                assembler.schedulingOf(operation)));
     }
 
     /** The schedule as clients read it: assignments, workload, validation summary. */
     @Transactional(readOnly = true)
     public Optional<ScheduleWriter.Result> result(long jobId) {
         return materialise(jobId).map(schedule -> {
-            ValidationReport report = ScheduleValidator.withDefaults().validate(schedule.duties());
+            ValidationReport report = ScheduleValidator.forPolicy(schedule.policy())
+                    .validate(schedule.duties());
             return writer.build(schedule.operation().id(), schedule.duties(),
                     schedule.pool().teachers(), report);
         });

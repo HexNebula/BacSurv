@@ -70,7 +70,7 @@ class CumulativeFairnessTest {
 
     private ScheduleWriter.Result solveAndRead(OperationView operation) {
         JobView job = solveService.submit(operation.id(), 10);
-        await().atMost(Duration.ofSeconds(90))
+        await().atMost(Duration.ofMinutes(3))
                 .pollInterval(Duration.ofMillis(500))
                 .until(() -> !solveService.job(job.id()).isRunning());
 

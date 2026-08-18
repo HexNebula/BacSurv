@@ -8,6 +8,7 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import ma.bacsurv.domain.DutyRole;
 import ma.bacsurv.domain.Teacher;
+import ma.bacsurv.rules.SchedulingPolicy;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -44,6 +45,8 @@ public class SurveillanceConstraints implements ConstraintProvider {
                 avoidRepeatedRoom(f),
                 avoidRepeatedPair(f),
                 maxConsecutiveDays(f),
+                maxConsecutiveDaysAsRule(f),
+                minimumGapBetweenDuties(f),
                 balanceTotal(f),
                 noIdleTeacher(f),
                 balanceHalfDays(f),
@@ -115,15 +118,59 @@ public class SurveillanceConstraints implements ConstraintProvider {
         return x.compareTo(y) <= 0 ? x + "|" + y : y + "|" + x;
     }
 
-    // S — max consecutive working days
+    /**
+     * S — consecutive working days, capped at whatever the centre configured.
+     * Soft by default: at high density a run of four days is unavoidable, and
+     * a hard rule there would make an ordinary centre unschedulable.
+     */
     Constraint maxConsecutiveDays(ConstraintFactory f) {
         return f.forEach(DutyAssignment.class)
                 .groupBy(DutyAssignment::getTeacher,
                         ConstraintCollectors.toSet(DutyAssignment::date))
-                .filter((t, days) -> longestRun(days) > MAX_CONSECUTIVE_DAYS)
-                .penalize(HardSoftScore.ofSoft(WEIGHT_CONSECUTIVE_DAYS),
-                        (t, days) -> longestRun(days) - MAX_CONSECUTIVE_DAYS)
+                .join(SchedulingPolicy.class)
+                .filter((t, days, policy) -> !policy.consecutiveDaysIsHard()
+                        && longestRun(days) > policy.maxConsecutiveWorkingDays())
+                .penalize(HardSoftScore.ONE_SOFT,
+                        (t, days, policy) -> (longestRun(days) - policy.maxConsecutiveWorkingDays())
+                                * policy.consecutiveDaysWeight())
                 .asConstraint("consecutive days");
+    }
+
+    /** The same limit when an académie imposes it as an absolute maximum. */
+    Constraint maxConsecutiveDaysAsRule(ConstraintFactory f) {
+        return f.forEach(DutyAssignment.class)
+                .groupBy(DutyAssignment::getTeacher,
+                        ConstraintCollectors.toSet(DutyAssignment::date))
+                .join(SchedulingPolicy.class)
+                .filter((t, days, policy) -> policy.consecutiveDaysIsHard()
+                        && longestRun(days) > policy.maxConsecutiveWorkingDays())
+                .penalize(HardSoftScore.ONE_HARD,
+                        (t, days, policy) -> longestRun(days) - policy.maxConsecutiveWorkingDays())
+                .asConstraint("consecutive days limit exceeded");
+    }
+
+    /**
+     * S — rest between two duties of the same day. Nothing in the confirmed
+     * procedure requires it, so it only applies when a centre asks for it,
+     * typically so people can move rooms, be briefed and sign.
+     */
+    Constraint minimumGapBetweenDuties(ConstraintFactory f) {
+        return f.forEachUniquePair(DutyAssignment.class,
+                        Joiners.equal(DutyAssignment::getTeacher),
+                        Joiners.equal(DutyAssignment::date))
+                .join(SchedulingPolicy.class)
+                .filter((a, b, policy) -> policy.enforcesGap()
+                        && gapInMinutes(a, b) < policy.minimumGapBetweenDutiesMinutes())
+                .penalize(HardSoftScore.ONE_SOFT, (a, b, policy) -> policy.minimumGapWeight())
+                .asConstraint("rest between duties");
+    }
+
+    /** Minutes between the end of the earlier duty and the start of the later one. */
+    private static long gapInMinutes(DutyAssignment a, DutyAssignment b) {
+        var first = a.getDuty().slot().startTime().isBefore(b.getDuty().slot().startTime())
+                ? a.getDuty().slot() : b.getDuty().slot();
+        var second = first == a.getDuty().slot() ? b.getDuty().slot() : a.getDuty().slot();
+        return java.time.Duration.between(first.endTime(), second.startTime()).toMinutes();
     }
 
     private static int longestRun(Set<LocalDate> days) {

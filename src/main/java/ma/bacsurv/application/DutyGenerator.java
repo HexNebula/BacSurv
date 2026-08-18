@@ -6,6 +6,7 @@ import ma.bacsurv.domain.ExamOperation;
 import ma.bacsurv.domain.ExamSlot;
 import ma.bacsurv.domain.Room;
 import ma.bacsurv.domain.Subject;
+import ma.bacsurv.rules.StaffingPolicy;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -20,11 +21,19 @@ import java.util.stream.Collectors;
 public final class DutyGenerator {
 
     public List<Duty> generate(ExamOperation operation) {
+        return generate(operation, StaffingPolicy.defaults());
+    }
+
+    /**
+     * Staffing comes from the centre's policy, which lets one large room take
+     * more surveillants than the rest without changing the exam itself.
+     */
+    public List<Duty> generate(ExamOperation operation, StaffingPolicy staffing) {
         List<Duty> duties = new ArrayList<>();
         for (ExamSlot slot : operation.slots()) {
             for (Exam exam : slot.exams()) {
                 for (Room room : exam.rooms()) {
-                    for (int i = 1; i <= exam.surveillantsPerRoom(); i++) {
+                    for (int i = 1; i <= staffing.surveillantsFor(exam, room.id()); i++) {
                         duties.add(Duty.surveillance(
                                 slot.id() + "-" + exam.id() + "-" + room.id() + "-S" + i,
                                 slot, exam, room));

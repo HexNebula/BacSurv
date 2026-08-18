@@ -10,6 +10,8 @@ import ma.bacsurv.domain.ExamOperation;
 import ma.bacsurv.domain.Teacher;
 import ma.bacsurv.io.InputMapper;
 import ma.bacsurv.io.ScheduleWriter;
+import ma.bacsurv.rules.SchedulingPolicy;
+import ma.bacsurv.solver.SolverSettings;
 import ma.bacsurv.solver.TimefoldScheduler;
 import ma.bacsurv.web.persistence.AssignmentEntity;
 import ma.bacsurv.web.persistence.AssignmentRepository;
@@ -90,8 +92,9 @@ public class SolveService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "no operation with id " + operationId));
         ExamOperation domain = assembler.toDomain(operation);
-        return StaffingCheck.withDefaults().check(domain,
-                assembler.poolFor(operation).teachers(), new DutyGenerator().generate(domain));
+        return StaffingCheck.forPolicy(assembler.schedulingOf(operation)).check(domain,
+                assembler.poolFor(operation).teachers(),
+                new DutyGenerator().generate(domain, assembler.staffingOf(operation)));
     }
 
     @Transactional
@@ -127,12 +130,13 @@ public class SolveService {
         }
 
         try {
-            List<Duty> duties = new DutyGenerator().generate(input.operation());
+            List<Duty> duties = new DutyGenerator().generate(input.operation(), input.staffing());
             applyPins(duties, input);
-            new TimefoldScheduler(Duration.ofSeconds(input.seconds()))
-                    .solve(duties, input.pool().teachers(), input.pinned().keySet());
+            new TimefoldScheduler(input.solverSettings())
+                    .solve(duties, input.pool().teachers(), input.pinned().keySet(),
+                            input.policy());
 
-            ValidationReport report = ScheduleValidator.withDefaults().validate(duties);
+            ValidationReport report = ScheduleValidator.forPolicy(input.policy()).validate(duties);
             ScheduleWriter writer = new ScheduleWriter();
             ScheduleWriter.Result result = writer.build(
                     input.operation().id(), duties, input.pool().teachers(), report);
@@ -150,7 +154,8 @@ public class SolveService {
      * {@code pinned} maps a duty to the teacher an administrator fixed on it.
      */
     public record SolveInput(ExamOperation operation, OperationAssembler.Pool pool,
-                             Map<String, Long> pinned, int seconds) {}
+                             Map<String, Long> pinned, ma.bacsurv.rules.StaffingPolicy staffing,
+                             SchedulingPolicy policy, SolverSettings solverSettings) {}
 
     @Transactional
     public SolveInput start(long jobId) {
@@ -163,8 +168,12 @@ public class SolveService {
         assignments.pinnedOfOperation(operation.getId())
                 .forEach(row -> pinned.put(row.getDutyId(), row.getTeacher().getId()));
 
+        // the job's own time limit wins: it is what the administrator asked for
+        SolverSettings settings = SolverSettings.ofSeconds(job.getTimeLimitSeconds());
+
         return new SolveInput(assembler.toDomain(operation), assembler.poolFor(operation),
-                pinned, job.getTimeLimitSeconds());
+                pinned, assembler.staffingOf(operation), assembler.schedulingOf(operation),
+                settings);
     }
 
     /** Places the pinned teachers before solving; the solver then holds them there. */

@@ -58,6 +58,9 @@
                                    th:value="${defaultSeconds}" th:title="#{home.operations.seconds}">
                             <button type="submit" th:text="#{home.operations.launch}">Lancer</button>
                         </form>
+                        <a class="button secondary small"
+                           th:href="@{/operations/{id}/settings(id=${op.id})}"
+                           th:text="#{settings.open}">Paramètres</a>
                     </td>
                 </tr>
                 </tbody>

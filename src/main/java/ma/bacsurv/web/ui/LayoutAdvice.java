@@ -11,7 +11,7 @@ import java.util.Locale;
 
 /** Language and text direction, available to every page without repetition. */
 @ControllerAdvice(assignableTypes = {UiController.class, CenterController.class,
-        AssignmentController.class})
+        AssignmentController.class, SettingsController.class})
 public class LayoutAdvice {
 
     @ModelAttribute("lang")

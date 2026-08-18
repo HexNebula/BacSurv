@@ -119,11 +119,11 @@ public class ScheduleEditor {
                 ? List.of()
                 : breaches(duty, replacement, schedule.duties());
 
-        Map<String, Integer> softBefore = softCounts(schedule.duties());
+        Map<String, Integer> softBefore = softCounts(schedule.duties(), schedule.policy());
         int before = dutiesOf(replacement, schedule.duties());
 
         duty.assign(replacement); // in-memory only: these objects are rebuilt per call
-        Map<String, Integer> softAfter = softCounts(schedule.duties());
+        Map<String, Integer> softAfter = softCounts(schedule.duties(), schedule.policy());
         int after = dutiesOf(replacement, schedule.duties());
 
         return new ChangeReview(dutyId, describe(duty),
@@ -195,8 +195,9 @@ public class ScheduleEditor {
                 .count();
     }
 
-    private Map<String, Integer> softCounts(List<Duty> schedule) {
-        return ScheduleValidator.withDefaults().validate(schedule).softViolations().stream()
+    private Map<String, Integer> softCounts(List<Duty> schedule,
+                                            ma.bacsurv.rules.SchedulingPolicy policy) {
+        return ScheduleValidator.forPolicy(policy).validate(schedule).softViolations().stream()
                 .collect(Collectors.groupingBy(Violation::rule,
                         TreeMap::new, Collectors.summingInt(v -> 1)));
     }

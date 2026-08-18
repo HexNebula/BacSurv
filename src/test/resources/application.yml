@@ -12,6 +12,9 @@ spring:
 bacsurv:
   solver:
     default-seconds: 5
+    # the suite runs several classes against one context: without room to
+    # overlap, a test waits for another class's solve rather than its own
+    threads: 4
 
 logging:
   level:

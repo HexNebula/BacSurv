@@ -7,6 +7,7 @@ import ma.bacsurv.domain.Room;
 import ma.bacsurv.domain.Subject;
 import ma.bacsurv.domain.Teacher;
 import ma.bacsurv.rules.Eligibility;
+import ma.bacsurv.rules.SchedulingPolicy;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,7 +41,13 @@ public final class ScheduleValidator {
     }
 
     public static ScheduleValidator withDefaults() {
-        return new ScheduleValidator(Eligibility.withDefaults(), null, 3);
+        return forPolicy(SchedulingPolicy.defaults());
+    }
+
+    /** Judges a schedule by the same rules the solver was given. */
+    public static ScheduleValidator forPolicy(SchedulingPolicy policy) {
+        return new ScheduleValidator(new Eligibility(policy.subjectConflict()), null,
+                policy.maxConsecutiveWorkingDays());
     }
 
     public ValidationReport validate(List<Duty> duties) {

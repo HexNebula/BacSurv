@@ -29,6 +29,10 @@ public class RoomEntity {
     @Column(nullable = false)
     private String label;
 
+    /** More surveillants than the operation default, for a large room. */
+    @Column(name = "surveillants_override")
+    private Integer surveillantsOverride;
+
     protected RoomEntity() {}
 
     public RoomEntity(CenterEntity center, String reference, String label) {
@@ -42,4 +46,8 @@ public class RoomEntity {
     public String getReference() { return reference; }
     public String getLabel() { return label; }
     public void setLabel(String label) { this.label = label; }
+    public Integer getSurveillantsOverride() { return surveillantsOverride; }
+    public void setSurveillantsOverride(Integer surveillants) {
+        this.surveillantsOverride = surveillants;
+    }
 }

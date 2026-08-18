@@ -39,6 +39,11 @@ public final class StaffingCheck {
         return new StaffingCheck(Eligibility.withDefaults());
     }
 
+    /** Counts availability under the same eligibility rules as the solve. */
+    public static StaffingCheck forPolicy(ma.bacsurv.rules.SchedulingPolicy policy) {
+        return new StaffingCheck(new Eligibility(policy.subjectConflict()));
+    }
+
     public List<Shortage> check(ExamOperation operation, List<Teacher> pool, List<Duty> duties) {
         Map<String, List<Duty>> dutiesBySlot = duties.stream()
                 .collect(Collectors.groupingBy(duty -> duty.slot().id()));

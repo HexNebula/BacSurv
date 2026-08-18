@@ -48,6 +48,10 @@ public class ExamSlotEntity {
     @Column(name = "reserve_count", nullable = false)
     private int reserveCount;
 
+    /** True when the file stated this count; false means "follow the rule". */
+    @Column(name = "reserve_explicit", nullable = false)
+    private boolean reserveExplicit;
+
     @OneToMany(mappedBy = "slot", cascade = CascadeType.ALL, orphanRemoval = true,
             fetch = FetchType.LAZY)
     private List<ExamEntity> exams = new ArrayList<>();
@@ -78,5 +82,7 @@ public class ExamSlotEntity {
     public LocalTime getEndTime() { return endTime; }
     public int getOrdinalInDay() { return ordinalInDay; }
     public int getReserveCount() { return reserveCount; }
+    public boolean isReserveExplicit() { return reserveExplicit; }
+    public void setReserveExplicit(boolean explicit) { this.reserveExplicit = explicit; }
     public List<ExamEntity> getExams() { return exams; }
 }

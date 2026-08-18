@@ -152,3 +152,24 @@ mvn test
 Covers duty generation, validation rules, input parsing, a full
 input-file-to-feasible-schedule run, and the web flow (import → solve → poll →
 schedule) against the real solver.
+
+## Settings a centre can change
+
+**Opérations → Paramètres**, or `GET /operations/{id}/settings`. They fall into
+three groups that are deliberately kept apart:
+
+**Staffing rules** — surveillants per room (default 2, never below the official
+minimum of 2, and settable per room when one hall is bigger), and the reserve
+requirement, either a percentage of the surveillance staff or a fixed count. A
+reserve count stated in the input file still wins for that slot.
+
+**Scheduling policy** — the maximum number of consecutive working days, with
+its own strength: a preference by default, because at high density a run of
+four days is unavoidable and a hard rule would make an ordinary centre
+unschedulable; an académie that truly imposes a maximum can promote it. Also
+the minimum rest between two duties of the same day, zero unless a centre asks
+for it, and whether surveilling one's own subject is forbidden outright or
+merely discouraged.
+
+**Solver settings** — how long to search. Raising it is not a change of
+procedure, which is why it does not sit with the rules.

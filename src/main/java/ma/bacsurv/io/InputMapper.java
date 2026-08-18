@@ -41,8 +41,12 @@ public final class InputMapper {
     private final ObjectMapper json = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
+    /**
+     * {@code explicitReserveSlots} names the slots whose reserve count the file
+     * stated outright; the others follow whatever reserve rule is configured.
+     */
     public record ParsedOperation(String centerName, ExamOperation operation,
-                                  List<Teacher> teachers) {}
+                                  List<Teacher> teachers, Set<String> explicitReserveSlots) {}
 
     public ParsedOperation read(Path file) {
         OperationInput input;
@@ -79,6 +83,11 @@ public final class InputMapper {
                 ? new ReservePolicy.PercentageOfSurveillance(in.defaults().reservePercentage())
                 : ReservePolicy.officialDefault();
 
+        Set<String> explicitReserveSlots = in.slots().stream()
+                .filter(slot -> slot.reserveCount() != null)
+                .map(OperationInput.SlotDto::id)
+                .collect(java.util.stream.Collectors.toSet());
+
         List<ExamSlot> slots = mapSlots(in.slots(), rooms,
                 defaultSurveillants, defaultPermanence, reservePolicy);
         List<Teacher> teachers = mapTeachers(in.teachers());
@@ -89,7 +98,8 @@ public final class InputMapper {
                 : in.operation().id();
 
         return new ParsedOperation(centerName,
-                new ExamOperation(in.operation().id(), type, slots), teachers);
+                new ExamOperation(in.operation().id(), type, slots), teachers,
+                explicitReserveSlots);
     }
 
     private Map<String, Room> mapRooms(List<OperationInput.RoomDto> dtos) {

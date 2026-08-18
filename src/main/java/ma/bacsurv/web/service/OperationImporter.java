@@ -59,6 +59,7 @@ public class OperationImporter {
         for (ExamSlot slot : parsed.operation().slots()) {
             ExamSlotEntity slotEntity = new ExamSlotEntity(operation, slot.id(), slot.date(),
                     slot.startTime(), slot.endTime(), slot.ordinalInDay(), slot.reserveRequirement());
+            slotEntity.setReserveExplicit(parsed.explicitReserveSlots().contains(slot.id()));
             operation.addSlot(slotEntity);
             for (Exam exam : slot.exams()) {
                 List<RoomEntity> examRooms = exam.rooms().stream()

@@ -14,7 +14,13 @@ import ma.bacsurv.domain.TeacherQualification;
 import ma.bacsurv.domain.Unavailability;
 import ma.bacsurv.web.persistence.ExamEntity;
 import ma.bacsurv.web.persistence.ExamSlotEntity;
+import ma.bacsurv.rules.ReserveRequirement;
+import ma.bacsurv.rules.SchedulingPolicy;
+import ma.bacsurv.rules.StaffingPolicy;
+import ma.bacsurv.solver.SolverSettings;
 import ma.bacsurv.web.persistence.AssignmentRepository;
+import ma.bacsurv.web.persistence.OperationConfigEntity;
+import ma.bacsurv.web.persistence.OperationConfigRepository;
 import ma.bacsurv.web.persistence.OperationEntity;
 import ma.bacsurv.web.persistence.RoomEntity;
 import ma.bacsurv.web.persistence.TeacherEntity;
@@ -47,32 +53,75 @@ public class OperationAssembler {
 
     private final TeacherRepository teachers;
     private final AssignmentRepository assignments;
+    private final OperationConfigRepository configs;
 
-    public OperationAssembler(TeacherRepository teachers, AssignmentRepository assignments) {
+    public OperationAssembler(TeacherRepository teachers, AssignmentRepository assignments,
+                              OperationConfigRepository configs) {
         this.teachers = teachers;
         this.assignments = assignments;
+        this.configs = configs;
     }
 
+    /** The operation as configured: staffing numbers come from its settings. */
     public ExamOperation toDomain(OperationEntity operation) {
-        List<ExamSlot> slots = operation.getSlots().stream().map(this::toDomain).toList();
+        StaffingPolicy staffing = staffingOf(operation);
+        List<ExamSlot> slots = operation.getSlots().stream()
+                .map(slot -> toDomain(slot, staffing)).toList();
         return new ExamOperation(operation.getReference(),
                 OperationType.valueOf(operation.getType()), slots);
     }
 
-    private ExamSlot toDomain(ExamSlotEntity slot) {
-        List<Exam> exams = slot.getExams().stream().map(this::toDomain).toList();
-        return new ExamSlot(slot.getReference(), slot.getDate(),
-                slot.getStartTime(), slot.getEndTime(), slot.getOrdinalInDay(),
-                exams, slot.getReserveCount());
+    /** Room overrides plus the operation's own defaults and reserve rule. */
+    public StaffingPolicy staffingOf(OperationEntity operation) {
+        Map<String, Integer> roomOverrides = new HashMap<>();
+        operation.getSlots().forEach(slot -> slot.getExams().forEach(exam ->
+                exam.getRooms().forEach(room -> {
+                    if (room.getSurveillantsOverride() != null) {
+                        roomOverrides.put(room.getReference(), room.getSurveillantsOverride());
+                    }
+                })));
+        return configs.findById(operation.getId())
+                .map(config -> config.staffing(roomOverrides))
+                .orElseGet(() -> new StaffingPolicy(
+                        StaffingPolicy.MINIMUM_SURVEILLANTS_PER_ROOM, roomOverrides,
+                        ReserveRequirement.officialDefault()));
     }
 
-    private Exam toDomain(ExamEntity exam) {
+    public SchedulingPolicy schedulingOf(OperationEntity operation) {
+        return configs.findById(operation.getId())
+                .map(OperationConfigEntity::scheduling)
+                .orElseGet(SchedulingPolicy::defaults);
+    }
+
+    public SolverSettings solverSettingsOf(OperationEntity operation) {
+        return configs.findById(operation.getId())
+                .map(OperationConfigEntity::solver)
+                .orElseGet(SolverSettings::defaults);
+    }
+
+    private ExamSlot toDomain(ExamSlotEntity slot, StaffingPolicy staffing) {
+        List<Exam> exams = slot.getExams().stream()
+                .map(exam -> toDomain(exam, staffing)).toList();
+
+        // a count stated in the file stands; otherwise the reserve rule decides
+        ExamSlot withoutReserve = new ExamSlot(slot.getReference(), slot.getDate(),
+                slot.getStartTime(), slot.getEndTime(), slot.getOrdinalInDay(), exams, 0);
+        int reserve = slot.isReserveExplicit()
+                ? slot.getReserveCount()
+                : staffing.reserve().requiredFor(withoutReserve);
+
+        return new ExamSlot(slot.getReference(), slot.getDate(),
+                slot.getStartTime(), slot.getEndTime(), slot.getOrdinalInDay(), exams, reserve);
+    }
+
+    private Exam toDomain(ExamEntity exam, StaffingPolicy staffing) {
         List<Room> rooms = exam.getRooms().stream()
                 .map(room -> new Room(room.getReference(), room.getLabel()))
                 .toList();
         return new Exam(exam.getReference(), new Subject(exam.getSubject()),
                 new Stream(exam.getStream()), rooms,
-                exam.getSurveillantsPerRoom(), exam.getPermanenceCount());
+                Math.max(exam.getSurveillantsPerRoom(), staffing.defaultSurveillantsPerRoom()),
+                exam.getPermanenceCount());
     }
 
     /** The center's pool, seeded with the workload of its past operations. */
