@@ -3,6 +3,7 @@ package ma.bacsurv.web.api;
 import ma.bacsurv.application.StaffingCheck;
 import ma.bacsurv.io.InputMapper;
 import ma.bacsurv.web.service.InsufficientStaffException;
+import ma.bacsurv.web.service.ScheduleEditor;
 import ma.bacsurv.io.ScheduleWriter;
 import ma.bacsurv.web.service.JobView;
 import ma.bacsurv.web.service.OperationView;
@@ -36,9 +37,11 @@ import java.util.Map;
 public class ApiController {
 
     private final SolveService solveService;
+    private final ScheduleEditor editor;
 
-    public ApiController(SolveService solveService) {
+    public ApiController(SolveService solveService, ScheduleEditor editor) {
         this.solveService = solveService;
+        this.editor = editor;
     }
 
     @GetMapping("/operations")
@@ -98,6 +101,35 @@ public class ApiController {
         return solveService.schedule(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT).build());
+    }
+
+    /** What a reassignment would break, without saving it. */
+    @PostMapping("/jobs/{id}/assignments/{dutyId}/review")
+    public ScheduleEditor.ChangeReview review(@PathVariable long id, @PathVariable String dutyId,
+                                              @RequestParam(required = false) Long teacherId) {
+        return editor.review(id, dutyId, teacherId);
+    }
+
+    /** Saves a reassignment; 409 with the reasons when it breaks a rule. */
+    @PostMapping("/jobs/{id}/assignments/{dutyId}")
+    public ScheduleEditor.ChangeReview reassign(@PathVariable long id, @PathVariable String dutyId,
+                                                @RequestParam(required = false) Long teacherId,
+                                                @RequestParam(defaultValue = "false") boolean force) {
+        return editor.apply(id, dutyId, teacherId, force);
+    }
+
+    /** Pinning keeps a hand-made decision through the next solve. */
+    @PostMapping("/jobs/{id}/assignments/{dutyId}/pin")
+    public ResponseEntity<Void> pin(@PathVariable long id, @PathVariable String dutyId,
+                                    @RequestParam(defaultValue = "true") boolean pinned) {
+        editor.pin(id, dutyId, pinned);
+        return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler(ScheduleEditor.IllegalChangeException.class)
+    public ResponseEntity<ScheduleEditor.ChangeReview> illegalChange(
+            ScheduleEditor.IllegalChangeException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.review());
     }
 
     @ExceptionHandler({InputMapper.InputException.class, IllegalArgumentException.class})

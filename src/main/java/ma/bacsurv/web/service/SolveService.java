@@ -11,14 +11,15 @@ import ma.bacsurv.domain.Teacher;
 import ma.bacsurv.io.InputMapper;
 import ma.bacsurv.io.ScheduleWriter;
 import ma.bacsurv.solver.TimefoldScheduler;
-import ma.bacsurv.web.persistence.JobWorkload;
-import ma.bacsurv.web.persistence.JobWorkloadRepository;
+import ma.bacsurv.web.persistence.AssignmentEntity;
+import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.OperationEntity;
 import ma.bacsurv.web.persistence.OperationFile;
 import ma.bacsurv.web.persistence.OperationFileRepository;
 import ma.bacsurv.web.persistence.OperationRepository;
 import ma.bacsurv.web.persistence.SolveJob;
 import ma.bacsurv.web.persistence.SolveJobRepository;
+import ma.bacsurv.web.persistence.TeacherEntity;
 import ma.bacsurv.web.persistence.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,22 +53,25 @@ public class SolveService {
     private final OperationRepository operations;
     private final TeacherRepository teachers;
     private final SolveJobRepository jobs;
-    private final JobWorkloadRepository workloads;
+    private final AssignmentRepository assignments;
     private final OperationImporter importer;
     private final OperationAssembler assembler;
+    private final ScheduleService scheduleService;
     private final SolveService self;
 
     public SolveService(OperationFileRepository files, OperationRepository operations,
                         TeacherRepository teachers, SolveJobRepository jobs,
-                        JobWorkloadRepository workloads, OperationImporter importer,
-                        OperationAssembler assembler, @Lazy SolveService self) {
+                        AssignmentRepository assignments, OperationImporter importer,
+                        OperationAssembler assembler, ScheduleService scheduleService,
+                        @Lazy SolveService self) {
         this.files = files;
         this.operations = operations;
         this.teachers = teachers;
         this.jobs = jobs;
-        this.workloads = workloads;
+        this.assignments = assignments;
         this.importer = importer;
         this.assembler = assembler;
+        this.scheduleService = scheduleService;
         this.self = self; // proxy, so @Async/@Transactional apply to self-calls
     }
 
@@ -132,8 +136,8 @@ public class SolveService {
             ScheduleWriter.Result result = writer.build(
                     input.operation().id(), duties, input.pool().teachers(), report);
 
-            self.complete(jobId, writer.toJson(result), result,
-                    countDuties(duties), input.pool().teacherIdByMatricule());
+            self.complete(jobId, writer.toJson(result), result, duties,
+                    input.pool().teacherIdByMatricule());
         } catch (RuntimeException e) {
             log.error("solve job {} failed", jobId, e);
             self.fail(jobId, e.getMessage() != null ? e.getMessage() : e.toString());
@@ -153,32 +157,26 @@ public class SolveService {
                 job.getTimeLimitSeconds());
     }
 
-    /** Duties given per teacher matricule and role — the year's fairness ledger. */
-    private static Map<String, Map<DutyRole, Integer>> countDuties(List<Duty> duties) {
-        Map<String, Map<DutyRole, Integer>> counts = new HashMap<>();
-        for (Duty duty : duties) {
-            duty.assignedTeacher().map(Teacher::matricule).ifPresent(matricule ->
-                    counts.computeIfAbsent(matricule, m -> new HashMap<>())
-                            .merge(duty.role(), 1, Integer::sum));
-        }
-        return counts;
-    }
-
+    /** Stores the solved schedule as rows: one per duty, editable afterwards. */
     @Transactional
     public void complete(long jobId, String resultJson, ScheduleWriter.Result result,
-                         Map<String, Map<DutyRole, Integer>> dutiesByMatricule,
-                         Map<String, Long> teacherIdByMatricule) {
+                         List<Duty> duties, Map<String, Long> teacherIdByMatricule) {
         jobs.findById(jobId).ifPresent(job -> {
             job.markDone(resultJson, result.feasible(), result.hardViolations(),
                     result.softViolations(), result.unfilled());
-            workloads.deleteByJobId(jobId); // a re-solve replaces its own history
-            dutiesByMatricule.forEach((matricule, byRole) -> {
-                Long teacherId = teacherIdByMatricule.get(matricule);
-                if (teacherId == null) return;
-                teachers.findById(teacherId).ifPresent(teacher ->
-                        byRole.forEach((role, count) ->
-                                workloads.save(new JobWorkload(job, teacher, role, count))));
-            });
+
+            assignments.deleteByJobId(jobId); // a re-solve replaces its own schedule
+            for (Duty duty : duties) {
+                TeacherEntity holder = duty.assignedTeacher()
+                        .map(Teacher::matricule)
+                        .map(teacherIdByMatricule::get)
+                        .flatMap(teachers::findById)
+                        .orElse(null);
+                assignments.save(new AssignmentEntity(job, duty.id(), duty.slot().id(),
+                        duty.exam().map(e -> e.id()).orElse(null),
+                        duty.room().map(r -> r.id()).orElse(null),
+                        duty.role(), holder));
+            }
         });
     }
 
@@ -193,12 +191,13 @@ public class SolveService {
                 .orElseThrow(() -> new IllegalArgumentException("no job with id " + jobId));
     }
 
-    /** The stored schedule of a finished job, empty while it is still running. */
+    /**
+     * The stored schedule of a finished job, empty while it is still running.
+     * Rebuilt from the assignment rows, so it reflects any manual change.
+     */
     @Transactional(readOnly = true)
     public Optional<ScheduleWriter.Result> schedule(long jobId) {
-        return jobs.findById(jobId)
-                .map(SolveJob::getResult)
-                .map(new ScheduleWriter()::parse);
+        return scheduleService.result(jobId);
     }
 
     @Transactional(readOnly = true)

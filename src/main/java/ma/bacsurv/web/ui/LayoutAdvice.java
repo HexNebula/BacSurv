@@ -10,7 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Locale;
 
 /** Language and text direction, available to every page without repetition. */
-@ControllerAdvice(assignableTypes = {UiController.class, CenterController.class})
+@ControllerAdvice(assignableTypes = {UiController.class, CenterController.class,
+        AssignmentController.class})
 public class LayoutAdvice {
 
     @ModelAttribute("lang")

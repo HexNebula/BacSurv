@@ -83,6 +83,9 @@ button, .button {
     display: inline-block;
 }
 button.secondary, .button.secondary { background: #e2e8f0; color: var(--ink); }
+.button.small { padding: .15rem .5rem; font-size: .8rem; }
+
+select { font: inherit; padding: .3rem .4rem; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
 
 input[type="number"], input[type="file"] {
     font: inherit;

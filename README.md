@@ -78,6 +78,28 @@ which rows could not be read — with the line number and the reason. A bad row
 is skipped, never the whole file, and re-importing the same file changes
 nothing.
 
+## Changing a schedule by hand
+
+The solver proposes; the administrator decides. Each line of a schedule has a
+**Modifier** link: choose someone else, and BacSurv answers before saving
+anything with what the change would break — the teacher is already on duty in
+that slot, is absent that day, is not a specialist of the subject they would
+cover as permanence, or would be surveilling their own subject. Those reasons
+are returned as codes and rendered in French or Arabic like every other string.
+
+A legal change also reports its cost: how many duties the new holder ends up
+with, and which preferences (repeated room, repeated pair, consecutive days)
+get better or worse.
+
+A change that breaks a rule is refused unless it is explicitly forced. Forced
+or not, the schedule keeps telling the truth: the validation summary at the top
+of the job page counts the violation. An assignment can also be **pinned**, so
+the next solve leaves it alone.
+
+Through the API: `POST /api/jobs/{id}/assignments/{dutyId}/review` to ask,
+`POST /api/jobs/{id}/assignments/{dutyId}` to save (409 with the reasons when it
+breaks a rule, `force=true` to insist), and `.../pin` to protect it.
+
 ## Cumulative fairness across operations
 
 Importing an operation stores the center, its rooms and its teacher pool, not

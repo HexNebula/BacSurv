@@ -23,6 +23,9 @@
 </header>
 
 <main>
+    <div class="flash ok" th:if="${message}" th:text="${message}"></div>
+    <div class="flash error" th:if="${error}" th:text="${error}"></div>
+
     <section>
         <h2 th:text="#{job.state.title}">État</h2>
         <p>
@@ -71,6 +74,7 @@
                         <th th:text="#{schedule.stream}">Filière</th>
                         <th th:text="#{schedule.room}">Salle</th>
                         <th th:text="#{schedule.teacher}">Enseignant</th>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -80,6 +84,11 @@
                         <td th:text="${a.stream} ?: #{schedule.none}">—</td>
                         <td th:text="${a.roomId} ?: #{schedule.none}">—</td>
                         <td th:text="${a.teacherName} ?: #{schedule.unfilled}">—</td>
+                        <td>
+                            <a class="button secondary small"
+                               th:href="@{/jobs/{id}/assignments/{duty}/edit(id=${job.id},duty=${a.dutyId})}"
+                               th:text="#{change.title}">Modifier</a>
+                        </td>
                     </tr>
                     </tbody>
                 </table>

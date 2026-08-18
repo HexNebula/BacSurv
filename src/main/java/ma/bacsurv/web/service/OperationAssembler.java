@@ -14,7 +14,7 @@ import ma.bacsurv.domain.TeacherQualification;
 import ma.bacsurv.domain.Unavailability;
 import ma.bacsurv.web.persistence.ExamEntity;
 import ma.bacsurv.web.persistence.ExamSlotEntity;
-import ma.bacsurv.web.persistence.JobWorkloadRepository;
+import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.OperationEntity;
 import ma.bacsurv.web.persistence.RoomEntity;
 import ma.bacsurv.web.persistence.TeacherEntity;
@@ -37,15 +37,20 @@ import java.util.Set;
 @Component
 public class OperationAssembler {
 
-    /** The domain teacher, plus the row it came from, so results can be stored back. */
-    public record Pool(List<Teacher> teachers, Map<String, Long> teacherIdByMatricule) {}
+    /**
+     * The domain teachers, plus the mapping back to the rows they came from,
+     * so a solved schedule can be stored and re-read.
+     */
+    public record Pool(List<Teacher> teachers,
+                       Map<String, Long> teacherIdByMatricule,
+                       Map<Long, Teacher> teacherById) {}
 
     private final TeacherRepository teachers;
-    private final JobWorkloadRepository workloads;
+    private final AssignmentRepository assignments;
 
-    public OperationAssembler(TeacherRepository teachers, JobWorkloadRepository workloads) {
+    public OperationAssembler(TeacherRepository teachers, AssignmentRepository assignments) {
         this.teachers = teachers;
-        this.workloads = workloads;
+        this.assignments = assignments;
     }
 
     public ExamOperation toDomain(OperationEntity operation) {
@@ -77,16 +82,19 @@ public class OperationAssembler {
 
         List<Teacher> pool = new java.util.ArrayList<>();
         Map<String, Long> idByMatricule = new HashMap<>();
+        Map<Long, Teacher> byId = new HashMap<>();
         for (TeacherEntity entity : teachers.findPoolOfCenter(centerId)) {
-            pool.add(toDomain(entity, prior.getOrDefault(entity.getId(), Map.of())));
+            Teacher teacher = toDomain(entity, prior.getOrDefault(entity.getId(), Map.of()));
+            pool.add(teacher);
             idByMatricule.put(entity.getMatricule(), entity.getId());
+            byId.put(entity.getId(), teacher);
         }
-        return new Pool(List.copyOf(pool), Map.copyOf(idByMatricule));
+        return new Pool(List.copyOf(pool), Map.copyOf(idByMatricule), Map.copyOf(byId));
     }
 
     private Map<Long, Map<DutyRole, Integer>> priorWorkload(Long centerId, Long operationId) {
         Map<Long, Map<DutyRole, Integer>> prior = new HashMap<>();
-        for (Object[] row : workloads.priorWorkloadOfCenter(centerId, operationId)) {
+        for (Object[] row : assignments.priorWorkloadOfCenter(centerId, operationId)) {
             Long teacherId = (Long) row[0];
             DutyRole role = (DutyRole) row[1];
             int count = ((Number) row[2]).intValue();
