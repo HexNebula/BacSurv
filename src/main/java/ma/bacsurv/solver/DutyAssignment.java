@@ -1,6 +1,7 @@
 package ma.bacsurv.solver;
 
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
+import ai.timefold.solver.core.api.domain.entity.PlanningPin;
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 import ma.bacsurv.domain.Duty;
@@ -22,19 +23,33 @@ public class DutyAssignment {
     private Duty duty;
     @PlanningVariable
     private Teacher teacher;
+    /**
+     * A decision the administrator made by hand. Timefold leaves pinned
+     * entities untouched, so re-solving re-arranges everything around them
+     * instead of overwriting them.
+     */
+    @PlanningPin
+    private boolean pinned;
 
     public DutyAssignment() {} // Timefold needs a no-arg constructor
 
     public DutyAssignment(Duty duty) {
+        this(duty, false);
+    }
+
+    public DutyAssignment(Duty duty, boolean pinned) {
         this.id = duty.id();
         this.duty = duty;
         this.teacher = duty.assignedTeacher().orElse(null);
+        this.pinned = pinned;
     }
 
     public String getId() { return id; }
     public Duty getDuty() { return duty; }
     public Teacher getTeacher() { return teacher; }
     public void setTeacher(Teacher teacher) { this.teacher = teacher; }
+    public boolean isPinned() { return pinned; }
+    public void setPinned(boolean pinned) { this.pinned = pinned; }
 
     // Convenience accessors for constraint streams
     public DutyRole role() { return duty.role(); }

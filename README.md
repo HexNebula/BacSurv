@@ -91,6 +91,10 @@ A legal change also reports its cost: how many duties the new holder ends up
 with, and which preferences (repeated room, repeated pair, consecutive days)
 get better or worse.
 
+An assignment can be **pinned** from the same page, and a pinned duty keeps its
+teacher through the next solve while the rest of the schedule is rebuilt around
+it — the pin itself survives too.
+
 A change that breaks a rule is refused unless it is explicitly forced. Forced
 or not, the schedule keeps telling the truth: the validation summary at the top
 of the job page counts the violation. An assignment can also be **pinned**, so

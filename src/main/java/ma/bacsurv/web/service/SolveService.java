@@ -128,8 +128,9 @@ public class SolveService {
 
         try {
             List<Duty> duties = new DutyGenerator().generate(input.operation());
+            applyPins(duties, input);
             new TimefoldScheduler(Duration.ofSeconds(input.seconds()))
-                    .solve(duties, input.pool().teachers());
+                    .solve(duties, input.pool().teachers(), input.pinned().keySet());
 
             ValidationReport report = ScheduleValidator.withDefaults().validate(duties);
             ScheduleWriter writer = new ScheduleWriter();
@@ -137,15 +138,19 @@ public class SolveService {
                     input.operation().id(), duties, input.pool().teachers(), report);
 
             self.complete(jobId, writer.toJson(result), result, duties,
-                    input.pool().teacherIdByMatricule());
+                    input.pool().teacherIdByMatricule(), input.pinned().keySet());
         } catch (RuntimeException e) {
             log.error("solve job {} failed", jobId, e);
             self.fail(jobId, e.getMessage() != null ? e.getMessage() : e.toString());
         }
     }
 
-    /** Everything the solver needs, read out before the transaction closes. */
-    public record SolveInput(ExamOperation operation, OperationAssembler.Pool pool, int seconds) {}
+    /**
+     * Everything the solver needs, read out before the transaction closes.
+     * {@code pinned} maps a duty to the teacher an administrator fixed on it.
+     */
+    public record SolveInput(ExamOperation operation, OperationAssembler.Pool pool,
+                             Map<String, Long> pinned, int seconds) {}
 
     @Transactional
     public SolveInput start(long jobId) {
@@ -153,14 +158,30 @@ public class SolveService {
                 .orElseThrow(() -> new IllegalArgumentException("no job with id " + jobId));
         job.markRunning();
         OperationEntity operation = job.getOperation();
+
+        Map<String, Long> pinned = new HashMap<>();
+        assignments.pinnedOfOperation(operation.getId())
+                .forEach(row -> pinned.put(row.getDutyId(), row.getTeacher().getId()));
+
         return new SolveInput(assembler.toDomain(operation), assembler.poolFor(operation),
-                job.getTimeLimitSeconds());
+                pinned, job.getTimeLimitSeconds());
+    }
+
+    /** Places the pinned teachers before solving; the solver then holds them there. */
+    private static void applyPins(List<Duty> duties, SolveInput input) {
+        for (Duty duty : duties) {
+            Long teacherId = input.pinned().get(duty.id());
+            if (teacherId == null) continue;
+            Teacher teacher = input.pool().teacherById().get(teacherId);
+            if (teacher != null) duty.assign(teacher);
+        }
     }
 
     /** Stores the solved schedule as rows: one per duty, editable afterwards. */
     @Transactional
     public void complete(long jobId, String resultJson, ScheduleWriter.Result result,
-                         List<Duty> duties, Map<String, Long> teacherIdByMatricule) {
+                         List<Duty> duties, Map<String, Long> teacherIdByMatricule,
+                         java.util.Set<String> pinnedDutyIds) {
         jobs.findById(jobId).ifPresent(job -> {
             job.markDone(resultJson, result.feasible(), result.hardViolations(),
                     result.softViolations(), result.unfilled());
@@ -172,10 +193,13 @@ public class SolveService {
                         .map(teacherIdByMatricule::get)
                         .flatMap(teachers::findById)
                         .orElse(null);
-                assignments.save(new AssignmentEntity(job, duty.id(), duty.slot().id(),
+                AssignmentEntity row = new AssignmentEntity(job, duty.id(), duty.slot().id(),
                         duty.exam().map(e -> e.id()).orElse(null),
                         duty.room().map(r -> r.id()).orElse(null),
-                        duty.role(), holder));
+                        duty.role(), holder);
+                // a pin belongs to the decision, not to one solve of it
+                row.setPinned(pinnedDutyIds.contains(duty.id()));
+                assignments.save(row);
             }
         });
     }

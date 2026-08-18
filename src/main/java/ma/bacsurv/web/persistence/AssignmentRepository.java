@@ -18,6 +18,22 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
 
     Optional<AssignmentEntity> findByJobIdAndDutyId(Long jobId, String dutyId);
 
+    /**
+     * The pinned assignments of the newest finished job of an operation:
+     * the hand-made decisions a re-solve of that operation must respect.
+     */
+    @Query("""
+            select a from AssignmentEntity a
+            join fetch a.teacher
+            where a.pinned = true
+              and a.teacher is not null
+              and a.job.id = (
+                  select max(j.id) from SolveJob j
+                  where j.operation.id = :operationId
+                    and j.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE)
+            """)
+    List<AssignmentEntity> pinnedOfOperation(Long operationId);
+
     void deleteByJobId(Long jobId);
 
     /**

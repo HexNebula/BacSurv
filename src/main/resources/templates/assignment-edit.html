@@ -34,6 +34,14 @@
             <a class="button secondary" th:href="@{/jobs/{id}(id=${jobId})}"
                th:text="#{teachers.preview.cancel}">Annuler</a>
         </form>
+
+        <form class="inline" method="post" style="margin-top:.8rem"
+              th:action="@{/jobs/{id}/assignments/{duty}/pin(id=${jobId},duty=${duty.dutyId})}">
+            <input type="hidden" name="pinned" th:value="${!duty.pinned}">
+            <button type="submit" class="secondary"
+                    th:text="${duty.pinned} ? #{change.unpin} : #{change.pin}">Figer</button>
+            <span class="muted small" th:if="${duty.pinned}" th:text="#{change.pinned}">Figée</span>
+        </form>
     </section>
 
     <section th:if="${review}">

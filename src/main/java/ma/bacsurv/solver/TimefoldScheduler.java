@@ -8,6 +8,7 @@ import ma.bacsurv.domain.Teacher;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Adapter: domain duties in, solved assignments written back to the same
@@ -22,7 +23,20 @@ public final class TimefoldScheduler {
     }
 
     public SurveillancePlan solve(List<Duty> duties, List<Teacher> pool) {
-        List<DutyAssignment> assignments = duties.stream().map(DutyAssignment::new).toList();
+        return solve(duties, pool, Set.of());
+    }
+
+    /**
+     * Duties named in {@code pinnedDutyIds} keep the teacher they already
+     * carry: hand-made decisions survive a re-solve, and the rest of the
+     * schedule is rebuilt around them.
+     */
+    public SurveillancePlan solve(List<Duty> duties, List<Teacher> pool,
+                                  Set<String> pinnedDutyIds) {
+        List<DutyAssignment> assignments = duties.stream()
+                .map(duty -> new DutyAssignment(duty,
+                        pinnedDutyIds.contains(duty.id()) && duty.assignedTeacher().isPresent()))
+                .toList();
         SurveillancePlan problem = new SurveillancePlan(assignments, pool);
 
         SolverConfig config = new SolverConfig()
