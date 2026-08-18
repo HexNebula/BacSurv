@@ -64,6 +64,15 @@ demo/         runnable demonstrations with generated data
 The domain, rules and solver packages know nothing about the web or the
 database; the web layer calls services and never reaches into the solver.
 
+## Cumulative fairness across operations
+
+Importing an operation stores the center, its rooms and its teacher pool, not
+just the file. When a second operation of the same center is solved, each
+teacher's duties from the earlier operations are read back from the database
+and used as their starting load, so the year's total stays balanced without
+anyone maintaining a `prior` block by hand. Teachers are matched by matricule
+within their center.
+
 ## Database
 
 Development uses H2 in PostgreSQL mode; the schema is owned by Flyway

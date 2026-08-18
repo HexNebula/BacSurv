@@ -45,7 +45,7 @@ public class UiController {
 
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("operations", solveService.recentFiles());
+        model.addAttribute("operations", solveService.recentOperations());
         model.addAttribute("jobs", solveService.recentJobs());
         model.addAttribute("defaultSeconds", defaultSeconds);
         return "home";

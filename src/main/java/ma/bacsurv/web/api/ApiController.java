@@ -41,7 +41,7 @@ public class ApiController {
 
     @GetMapping("/operations")
     public List<OperationView> operations() {
-        return solveService.recentFiles();
+        return solveService.recentOperations();
     }
 
     /** Upload an operation input file (multipart) — rejected if it does not parse. */

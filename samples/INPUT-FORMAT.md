@@ -15,6 +15,16 @@ unfilled duties), `2` bad input file or usage. Default output path:
 
 ## Sections
 
+### `center` (optional)
+- `name` — the exam center this operation belongs to. Defaults to the
+  operation id when absent.
+
+Importing stores the center, its rooms and its teachers. A later operation
+naming the **same center** reuses those teacher rows, matched by matricule,
+so the duties already handed out are carried forward automatically: the
+`prior` block below is only needed to seed history that BacSurv never solved
+itself.
+
 ### `operation`
 - `id` — free-form label, echoed into the output.
 - `type` — `REGIONAL_1BAC` | `NATIONAL_2BAC` | `NATIONAL_2BAC_RATTRAPAGE`.

@@ -48,9 +48,10 @@ class WebFlowTest {
 
         mvc.perform(multipart("/api/operations").file(file))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("operation-sample.json"));
+                .andExpect(jsonPath("$.reference").value("NAT-2026-JUIN"))
+                .andExpect(jsonPath("$.centerName").value("NAT-2026-JUIN"));
 
-        OperationView operation = solveService.recentFiles().getFirst();
+        OperationView operation = solveService.recentOperations().getFirst();
 
         mvc.perform(post("/api/operations/{id}/solve", operation.id()).param("seconds", "5"))
                 .andExpect(status().isAccepted())
@@ -81,7 +82,7 @@ class WebFlowTest {
         // the browser pages render the same data
         mvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("operation-sample.json")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("NAT-2026-JUIN")));
 
         mvc.perform(get("/jobs/{id}", job.id()))
                 .andExpect(status().isOk())

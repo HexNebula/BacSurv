@@ -41,7 +41,8 @@ public final class InputMapper {
     private final ObjectMapper json = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
-    public record ParsedOperation(ExamOperation operation, List<Teacher> teachers) {}
+    public record ParsedOperation(String centerName, ExamOperation operation,
+                                  List<Teacher> teachers) {}
 
     public ParsedOperation read(Path file) {
         OperationInput input;
@@ -82,7 +83,12 @@ public final class InputMapper {
                 defaultSurveillants, defaultPermanence, reservePolicy);
         List<Teacher> teachers = mapTeachers(in.teachers());
 
-        return new ParsedOperation(
+        String centerName = in.center() != null && in.center().name() != null
+                && !in.center().name().isBlank()
+                ? in.center().name().trim()
+                : in.operation().id();
+
+        return new ParsedOperation(centerName,
                 new ExamOperation(in.operation().id(), type, slots), teachers);
     }
 

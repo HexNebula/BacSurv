@@ -104,7 +104,7 @@ class InputMapperTest {
 
     private static OperationInput withTeachers(List<OperationInput.TeacherDto> teachers) {
         return new OperationInput(
-                new OperationInput.OperationDto("OP", "NATIONAL_2BAC"), null,
+                null, new OperationInput.OperationDto("OP", "NATIONAL_2BAC"), null,
                 List.of(new OperationInput.RoomDto("R1", null)),
                 List.of(new OperationInput.SlotDto("S1", "2026-06-01", "08:00", "10:00",
                         List.of(exam("E1", List.of("R1"))), null)),
@@ -141,7 +141,7 @@ class InputMapperTest {
 
     private static OperationInput withSlot(OperationInput.SlotDto slot) {
         return new OperationInput(
-                new OperationInput.OperationDto("OP", "NATIONAL_2BAC"), null,
+                null, new OperationInput.OperationDto("OP", "NATIONAL_2BAC"), null,
                 List.of(new OperationInput.RoomDto("R1", null)),
                 List.of(slot),
                 List.of(teacherDto("T1")));

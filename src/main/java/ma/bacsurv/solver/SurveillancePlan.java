@@ -2,6 +2,7 @@ package ma.bacsurv.solver;
 
 import ai.timefold.solver.core.api.domain.solution.PlanningEntityCollectionProperty;
 import ai.timefold.solver.core.api.domain.solution.PlanningScore;
+import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty;
 import ai.timefold.solver.core.api.domain.solution.PlanningSolution;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
@@ -15,7 +16,13 @@ public class SurveillancePlan {
     @PlanningEntityCollectionProperty
     private List<DutyAssignment> assignments;
 
+    /**
+     * Also a fact collection, not only a value range: constraints must be able
+     * to reason about a teacher who received nothing, and such a teacher never
+     * shows up in the assignment stream.
+     */
     @ValueRangeProvider
+    @ProblemFactCollectionProperty
     private List<Teacher> teacherPool;
 
     @PlanningScore

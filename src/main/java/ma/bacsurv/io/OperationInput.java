@@ -9,11 +9,15 @@ import java.util.Map;
  * into domain objects. Optional fields are null when absent.
  */
 public record OperationInput(
+        CenterDto center,
         OperationDto operation,
         DefaultsDto defaults,
         List<RoomDto> rooms,
         List<SlotDto> slots,
         List<TeacherDto> teachers) {
+
+    /** Which center this operation belongs to — its teachers carry over between operations. */
+    public record CenterDto(String name) {}
 
     public record OperationDto(String id, String type) {}
 

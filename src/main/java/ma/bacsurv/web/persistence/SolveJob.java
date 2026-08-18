@@ -29,7 +29,12 @@ public class SolveJob {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "operation_file_id", nullable = false)
+    @JoinColumn(name = "operation_id", nullable = false)
+    private OperationEntity operation;
+
+    /** The file this operation was imported from, when there was one. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "operation_file_id")
     private OperationFile operationFile;
 
     @Enumerated(EnumType.STRING)
@@ -67,7 +72,8 @@ public class SolveJob {
 
     protected SolveJob() {}
 
-    public SolveJob(OperationFile operationFile, int timeLimitSeconds) {
+    public SolveJob(OperationEntity operation, OperationFile operationFile, int timeLimitSeconds) {
+        this.operation = operation;
         this.operationFile = operationFile;
         this.timeLimitSeconds = timeLimitSeconds;
         this.status = Status.PENDING;
@@ -97,6 +103,7 @@ public class SolveJob {
     }
 
     public Long getId() { return id; }
+    public OperationEntity getOperation() { return operation; }
     public OperationFile getOperationFile() { return operationFile; }
     public Status getStatus() { return status; }
     public int getTimeLimitSeconds() { return timeLimitSeconds; }

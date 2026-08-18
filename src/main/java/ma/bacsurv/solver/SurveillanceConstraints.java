@@ -29,6 +29,7 @@ public class SurveillanceConstraints implements ConstraintProvider {
     static final int WEIGHT_ROLE_BALANCE = 1;
     static final int WEIGHT_HALF_DAY_IMBALANCE = 2;
     static final int WEIGHT_SAME_GENDER_PAIR = 1;
+    static final int WEIGHT_IDLE_TEACHER = 5000;
     static final int MAX_CONSECUTIVE_DAYS = 3;
 
     @Override
@@ -44,6 +45,7 @@ public class SurveillanceConstraints implements ConstraintProvider {
                 avoidRepeatedPair(f),
                 maxConsecutiveDays(f),
                 balanceTotal(f),
+                noIdleTeacher(f),
                 balanceHalfDays(f),
                 mixedGenderPair(f),
                 balanceRole(f, DutyRole.SURVEILLANCE, "balance surveillance load"),
@@ -162,6 +164,21 @@ public class SurveillanceConstraints implements ConstraintProvider {
                 .penalize(HardSoftScore.ONE_SOFT,
                         lb -> unfairnessPoints(lb, WEIGHT_TOTAL_BALANCE))
                 .asConstraint("balance total load");
+    }
+
+    /**
+     * A teacher who receives nothing is invisible to the load-balance
+     * collector above, which only ever sees teachers that appear in the
+     * assignment stream. Without this, the cheapest way to look balanced is
+     * to leave people out entirely — and that is precisely unfair. Penalising
+     * idleness keeps every teacher inside the balance.
+     */
+    Constraint noIdleTeacher(ConstraintFactory f) {
+        return f.forEach(Teacher.class)
+                .ifNotExists(DutyAssignment.class,
+                        Joiners.equal(Function.identity(), DutyAssignment::getTeacher))
+                .penalize(HardSoftScore.ofSoft(WEIGHT_IDLE_TEACHER))
+                .asConstraint("teacher left idle");
     }
 
     private static int unfairnessPoints(

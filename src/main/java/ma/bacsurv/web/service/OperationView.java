@@ -1,13 +1,16 @@
 package ma.bacsurv.web.service;
 
-import ma.bacsurv.web.persistence.OperationFile;
+import ma.bacsurv.web.persistence.OperationEntity;
 
 import java.time.Instant;
 
-/** What callers see of a stored operation file. Entities never leave the service. */
-public record OperationView(Long id, String name, Instant uploadedAt) {
+/** What callers see of a stored operation. Entities never leave the service. */
+public record OperationView(Long id, String reference, String centerName,
+                            String type, Instant createdAt, Long sourceFileId) {
 
-    static OperationView of(OperationFile file) {
-        return new OperationView(file.getId(), file.getName(), file.getUploadedAt());
+    static OperationView of(OperationEntity operation, Long sourceFileId) {
+        return new OperationView(operation.getId(), operation.getReference(),
+                operation.getCenter().getName(), operation.getType(),
+                operation.getCreatedAt(), sourceFileId);
     }
 }

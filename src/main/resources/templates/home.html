@@ -38,15 +38,17 @@
             <table>
                 <thead>
                 <tr>
-                    <th th:text="#{home.operations.file}">Fichier</th>
-                    <th th:text="#{home.operations.uploaded}">Importé le</th>
+                    <th th:text="#{home.operations.center}">Centre</th>
+                    <th th:text="#{home.operations.reference}">Opération</th>
+                    <th th:text="#{home.operations.created}">Créée le</th>
                     <th th:text="#{home.operations.solve}">Résoudre</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="op : ${operations}">
-                    <td th:text="${op.name}">operation.json</td>
-                    <td class="muted" th:text="${#temporals.format(op.uploadedAt, 'dd/MM/yyyy HH:mm')}">—</td>
+                    <td th:text="${op.centerName}">Centre</td>
+                    <td th:text="${op.reference}">NAT-2026-JUIN</td>
+                    <td class="muted" th:text="${#temporals.format(op.createdAt, 'dd/MM/yyyy HH:mm')}">—</td>
                     <td>
                         <form class="inline" method="post" th:action="@{/operations/{id}/solve(id=${op.id})}">
                             <input type="number" name="seconds" min="5" max="600"
@@ -68,6 +70,7 @@
                 <thead>
                 <tr>
                     <th th:text="#{home.jobs.number}">N°</th>
+                    <th th:text="#{home.jobs.center}">Centre</th>
                     <th th:text="#{home.jobs.operation}">Opération</th>
                     <th th:text="#{home.jobs.state}">État</th>
                     <th th:text="#{home.jobs.result}">Résultat</th>
@@ -78,7 +81,8 @@
                 <tbody>
                 <tr th:each="job : ${jobs}">
                     <td th:text="${job.id}">1</td>
-                    <td th:text="${job.operationName}">operation.json</td>
+                    <td th:text="${job.centerName}">Centre</td>
+                    <td th:text="${job.operationName}">NAT-2026-JUIN</td>
                     <td>
                         <span class="badge"
                               th:classappend="${job.status.name() == 'DONE'} ? 'done'
