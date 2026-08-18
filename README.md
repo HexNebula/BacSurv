@@ -64,6 +64,20 @@ demo/         runnable demonstrations with generated data
 The domain, rules and solver packages know nothing about the web or the
 database; the web layer calls services and never reaches into the solver.
 
+## Importing the teacher pool from a spreadsheet
+
+**Centres → open a centre → import**. The file is what an administration
+exports: comma, semicolon or tab separated, UTF-8, headers in French, Arabic or
+English (`matricule` / `رقم التأجير` / `N° Matricule` all match, accents and
+spacing ignored). Only matricule, name and subject are required;
+establishment and gender are optional. See `samples/teachers-sample.csv`.
+
+Nothing is written until it is confirmed: the import first shows which teachers
+would be added, which would change and how, which are already correct, and
+which rows could not be read — with the line number and the reason. A bad row
+is skipped, never the whole file, and re-importing the same file changes
+nothing.
+
 ## Cumulative fairness across operations
 
 Importing an operation stores the center, its rooms and its teacher pool, not

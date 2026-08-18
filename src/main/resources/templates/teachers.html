@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="#{teachers.title(${center.name})}">Enseignants</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+    <div>
+        <h1><a href="/" th:text="#{app.title}">BacSurv</a></h1>
+        <p th:text="#{teachers.title(${center.name})}">Enseignants</p>
+    </div>
+    <nav class="languages" th:aria-label="#{app.language}">
+        <a th:href="@{/centers/{id}/teachers(id=${center.id},lang='fr')}"
+           th:classappend="${lang == 'fr'} ? 'current'" th:text="#{app.language.fr}">Français</a>
+        <a th:href="@{/centers/{id}/teachers(id=${center.id},lang='ar')}"
+           th:classappend="${lang == 'ar'} ? 'current'" th:text="#{app.language.ar}">العربية</a>
+    </nav>
+</header>
+
+<main>
+    <div class="flash ok" th:if="${message}" th:text="${message}"></div>
+    <div class="flash error" th:if="${error}" th:text="${error}"></div>
+
+    <section>
+        <h2 th:text="#{teachers.import}">Importer la liste des enseignants</h2>
+        <form class="inline" method="post" enctype="multipart/form-data"
+              th:action="@{/centers/{id}/teachers/preview(id=${center.id})}">
+            <input type="file" name="file" accept=".csv,text/csv,text/plain" required>
+            <button type="submit" th:text="#{teachers.import.button}">Analyser</button>
+        </form>
+        <p class="muted small" th:text="#{teachers.import.hint}">Colonnes attendues…</p>
+    </section>
+
+    <section>
+        <h2 th:text="#{centers.teachers}">Enseignants</h2>
+        <p class="muted small" th:if="${pool.isEmpty()}" th:text="#{teachers.empty}">—</p>
+        <div class="table-scroll" th:unless="${pool.isEmpty()}">
+            <table>
+                <thead>
+                <tr>
+                    <th th:text="#{job.workload.matricule}">Matricule</th>
+                    <th th:text="#{job.workload.teacher}">Enseignant</th>
+                    <th th:text="#{job.workload.subject}">Matière</th>
+                    <th th:text="#{centers.name}">Établissement</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${pool}">
+                    <td class="muted small" th:text="${t.matricule}">D100001</td>
+                    <td th:text="${t.name}">—</td>
+                    <td th:text="${t.subject}">—</td>
+                    <td class="muted" th:text="${t.establishment} ?: '—'">—</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <p><a class="button secondary" href="/centers" th:text="#{app.back}">Retour</a></p>
+</main>
+</body>
+</html>

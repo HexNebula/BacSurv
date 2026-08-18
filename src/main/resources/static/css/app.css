@@ -35,6 +35,7 @@ header {
     flex-wrap: wrap;
 }
 
+.header-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 .languages { display: flex; gap: .4rem; font-size: .85rem; }
 .languages a {
     color: var(--muted);

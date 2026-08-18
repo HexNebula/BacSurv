@@ -12,10 +12,13 @@
         <h1><a href="/" th:text="#{app.title}">BacSurv</a></h1>
         <p th:text="#{app.subtitle}">Planification de la surveillance</p>
     </div>
-    <nav class="languages" th:aria-label="#{app.language}">
-        <a href="?lang=fr" th:classappend="${lang == 'fr'} ? 'current'" th:text="#{app.language.fr}">Français</a>
-        <a href="?lang=ar" th:classappend="${lang == 'ar'} ? 'current'" th:text="#{app.language.ar}">العربية</a>
-    </nav>
+    <div class="header-actions">
+        <a class="button secondary" href="/centers" th:text="#{nav.centers}">Centres</a>
+        <nav class="languages" th:aria-label="#{app.language}">
+            <a href="?lang=fr" th:classappend="${lang == 'fr'} ? 'current'" th:text="#{app.language.fr}">Français</a>
+            <a href="?lang=ar" th:classappend="${lang == 'ar'} ? 'current'" th:text="#{app.language.ar}">العربية</a>
+        </nav>
+    </div>
 </header>
 
 <main>
