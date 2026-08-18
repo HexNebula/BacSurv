@@ -81,7 +81,8 @@ Exam
 ├── stream                  filière (Sciences Exp., Arts, ...)
 ├── rooms[]                 rooms hosting THIS exam's candidates
 ├── surveillantsPerRoom     default 2 (official: ≥2)
-└── permanenceCount         default 1 (per exam, i.e. per subject)
+└── permanenceCount         default 1 — per SUBJECT in the slot, not per exam:
+                            streams sitting the same subject share one specialist
 ```
 Example:
 ```
@@ -113,9 +114,14 @@ Duty generation per slot:
 ```
 for each exam in slot:
     surveillance duties = Σ over exam.rooms of surveillantsPerRoom
-    permanence duties   = permanenceCount   (1 specialist per exam subject)
+for each DISTINCT SUBJECT examined in slot:
+    permanence duties   = permanenceCount   (1 specialist per subject)
 reserve duties = slot.reserveRequirement    (slot-wide standby pool)
 ```
+Permanence is per subject, never per exam or per stream: the scientific
+streams normally sit the same paper at the same hour and one specialist
+covers all of them, while a literature stream sitting another subject needs
+its own. Counting permanence per exam overstates the staff a slot needs.
 
 ### ReservePolicy (suggestion generator, NOT the requirement itself)
 Official wording: reserve list *up to* 10% of surveillance personnel —

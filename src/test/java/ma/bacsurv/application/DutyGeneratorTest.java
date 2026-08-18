@@ -27,12 +27,28 @@ class DutyGeneratorTest {
     }
 
     @Test
-    void permanenceIsPerExamNotPerSlot() {
+    void permanenceIsOnePerSubjectOfTheSlot() {
         List<Duty> duties = generator.generate(TestFixtures.singleSlotOperation());
         List<Duty> permanence = duties.stream()
                 .filter(d -> d.role() == DutyRole.PERMANENCE).toList();
+
+        // the fixture examines two different subjects at that hour
+        assertEquals(2, permanence.size());
         assertEquals(2, permanence.stream()
                 .map(d -> d.exam().orElseThrow().subject()).distinct().count());
+    }
+
+    @Test
+    void streamsSittingTheSameSubjectShareOnePermanence() {
+        // three streams, one paper: one specialist answers for all of them
+        ExamSlot slot = TestFixtures.sameSubjectAcrossStreamsSlot();
+        List<Duty> duties = generator.generate(
+                new ma.bacsurv.domain.ExamOperation("OP",
+                        ma.bacsurv.domain.OperationType.NATIONAL_2BAC, List.of(slot)));
+
+        assertEquals(3, slot.exams().size(), "three exams");
+        assertEquals(1, count(duties, DutyRole.PERMANENCE),
+                "but a single subject, so a single permanence");
     }
 
     @Test

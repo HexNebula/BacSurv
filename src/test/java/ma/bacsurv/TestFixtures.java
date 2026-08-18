@@ -44,6 +44,18 @@ public final class TestFixtures {
                 LocalTime.of(8, 0), LocalTime.of(10, 0), 1, List.of(hg, fr), 1);
     }
 
+    /**
+     * The normal case for the scientific streams: three streams, three exams,
+     * one and the same subject at the same hour — so one permanence.
+     */
+    public static ExamSlot sameSubjectAcrossStreamsSlot() {
+        Exam a = Exam.of("E-M1", MATH, SCIENCES, List.of(R1, R2));
+        Exam b = Exam.of("E-M2", MATH, new Stream("Sciences Maths"), List.of(R3));
+        Exam c = Exam.of("E-M3", MATH, new Stream("Sciences Agronomiques"), List.of(R4));
+        return new ExamSlot("SL2", LocalDate.of(2026, 6, 1),
+                LocalTime.of(8, 0), LocalTime.of(10, 0), 1, List.of(a, b, c), 1);
+    }
+
     public static ExamOperation singleSlotOperation() {
         return new ExamOperation("OP1", OperationType.REGIONAL_1BAC,
                 List.of(multiSubjectSlot()));

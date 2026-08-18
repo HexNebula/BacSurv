@@ -5,9 +5,13 @@ import ma.bacsurv.domain.Exam;
 import ma.bacsurv.domain.ExamOperation;
 import ma.bacsurv.domain.ExamSlot;
 import ma.bacsurv.domain.Room;
+import ma.bacsurv.domain.Subject;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * operation → slots → exams → duties. Deterministic ids so regeneration
@@ -26,15 +30,35 @@ public final class DutyGenerator {
                                 slot, exam, room));
                     }
                 }
-                for (int i = 1; i <= exam.permanenceCount(); i++) {
-                    duties.add(Duty.permanence(
-                            slot.id() + "-" + exam.id() + "-P" + i, slot, exam));
-                }
             }
+            duties.addAll(permanenceDuties(slot));
             for (int i = 1; i <= slot.reserveRequirement(); i++) {
                 duties.add(Duty.reserve(slot.id() + "-R" + i, slot));
             }
         }
+        return duties;
+    }
+
+    /**
+     * Permanence answers questions about a subject, so it is staffed once per
+     * subject being examined — not once per exam. Streams sitting the same
+     * subject at the same hour share one specialist; a stream sitting a
+     * different subject needs its own.
+     */
+    private List<Duty> permanenceDuties(ExamSlot slot) {
+        Map<Subject, List<Exam>> examsBySubject = slot.exams().stream()
+                .collect(Collectors.groupingBy(Exam::subject, LinkedHashMap::new,
+                        Collectors.toList()));
+
+        List<Duty> duties = new ArrayList<>();
+        examsBySubject.forEach((subject, exams) -> {
+            Exam representative = exams.getFirst();
+            int count = exams.stream().mapToInt(Exam::permanenceCount).max().orElse(0);
+            for (int i = 1; i <= count; i++) {
+                duties.add(Duty.permanence(
+                        slot.id() + "-" + representative.id() + "-P" + i, slot, representative));
+            }
+        });
         return duties;
     }
 }

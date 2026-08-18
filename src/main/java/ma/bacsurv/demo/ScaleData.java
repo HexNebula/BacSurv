@@ -68,16 +68,19 @@ public final class ScaleData {
                 String id = "S" + (day * size.slotsPerDay() + session + 1);
                 LocalTime from = session == 0 ? LocalTime.of(8, 0) : LocalTime.of(15, 0);
 
-                // the streams sit different subjects at the same hour, each in
-                // its own block of rooms — this is why a slot holds many exams
+                // the two scientific streams sit the same paper at the same
+                // hour, the literature stream sits another one — so this slot
+                // holds three exams but only two subjects, hence two permanences
                 List<Exam> exams = new ArrayList<>();
                 int roomsPerStream = size.rooms() / STREAMS.size();
+                Subject scientific = SUBJECTS.get((day * 2 + session) % SUBJECTS.size());
+                Subject literary = SUBJECTS.get((day * 2 + session + 3) % SUBJECTS.size());
                 for (int s = 0; s < STREAMS.size(); s++) {
                     List<Room> block = rooms.subList(s * roomsPerStream,
                             s == STREAMS.size() - 1 ? size.rooms() : (s + 1) * roomsPerStream);
-                    Subject subject = SUBJECTS.get(
-                            (day * STREAMS.size() + s + session) % SUBJECTS.size());
-                    exams.add(Exam.of("E" + examCounter++, subject, STREAMS.get(s), block));
+                    Stream stream = STREAMS.get(s);
+                    Subject subject = stream.name().startsWith("Lettres") ? literary : scientific;
+                    exams.add(Exam.of("E" + examCounter++, subject, stream, block));
                 }
 
                 ExamSlot withoutReserve = new ExamSlot(id, start.plusDays(day), from,

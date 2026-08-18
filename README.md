@@ -80,10 +80,10 @@ center of a given size and reports what the solver achieved. Measured results:
 
 | Center | Duties | Teachers | Time | Result |
 | --- | --- | --- | --- | --- |
-| 6 days, 20 rooms | 564 | 100 | 30s | feasible, 0 hard, 2 soft, load 5–6 per teacher |
-| 6 days, 20 rooms | 564 | 100 | 10s | feasible, 0 hard, 24 soft, same load spread |
-| 12 days, 30 rooms | 1656 | 150 | 60s | feasible, 0 hard, 121 soft, load 11–12 |
-| 12 days, 30 rooms | 1656 | 150 | 120s | feasible, 0 hard, 59 soft, load 11–12 |
+| 6 days, 20 rooms | 552 | 100 | 30s | feasible, 0 hard, 1 soft, load 5–6 per teacher |
+| 6 days, 20 rooms | 552 | 100 | 10s | feasible, 0 hard, ~24 soft, same load spread |
+| 12 days, 30 rooms | ~1630 | 150 | 60s | feasible, 0 hard, ~120 soft, load 11–12 |
+| 12 days, 30 rooms | ~1630 | 150 | 120s | feasible, 0 hard, ~59 soft, load 11–12 |
 
 Legality and fairness are reached quickly; extra time buys preference quality
 (room repetition, pairs). At the largest size most remaining soft penalties are
