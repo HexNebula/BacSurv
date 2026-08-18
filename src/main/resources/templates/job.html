@@ -93,6 +93,7 @@
             <table>
                 <thead>
                 <tr>
+                    <th th:text="#{job.workload.matricule}">Matricule</th>
                     <th th:text="#{job.workload.teacher}">Enseignant</th>
                     <th th:text="#{job.workload.subject}">Matière</th>
                     <th th:text="#{job.workload.surveillance}">Surveillance</th>
@@ -104,6 +105,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="w : ${workload}">
+                    <td class="muted small" th:text="${w.matricule}">—</td>
                     <td th:text="${w.name}">—</td>
                     <td class="muted" th:text="${w.subject}">—</td>
                     <td th:text="${w.surveillance}">0</td>

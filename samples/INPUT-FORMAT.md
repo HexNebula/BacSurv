@@ -38,9 +38,12 @@ Fallbacks applied where an exam/slot omits its own value:
 `ordinalInDay` is derived automatically from start-time order within each date.
 
 ### `teachers`
-- `id`, `name?`, `subject` (must match exam subject strings exactly),
-  `establishment?`, `gender?` (`MALE`/`FEMALE`, only used by the soft
+- `id`, `matricule`, `name?`, `subject` (must match exam subject strings
+  exactly), `establishment?`, `gender?` (`MALE`/`FEMALE`, only used by the soft
   mixed-pair preference)
+- `matricule` — *numéro de matricule* / *رقم التأجير*, the staff number of the
+  civil servant. Required and unique: it is the teacher's real identity on
+  official lists and convocations, where names can be ambiguous.
 - `unavailable?`: list of `{ date, start?, end? }` — both times or neither
   (neither = whole day)
 - `prior?`: duties carried from earlier operations of the year, e.g.

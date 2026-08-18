@@ -67,9 +67,14 @@ public final class DemoData {
         int n = 1;
         for (Quota q : quotas)
             for (int i = 0; i < q.count(); i++)
-                pool.add(Teacher.withDefaults("T" + n++, "Prof-" + q.prefix() + i,
+                pool.add(Teacher.withDefaults("T" + n, matricule(n++), "Prof-" + q.prefix() + i,
                         q.subject(), "Lycée Al Massira"));
         return pool;
+    }
+
+    /** Demo matricules in the shape the administration uses, e.g. D123456. */
+    private static String matricule(int n) {
+        return "D%06d".formatted(100000 + n);
     }
 
     private static ExamSlot slot(String id, LocalDate date, int startHour, int ordinal,

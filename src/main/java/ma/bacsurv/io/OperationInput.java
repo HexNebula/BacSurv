@@ -43,6 +43,8 @@ public record OperationInput(
 
     public record TeacherDto(
             String id,
+            /** numéro de matricule / رقم التأجير — required, unique. */
+            String matricule,
             String name,
             String subject,
             String establishment,

@@ -28,7 +28,7 @@ public final class TestFixtures {
     public static final Room R5 = new Room("R5", "Room 5");
 
     public static Teacher teacher(String id, Subject subject) {
-        return Teacher.withDefaults(id, "Teacher-" + id, subject, "Lycée Test");
+        return Teacher.withDefaults(id, "M-" + id, "Teacher-" + id, subject, "Lycée Test");
     }
 
     /**

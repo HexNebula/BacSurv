@@ -45,6 +45,7 @@ class InputMapperTest {
         var parsed = new InputMapper().read(SAMPLE);
 
         Teacher t4 = teacher(parsed.teachers(), "T4");
+        assertEquals("D100004", t4.matricule());
         assertEquals(3, t4.prior(DutyRole.SURVEILLANCE));
         assertEquals(1, t4.prior(DutyRole.RESERVE));
         assertEquals(4, t4.priorTotal());
@@ -81,15 +82,33 @@ class InputMapperTest {
     }
 
     @Test
+    void requiresMatricule() {
+        var in = withTeachers(List.of(teacherDto("T1", null)));
+        var ex = assertThrows(InputMapper.InputException.class, () -> new InputMapper().map(in));
+        assertTrue(ex.getMessage().contains("matricule"));
+    }
+
+    @Test
+    void rejectsDuplicateMatricule() {
+        var in = withTeachers(List.of(teacherDto("T1", "D100001"), teacherDto("T2", "D100001")));
+        var ex = assertThrows(InputMapper.InputException.class, () -> new InputMapper().map(in));
+        assertTrue(ex.getMessage().contains("duplicate matricule"));
+    }
+
+    @Test
     void rejectsDuplicateTeacherId() {
-        var in = new OperationInput(
+        var in = withTeachers(List.of(teacherDto("T1", "D1"), teacherDto("T1", "D2")));
+        var ex = assertThrows(InputMapper.InputException.class, () -> new InputMapper().map(in));
+        assertTrue(ex.getMessage().contains("duplicate teacher id"));
+    }
+
+    private static OperationInput withTeachers(List<OperationInput.TeacherDto> teachers) {
+        return new OperationInput(
                 new OperationInput.OperationDto("OP", "NATIONAL_2BAC"), null,
                 List.of(new OperationInput.RoomDto("R1", null)),
                 List.of(new OperationInput.SlotDto("S1", "2026-06-01", "08:00", "10:00",
                         List.of(exam("E1", List.of("R1"))), null)),
-                List.of(teacherDto("T1"), teacherDto("T1")));
-        var ex = assertThrows(InputMapper.InputException.class, () -> new InputMapper().map(in));
-        assertTrue(ex.getMessage().contains("duplicate teacher id"));
+                teachers);
     }
 
     // --- helpers ---
@@ -107,7 +126,12 @@ class InputMapperTest {
     }
 
     private static OperationInput.TeacherDto teacherDto(String id) {
-        return new OperationInput.TeacherDto(id, null, "Français", null, null, null, Map.of());
+        return teacherDto(id, "M-" + id);
+    }
+
+    private static OperationInput.TeacherDto teacherDto(String id, String matricule) {
+        return new OperationInput.TeacherDto(
+                id, matricule, null, "Français", null, null, null, Map.of());
     }
 
     private static OperationInput minimal(OperationInput.ExamDto exam) {

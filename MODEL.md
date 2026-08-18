@@ -19,6 +19,7 @@ different streams (confirmed for Moroccan regional/national structure).
 | Field | Notes |
 |---|---|
 | id, name | |
+| matricule | numéro de matricule / رقم التأجير — the civil servant's staff number. Required and unique; the real identity on official lists and convocations |
 | subject | taught subject |
 | establishment | home school (informational — no avoidance rule) |
 | gender | optional, only for mixed-pair soft preference |

@@ -25,10 +25,10 @@ public final class ScheduleWriter {
     public record AssignmentRow(
             String dutyId, String slotId, String date, String start, String end,
             String role, String examId, String subject, String stream,
-            String roomId, String teacherId, String teacherName) {}
+            String roomId, String teacherId, String teacherMatricule, String teacherName) {}
 
     public record WorkloadRow(
-            String teacherId, String name, String subject,
+            String teacherId, String matricule, String name, String subject,
             int surveillance, int reserve, int permanence, int priorTotal, int total) {}
 
     public record Result(
@@ -57,6 +57,7 @@ public final class ScheduleWriter {
                         d.exam().map(e -> e.stream().name()).orElse(null),
                         d.room().map(Room::id).orElse(null),
                         d.assignedTeacher().map(Teacher::id).orElse(null),
+                        d.assignedTeacher().map(Teacher::matricule).orElse(null),
                         d.assignedTeacher().map(Teacher::name).orElse(null)))
                 .toList();
 
@@ -73,7 +74,7 @@ public final class ScheduleWriter {
                     int s = m.getOrDefault(DutyRole.SURVEILLANCE, 0);
                     int r = m.getOrDefault(DutyRole.RESERVE, 0);
                     int p = m.getOrDefault(DutyRole.PERMANENCE, 0);
-                    return new WorkloadRow(t.id(), t.name(), t.subject().name(),
+                    return new WorkloadRow(t.id(), t.matricule(), t.name(), t.subject().name(),
                             s, r, p, t.priorTotal(), s + r + p);
                 })
                 .toList();

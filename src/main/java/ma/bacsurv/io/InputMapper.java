@@ -150,10 +150,15 @@ public final class InputMapper {
 
     private List<Teacher> mapTeachers(List<OperationInput.TeacherDto> dtos) {
         Set<String> ids = new HashSet<>();
+        Set<String> matricules = new HashSet<>();
         List<Teacher> teachers = new ArrayList<>();
         for (var dto : dtos) {
             require(ids.add(dto.id()), "duplicate teacher id: " + dto.id());
             require(dto.subject() != null, "teacher " + dto.id() + " has no subject");
+            require(dto.matricule() != null && !dto.matricule().isBlank(),
+                    "teacher " + dto.id() + " has no matricule");
+            require(matricules.add(dto.matricule().trim()),
+                    "duplicate matricule: " + dto.matricule());
 
             Gender gender = dto.gender() == null ? null
                     : parseEnum(Gender.class, dto.gender(), "teacher " + dto.id() + " gender");
@@ -184,7 +189,7 @@ public final class InputMapper {
                 });
             }
 
-            teachers.add(new Teacher(dto.id(),
+            teachers.add(new Teacher(dto.id(), dto.matricule().trim(),
                     dto.name() != null ? dto.name() : dto.id(),
                     subject, dto.establishment(), gender,
                     unavailabilities,
