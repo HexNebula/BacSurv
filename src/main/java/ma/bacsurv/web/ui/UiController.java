@@ -4,6 +4,8 @@ import ma.bacsurv.io.InputMapper;
 import ma.bacsurv.io.ScheduleWriter;
 import ma.bacsurv.web.service.SolveService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,12 +28,19 @@ import java.util.stream.Collectors;
 public class UiController {
 
     private final SolveService solveService;
+    private final MessageSource messages;
     private final int defaultSeconds;
 
-    public UiController(SolveService solveService,
+    public UiController(SolveService solveService, MessageSource messages,
                         @Value("${bacsurv.solver.default-seconds:30}") int defaultSeconds) {
         this.solveService = solveService;
+        this.messages = messages;
         this.defaultSeconds = defaultSeconds;
+    }
+
+    /** Every user-facing string comes from the bundles — the UI is French and Arabic. */
+    private String say(String key, Object... args) {
+        return messages.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 
     @GetMapping("/")
@@ -45,7 +54,7 @@ public class UiController {
     @PostMapping("/operations")
     public String upload(@RequestParam("file") MultipartFile file, RedirectAttributes flash) {
         if (file.isEmpty()) {
-            flash.addFlashAttribute("error", "Aucun fichier sélectionné.");
+            flash.addFlashAttribute("error", say("home.import.empty"));
             return "redirect:/";
         }
         try {
@@ -53,11 +62,11 @@ public class UiController {
             String name = file.getOriginalFilename() != null
                     ? file.getOriginalFilename() : "operation.json";
             solveService.upload(name, content);
-            flash.addFlashAttribute("message", "Fichier « " + name + " » importé.");
+            flash.addFlashAttribute("message", say("home.import.success", name));
         } catch (IOException e) {
-            flash.addFlashAttribute("error", "Lecture du fichier impossible : " + e.getMessage());
+            flash.addFlashAttribute("error", say("home.import.unreadable", e.getMessage()));
         } catch (InputMapper.InputException e) {
-            flash.addFlashAttribute("error", "Fichier invalide : " + e.getMessage());
+            flash.addFlashAttribute("error", say("home.import.invalid", e.getMessage()));
         }
         return "redirect:/";
     }

@@ -17,6 +17,12 @@ Then open <http://localhost:8080>: import an operation JSON file, launch a
 solve, watch it finish, read the schedule per slot and the workload per
 teacher. Data is stored in a local H2 file under `./data`.
 
+The interface exists in the two administrative languages of Morocco, French
+(default) and Arabic, switchable from the header or with `?lang=fr` / `?lang=ar`;
+the choice is remembered in a cookie. Arabic pages are laid out right to left.
+User-facing text lives in `src/main/resources/messages*.properties` — never
+hardcode it in a template, and add both languages when adding a page.
+
 ## Running from the command line
 
 ```bash

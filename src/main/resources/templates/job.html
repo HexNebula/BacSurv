@@ -1,46 +1,55 @@
 <!DOCTYPE html>
-<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="'BacSurv — calcul #' + ${job.id}">BacSurv — calcul</title>
+    <title th:text="#{app.title} + ' — ' + #{job.title(${job.id})}">BacSurv</title>
     <link rel="stylesheet" href="/css/app.css">
     <!-- refresh while the solver is still working -->
     <meta http-equiv="refresh" content="3" th:if="${job.running}">
 </head>
 <body>
 <header>
-    <h1><a href="/">BacSurv</a></h1>
-    <p th:text="'Calcul #' + ${job.id} + ' — ' + ${job.operationName}">Calcul</p>
+    <div>
+        <h1><a href="/" th:text="#{app.title}">BacSurv</a></h1>
+        <p th:text="#{job.title(${job.id})} + ' — ' + ${job.operationName}">Calcul</p>
+    </div>
+    <nav class="languages" th:aria-label="#{app.language}">
+        <a th:href="@{/jobs/{id}(id=${job.id},lang='fr')}"
+           th:classappend="${lang == 'fr'} ? 'current'" th:text="#{app.language.fr}">Français</a>
+        <a th:href="@{/jobs/{id}(id=${job.id},lang='ar')}"
+           th:classappend="${lang == 'ar'} ? 'current'" th:text="#{app.language.ar}">العربية</a>
+    </nav>
 </header>
 
 <main>
     <section>
-        <h2>État</h2>
+        <h2 th:text="#{job.state.title}">État</h2>
         <p>
             <span class="badge"
                   th:classappend="${job.status.name() == 'DONE'} ? 'done'
                                 : (${job.status.name() == 'FAILED'} ? 'failed'
                                 : (${job.status.name() == 'RUNNING'} ? 'running' : ''))"
-                  th:text="${job.status}">DONE</span>
+                  th:text="#{'status.' + ${job.status}}">DONE</span>
             <span class="muted small" th:if="${job.running}"
-                  th:text="' — calcul en cours (max ' + ${job.timeLimitSeconds} + ' s), la page se rafraîchit seule.'"></span>
+                  th:text="#{job.running(${job.timeLimitSeconds})}"></span>
         </p>
         <p class="flash error" th:if="${job.error}" th:text="${job.error}"></p>
 
         <div th:if="${result}">
-            <div class="stat"><span>Planning</span>
-                <strong th:text="${result.feasible} ? 'Valide' : 'Non valide'">Valide</strong></div>
-            <div class="stat"><span>Contraintes dures</span>
+            <div class="stat"><span th:text="#{job.stat.plan}">Planning</span>
+                <strong th:text="${result.feasible} ? #{job.plan.valid} : #{job.plan.invalid}">—</strong></div>
+            <div class="stat"><span th:text="#{job.stat.hard}">Contraintes dures</span>
                 <strong th:text="${result.hardViolations}">0</strong></div>
-            <div class="stat"><span>Préférences non satisfaites</span>
+            <div class="stat"><span th:text="#{job.stat.soft}">Préférences</span>
                 <strong th:text="${result.softViolations}">0</strong></div>
-            <div class="stat"><span>Postes non pourvus</span>
+            <div class="stat"><span th:text="#{job.stat.unfilled}">Non pourvus</span>
                 <strong th:text="${result.unfilled}">0</strong></div>
-            <div class="stat"><span>Affectations</span>
+            <div class="stat"><span th:text="#{job.stat.assignments}">Affectations</span>
                 <strong th:text="${result.assignments.size()}">0</strong></div>
             <p style="margin-top:1rem">
-                <a class="button" th:href="@{/api/jobs/{id}/schedule(id=${job.id})}">Télécharger le planning (JSON)</a>
+                <a class="button" th:href="@{/api/jobs/{id}/schedule(id=${job.id})}"
+                   th:text="#{job.download}">Télécharger</a>
             </p>
         </div>
 
@@ -50,21 +59,27 @@
     </section>
 
     <section th:if="${result}">
-        <h2>Planning par créneau</h2>
+        <h2 th:text="#{job.schedule.title}">Planning par créneau</h2>
         <div th:each="slot : ${slots}">
             <h3 th:text="${slot.key}">2026-06-01 08:00–10:00</h3>
             <div class="table-scroll">
                 <table>
                     <thead>
-                    <tr><th>Rôle</th><th>Matière</th><th>Filière</th><th>Salle</th><th>Enseignant</th></tr>
+                    <tr>
+                        <th th:text="#{schedule.role}">Rôle</th>
+                        <th th:text="#{schedule.subject}">Matière</th>
+                        <th th:text="#{schedule.stream}">Filière</th>
+                        <th th:text="#{schedule.room}">Salle</th>
+                        <th th:text="#{schedule.teacher}">Enseignant</th>
+                    </tr>
                     </thead>
                     <tbody>
                     <tr th:each="a : ${slot.value}">
-                        <td th:class="'role-' + ${a.role}" th:text="${a.role}">SURVEILLANCE</td>
-                        <td th:text="${a.subject} ?: '—'">—</td>
-                        <td th:text="${a.stream} ?: '—'">—</td>
-                        <td th:text="${a.roomId} ?: '—'">—</td>
-                        <td th:text="${a.teacherName} ?: 'NON POURVU'">—</td>
+                        <td th:class="'role-' + ${a.role}" th:text="#{'role.' + ${a.role}}">Surveillance</td>
+                        <td th:text="${a.subject} ?: #{schedule.none}">—</td>
+                        <td th:text="${a.stream} ?: #{schedule.none}">—</td>
+                        <td th:text="${a.roomId} ?: #{schedule.none}">—</td>
+                        <td th:text="${a.teacherName} ?: #{schedule.unfilled}">—</td>
                     </tr>
                     </tbody>
                 </table>
@@ -73,13 +88,18 @@
     </section>
 
     <section th:if="${result}">
-        <h2>Charge de travail</h2>
+        <h2 th:text="#{job.workload.title}">Charge de travail</h2>
         <div class="table-scroll">
             <table>
                 <thead>
                 <tr>
-                    <th>Enseignant</th><th>Matière</th><th>Surveillance</th>
-                    <th>Réserve</th><th>Permanence</th><th>Antérieur</th><th>Total</th>
+                    <th th:text="#{job.workload.teacher}">Enseignant</th>
+                    <th th:text="#{job.workload.subject}">Matière</th>
+                    <th th:text="#{job.workload.surveillance}">Surveillance</th>
+                    <th th:text="#{job.workload.reserve}">Réserve</th>
+                    <th th:text="#{job.workload.permanence}">Permanence</th>
+                    <th th:text="#{job.workload.prior}">Antérieur</th>
+                    <th th:text="#{job.workload.total}">Total</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -95,13 +115,10 @@
                 </tbody>
             </table>
         </div>
-        <p class="muted small">
-            « Antérieur » = charge reportée des opérations précédentes de l'année ;
-            elle est compensée automatiquement dans ce planning.
-        </p>
+        <p class="muted small" th:text="#{job.workload.note}">—</p>
     </section>
 
-    <p><a class="button secondary" href="/">Retour</a></p>
+    <p><a class="button secondary" href="/" th:text="#{app.back}">Retour</a></p>
 </main>
 </body>
 </html>
