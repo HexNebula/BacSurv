@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    # tests get a throwaway in-memory database, never the developer's ./data file
+    url: jdbc:h2:mem:bacsurv-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+bacsurv:
+  solver:
+    default-seconds: 5
+
+logging:
+  level:
+    ai.timefold: warn

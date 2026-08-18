@@ -1,0 +1,66 @@
+{
+  "operation": { "id": "NAT-2026-JUIN", "type": "NATIONAL_2BAC" },
+  "defaults": {
+    "surveillantsPerRoom": 2,
+    "permanencePerExam": 1,
+    "reservePercentage": 0.10
+  },
+  "rooms": [
+    { "id": "R1", "label": "Salle 1" },
+    { "id": "R2", "label": "Salle 2" },
+    { "id": "R3", "label": "Salle 3" },
+    { "id": "R4", "label": "Salle 4" }
+  ],
+  "slots": [
+    {
+      "id": "S1", "date": "2026-06-01", "start": "08:00", "end": "10:00",
+      "exams": [
+        { "id": "E1", "subject": "Mathématiques", "stream": "Sciences Expérimentales", "rooms": ["R1", "R2"] },
+        { "id": "E2", "subject": "Français", "stream": "Lettres", "rooms": ["R3", "R4"] }
+      ]
+    },
+    {
+      "id": "S2", "date": "2026-06-01", "start": "15:00", "end": "17:00",
+      "exams": [
+        { "id": "E3", "subject": "SVT", "stream": "Sciences Expérimentales", "rooms": ["R1", "R2"] },
+        { "id": "E4", "subject": "Histoire-Géographie", "stream": "Lettres", "rooms": ["R3", "R4"] }
+      ]
+    },
+    {
+      "id": "S3", "date": "2026-06-02", "start": "08:00", "end": "10:00",
+      "exams": [
+        { "id": "E5", "subject": "SVT", "stream": "Sciences Expérimentales", "rooms": ["R1", "R2"] },
+        { "id": "E6", "subject": "Histoire-Géographie", "stream": "Lettres", "rooms": ["R3", "R4"] }
+      ]
+    },
+    {
+      "id": "S4", "date": "2026-06-02", "start": "15:00", "end": "17:00",
+      "exams": [
+        { "id": "E7", "subject": "Mathématiques", "stream": "Sciences Expérimentales", "rooms": ["R1", "R2"] },
+        { "id": "E8", "subject": "Français", "stream": "Lettres", "rooms": ["R3", "R4"] }
+      ],
+      "reserveCount": 2
+    }
+  ],
+  "teachers": [
+    { "id": "T1",  "name": "Amina El Fassi",    "subject": "Mathématiques",       "establishment": "Lycée Al Khawarizmi", "gender": "FEMALE" },
+    { "id": "T2",  "name": "Youssef Berrada",   "subject": "Mathématiques",       "establishment": "Lycée Al Khawarizmi", "gender": "MALE" },
+    { "id": "T3",  "name": "Salma Idrissi",     "subject": "Mathématiques",       "establishment": "Lycée Ibn Sina",      "gender": "FEMALE" },
+    { "id": "T4",  "name": "Karim Tazi",        "subject": "Mathématiques",       "establishment": "Lycée Ibn Sina",      "gender": "MALE",
+      "prior": { "SURVEILLANCE": 3, "RESERVE": 1 } },
+    { "id": "T5",  "name": "Nadia Bennani",     "subject": "Français",            "establishment": "Lycée Al Khawarizmi", "gender": "FEMALE" },
+    { "id": "T6",  "name": "Omar Chraibi",      "subject": "Français",            "establishment": "Lycée Ibn Sina",      "gender": "MALE" },
+    { "id": "T7",  "name": "Leila Amrani",      "subject": "Français",            "establishment": "Lycée Ibn Sina",      "gender": "FEMALE" },
+    { "id": "T8",  "name": "Hassan Ouazzani",   "subject": "Français",            "establishment": "Lycée Al Khawarizmi", "gender": "MALE",
+      "unavailable": [ { "date": "2026-06-01" } ] },
+    { "id": "T9",  "name": "Fatima Zahra Alaoui", "subject": "SVT",               "establishment": "Lycée Al Khawarizmi", "gender": "FEMALE" },
+    { "id": "T10", "name": "Mehdi Benjelloun",  "subject": "SVT",                 "establishment": "Lycée Ibn Sina",      "gender": "MALE" },
+    { "id": "T11", "name": "Sara Lahlou",       "subject": "SVT",                 "establishment": "Lycée Ibn Sina",      "gender": "FEMALE" },
+    { "id": "T12", "name": "Rachid Meknassi",   "subject": "SVT",                 "establishment": "Lycée Al Khawarizmi", "gender": "MALE",
+      "unavailable": [ { "date": "2026-06-02", "start": "14:00", "end": "18:00" } ] },
+    { "id": "T13", "name": "Khadija Squalli",   "subject": "Histoire-Géographie", "establishment": "Lycée Al Khawarizmi", "gender": "FEMALE" },
+    { "id": "T14", "name": "Adil Bouazza",      "subject": "Histoire-Géographie", "establishment": "Lycée Ibn Sina",      "gender": "MALE" },
+    { "id": "T15", "name": "Imane Cherkaoui",   "subject": "Histoire-Géographie", "establishment": "Lycée Ibn Sina",      "gender": "FEMALE" },
+    { "id": "T16", "name": "Driss Filali",      "subject": "Histoire-Géographie", "establishment": "Lycée Al Khawarizmi", "gender": "MALE" }
+  ]
+}

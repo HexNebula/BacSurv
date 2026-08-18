@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'BacSurv — calcul #' + ${job.id}">BacSurv — calcul</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <!-- refresh while the solver is still working -->
+    <meta http-equiv="refresh" content="3" th:if="${job.running}">
+</head>
+<body>
+<header>
+    <h1><a href="/">BacSurv</a></h1>
+    <p th:text="'Calcul #' + ${job.id} + ' — ' + ${job.operationName}">Calcul</p>
+</header>
+
+<main>
+    <section>
+        <h2>État</h2>
+        <p>
+            <span class="badge"
+                  th:classappend="${job.status.name() == 'DONE'} ? 'done'
+                                : (${job.status.name() == 'FAILED'} ? 'failed'
+                                : (${job.status.name() == 'RUNNING'} ? 'running' : ''))"
+                  th:text="${job.status}">DONE</span>
+            <span class="muted small" th:if="${job.running}"
+                  th:text="' — calcul en cours (max ' + ${job.timeLimitSeconds} + ' s), la page se rafraîchit seule.'"></span>
+        </p>
+        <p class="flash error" th:if="${job.error}" th:text="${job.error}"></p>
+
+        <div th:if="${result}">
+            <div class="stat"><span>Planning</span>
+                <strong th:text="${result.feasible} ? 'Valide' : 'Non valide'">Valide</strong></div>
+            <div class="stat"><span>Contraintes dures</span>
+                <strong th:text="${result.hardViolations}">0</strong></div>
+            <div class="stat"><span>Préférences non satisfaites</span>
+                <strong th:text="${result.softViolations}">0</strong></div>
+            <div class="stat"><span>Postes non pourvus</span>
+                <strong th:text="${result.unfilled}">0</strong></div>
+            <div class="stat"><span>Affectations</span>
+                <strong th:text="${result.assignments.size()}">0</strong></div>
+            <p style="margin-top:1rem">
+                <a class="button" th:href="@{/api/jobs/{id}/schedule(id=${job.id})}">Télécharger le planning (JSON)</a>
+            </p>
+        </div>
+
+        <ul class="small" th:if="${result != null and !result.hardViolationDetails.isEmpty()}">
+            <li th:each="v : ${result.hardViolationDetails}" th:text="${v}"></li>
+        </ul>
+    </section>
+
+    <section th:if="${result}">
+        <h2>Planning par créneau</h2>
+        <div th:each="slot : ${slots}">
+            <h3 th:text="${slot.key}">2026-06-01 08:00–10:00</h3>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                    <tr><th>Rôle</th><th>Matière</th><th>Filière</th><th>Salle</th><th>Enseignant</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${slot.value}">
+                        <td th:class="'role-' + ${a.role}" th:text="${a.role}">SURVEILLANCE</td>
+                        <td th:text="${a.subject} ?: '—'">—</td>
+                        <td th:text="${a.stream} ?: '—'">—</td>
+                        <td th:text="${a.roomId} ?: '—'">—</td>
+                        <td th:text="${a.teacherName} ?: 'NON POURVU'">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section th:if="${result}">
+        <h2>Charge de travail</h2>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th>Enseignant</th><th>Matière</th><th>Surveillance</th>
+                    <th>Réserve</th><th>Permanence</th><th>Antérieur</th><th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="w : ${workload}">
+                    <td th:text="${w.name}">—</td>
+                    <td class="muted" th:text="${w.subject}">—</td>
+                    <td th:text="${w.surveillance}">0</td>
+                    <td th:text="${w.reserve}">0</td>
+                    <td th:text="${w.permanence}">0</td>
+                    <td class="muted" th:text="${w.priorTotal}">0</td>
+                    <td><strong th:text="${w.total}">0</strong></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted small">
+            « Antérieur » = charge reportée des opérations précédentes de l'année ;
+            elle est compensée automatiquement dans ce planning.
+        </p>
+    </section>
+
+    <p><a class="button secondary" href="/">Retour</a></p>
+</main>
+</body>
+</html>

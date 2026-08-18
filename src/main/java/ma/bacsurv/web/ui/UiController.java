@@ -1,0 +1,98 @@
+package ma.bacsurv.web.ui;
+
+import ma.bacsurv.io.InputMapper;
+import ma.bacsurv.io.ScheduleWriter;
+import ma.bacsurv.web.service.SolveService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/** Server-rendered pages. Thin: every action maps to a service call. */
+@Controller
+public class UiController {
+
+    private final SolveService solveService;
+    private final int defaultSeconds;
+
+    public UiController(SolveService solveService,
+                        @Value("${bacsurv.solver.default-seconds:30}") int defaultSeconds) {
+        this.solveService = solveService;
+        this.defaultSeconds = defaultSeconds;
+    }
+
+    @GetMapping("/")
+    public String home(Model model) {
+        model.addAttribute("operations", solveService.recentFiles());
+        model.addAttribute("jobs", solveService.recentJobs());
+        model.addAttribute("defaultSeconds", defaultSeconds);
+        return "home";
+    }
+
+    @PostMapping("/operations")
+    public String upload(@RequestParam("file") MultipartFile file, RedirectAttributes flash) {
+        if (file.isEmpty()) {
+            flash.addFlashAttribute("error", "Aucun fichier sélectionné.");
+            return "redirect:/";
+        }
+        try {
+            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+            String name = file.getOriginalFilename() != null
+                    ? file.getOriginalFilename() : "operation.json";
+            solveService.upload(name, content);
+            flash.addFlashAttribute("message", "Fichier « " + name + " » importé.");
+        } catch (IOException e) {
+            flash.addFlashAttribute("error", "Lecture du fichier impossible : " + e.getMessage());
+        } catch (InputMapper.InputException e) {
+            flash.addFlashAttribute("error", "Fichier invalide : " + e.getMessage());
+        }
+        return "redirect:/";
+    }
+
+    @PostMapping("/operations/{id}/solve")
+    public String solve(@PathVariable long id,
+                        @RequestParam(defaultValue = "30") int seconds,
+                        RedirectAttributes flash) {
+        try {
+            return "redirect:/jobs/" + solveService.submit(id, seconds).id();
+        } catch (IllegalArgumentException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
+        }
+    }
+
+    @GetMapping("/jobs/{id}")
+    public String job(@PathVariable long id, Model model) {
+        model.addAttribute("job", solveService.job(id));
+
+        solveService.schedule(id).ifPresent(result -> {
+            model.addAttribute("result", result);
+            model.addAttribute("slots", groupBySlot(result));
+            model.addAttribute("workload", result.workload().stream()
+                    .sorted(Comparator.comparing(ScheduleWriter.WorkloadRow::teacherId))
+                    .toList());
+        });
+        return "job";
+    }
+
+    /** Assignments grouped per slot, in chronological order, for the schedule table. */
+    private Map<String, List<ScheduleWriter.AssignmentRow>> groupBySlot(ScheduleWriter.Result result) {
+        return result.assignments().stream().collect(Collectors.groupingBy(
+                a -> a.date() + " " + a.start() + "–" + a.end() + "  (" + a.slotId() + ")",
+                LinkedHashMap::new,
+                Collectors.toList()));
+    }
+}

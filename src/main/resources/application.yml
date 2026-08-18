@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    # H2 in PostgreSQL mode: dev behaves like the production target.
+    # Switching to real PostgreSQL later = change this url + driver only.
+    url: jdbc:h2:file:./data/bacsurv;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: none   # schema owned by Flyway, never by Hibernate
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+
+bacsurv:
+  solver:
+    default-seconds: 30
+
+logging:
+  level:
+    ai.timefold: warn

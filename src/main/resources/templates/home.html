@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BacSurv — surveillance des examens</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+    <h1><a href="/">BacSurv</a></h1>
+    <p>Planification de la surveillance des examens du baccalauréat</p>
+</header>
+
+<main>
+    <div class="flash ok" th:if="${message}" th:text="${message}"></div>
+    <div class="flash error" th:if="${error}" th:text="${error}"></div>
+
+    <section>
+        <h2>Importer une opération</h2>
+        <form class="inline" method="post" action="/operations" enctype="multipart/form-data">
+            <input type="file" name="file" accept="application/json,.json" required>
+            <button type="submit">Importer</button>
+        </form>
+        <p class="muted small">
+            Fichier JSON décrivant un centre : salles, créneaux, épreuves, enseignants.
+            Le format est décrit dans <code>samples/INPUT-FORMAT.md</code>.
+        </p>
+    </section>
+
+    <section>
+        <h2>Opérations</h2>
+        <p class="muted small" th:if="${operations.isEmpty()}">Aucune opération importée.</p>
+        <div class="table-scroll" th:unless="${operations.isEmpty()}">
+            <table>
+                <thead>
+                <tr><th>Fichier</th><th>Importé le</th><th>Résoudre</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="op : ${operations}">
+                    <td th:text="${op.name}">operation.json</td>
+                    <td class="muted" th:text="${#temporals.format(op.uploadedAt, 'dd/MM/yyyy HH:mm')}">—</td>
+                    <td>
+                        <form class="inline" method="post" th:action="@{/operations/{id}/solve(id=${op.id})}">
+                            <input type="number" name="seconds" min="5" max="600"
+                                   th:value="${defaultSeconds}" title="Durée maximale de calcul (secondes)">
+                            <button type="submit">Lancer</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Calculs récents</h2>
+        <p class="muted small" th:if="${jobs.isEmpty()}">Aucun calcul lancé.</p>
+        <div class="table-scroll" th:unless="${jobs.isEmpty()}">
+            <table>
+                <thead>
+                <tr>
+                    <th>#</th><th>Opération</th><th>État</th><th>Résultat</th><th>Lancé le</th><th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="job : ${jobs}">
+                    <td th:text="${job.id}">1</td>
+                    <td th:text="${job.operationName}">operation.json</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${job.status.name() == 'DONE'} ? 'done'
+                                            : (${job.status.name() == 'FAILED'} ? 'failed'
+                                            : (${job.status.name() == 'RUNNING'} ? 'running' : ''))"
+                              th:text="${job.status}">DONE</span>
+                    </td>
+                    <td>
+                        <span th:if="${job.feasible != null}"
+                              th:text="${job.feasible} ? 'Planning valide' : 'Contraintes non respectées'">—</span>
+                        <span class="muted" th:if="${job.feasible == null}">—</span>
+                    </td>
+                    <td class="muted" th:text="${#temporals.format(job.createdAt, 'dd/MM/yyyy HH:mm')}">—</td>
+                    <td><a class="button secondary" th:href="@{/jobs/{id}(id=${job.id})}">Ouvrir</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

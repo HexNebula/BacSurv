@@ -1,0 +1,13 @@
+target/
+data/
+cp.txt
+*.schedule.json
+
+# source material for MODEL.md, kept locally
+Exam Surveillance in Morocco.html
+Exam Surveillance in Morocco_files/
+
+# IDE
+.idea/
+*.iml
+.vscode/
