@@ -2,6 +2,7 @@ package ma.bacsurv.web.ui;
 
 import ma.bacsurv.io.InputMapper;
 import ma.bacsurv.io.ScheduleWriter;
+import ma.bacsurv.web.service.InsufficientStaffException;
 import ma.bacsurv.web.service.SolveService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -77,6 +78,11 @@ public class UiController {
                         RedirectAttributes flash) {
         try {
             return "redirect:/jobs/" + solveService.submit(id, seconds).id();
+        } catch (InsufficientStaffException e) {
+            var worst = e.worst();
+            flash.addFlashAttribute("error", say("solve.insufficient", worst.slotId(),
+                    worst.required(), worst.available(), e.shortages().size()));
+            return "redirect:/";
         } catch (IllegalArgumentException e) {
             flash.addFlashAttribute("error", e.getMessage());
             return "redirect:/";

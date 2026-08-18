@@ -1,6 +1,8 @@
 package ma.bacsurv.web.api;
 
+import ma.bacsurv.application.StaffingCheck;
 import ma.bacsurv.io.InputMapper;
+import ma.bacsurv.web.service.InsufficientStaffException;
 import ma.bacsurv.io.ScheduleWriter;
 import ma.bacsurv.web.service.JobView;
 import ma.bacsurv.web.service.OperationView;
@@ -67,6 +69,12 @@ public class ApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(solveService.upload(name, body));
     }
 
+    /** Slots the pool cannot cover; empty means the operation can be staffed. */
+    @GetMapping("/operations/{id}/staffing")
+    public List<StaffingCheck.Shortage> staffing(@PathVariable long id) {
+        return solveService.staffingShortages(id);
+    }
+
     @PostMapping("/operations/{id}/solve")
     public ResponseEntity<JobView> solve(@PathVariable long id,
                                          @RequestParam(defaultValue = "30") int seconds) {
@@ -95,5 +103,13 @@ public class ApiController {
     @ExceptionHandler({InputMapper.InputException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, String>> badInput(RuntimeException e) {
         return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+    }
+
+    /** 409: the request is well formed, the pool simply cannot cover the work. */
+    @ExceptionHandler(InsufficientStaffException.class)
+    public ResponseEntity<Map<String, Object>> insufficientStaff(InsufficientStaffException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", e.getMessage(),
+                "shortages", e.shortages()));
     }
 }

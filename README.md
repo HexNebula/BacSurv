@@ -73,6 +73,30 @@ and used as their starting load, so the year's total stays balanced without
 anyone maintaining a `prior` block by hand. Teachers are matched by matricule
 within their center.
 
+## Behaviour at the size of a real center
+
+`ma.bacsurv.demo.ScaleDemoMain [seconds] [teachers] [days] [rooms]` generates a
+center of a given size and reports what the solver achieved. Measured results:
+
+| Center | Duties | Teachers | Time | Result |
+| --- | --- | --- | --- | --- |
+| 6 days, 20 rooms | 564 | 100 | 30s | feasible, 0 hard, 2 soft, load 5–6 per teacher |
+| 6 days, 20 rooms | 564 | 100 | 10s | feasible, 0 hard, 24 soft, same load spread |
+| 12 days, 30 rooms | 1656 | 150 | 60s | feasible, 0 hard, 121 soft, load 11–12 |
+| 12 days, 30 rooms | 1656 | 150 | 120s | feasible, 0 hard, 59 soft, load 11–12 |
+
+Legality and fairness are reached quickly; extra time buys preference quality
+(room repetition, pairs). At the largest size most remaining soft penalties are
+arithmetically unavoidable: with 11 duties over 12 exam days, working more than
+three days in a row cannot be dodged, so that preference is always "violated".
+
+**Staffing is limited per slot, not per operation.** A teacher holds one duty at
+a time, so a slot needing 47 people cannot run with a pool of 45 no matter how
+long the solver runs. `StaffingCheck` verifies this before solving and the
+application refuses the run with a clear message naming the slot, its
+requirement and what is available — also exposed at
+`GET /api/operations/{id}/staffing`.
+
 ## Database
 
 Development uses H2 in PostgreSQL mode; the schema is owned by Flyway

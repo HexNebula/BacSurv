@@ -2,6 +2,7 @@ package ma.bacsurv.web.service;
 
 import ma.bacsurv.application.DutyGenerator;
 import ma.bacsurv.application.ScheduleValidator;
+import ma.bacsurv.application.StaffingCheck;
 import ma.bacsurv.application.ValidationReport;
 import ma.bacsurv.domain.Duty;
 import ma.bacsurv.domain.DutyRole;
@@ -78,11 +79,27 @@ public class SolveService {
         return OperationView.of(importer.importOperation(parsed), file.getId());
     }
 
+    /** Slots the pool cannot cover, empty when the operation can be staffed. */
+    @Transactional(readOnly = true)
+    public List<StaffingCheck.Shortage> staffingShortages(long operationId) {
+        OperationEntity operation = operations.findWithCenter(operationId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "no operation with id " + operationId));
+        ExamOperation domain = assembler.toDomain(operation);
+        return StaffingCheck.withDefaults().check(domain,
+                assembler.poolFor(operation).teachers(), new DutyGenerator().generate(domain));
+    }
+
     @Transactional
     public JobView submit(long operationId, int timeLimitSeconds) {
         OperationEntity operation = operations.findWithCenter(operationId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "no operation with id " + operationId));
+
+        // refuse impossible work up front rather than after a long solve
+        List<StaffingCheck.Shortage> shortages = staffingShortages(operationId);
+        if (!shortages.isEmpty()) throw new InsufficientStaffException(shortages);
+
         SolveJob job = jobs.saveAndFlush(new SolveJob(operation, null, timeLimitSeconds));
         JobView view = JobView.of(job);
         // start only once the row is committed, otherwise the solver thread
