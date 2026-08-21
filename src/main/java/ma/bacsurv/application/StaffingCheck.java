@@ -6,26 +6,53 @@ import ma.bacsurv.domain.ExamSlot;
 import ma.bacsurv.domain.Teacher;
 import ma.bacsurv.rules.Eligibility;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Can this pool staff this operation at all?
  *
- * The binding limit is per slot, not per operation: a teacher can hold only
- * one duty at a time, so a slot needing 47 people cannot be run by a pool of
+ * The binding limit is per moment, not per operation: a teacher can hold only
+ * one duty at a time, so an hour needing 47 people cannot be run by a pool of
  * 45 however long the solver thinks about it. Checking first turns a wall of
  * unexplained hard violations into one clear sentence.
+ *
+ * <p>The moment, not the slot. Two papers of one afternoon can start together
+ * and end at different hours, which makes them two slots running at once —
+ * counting them separately says 12 and 12 against a pool of 45 and passes,
+ * while the centre actually has to put 24 people in rooms at 15:00.
  */
 public final class StaffingCheck {
 
-    /** One slot the pool cannot cover. */
-    public record Shortage(String slotId, int required, int available) {
+    /**
+     * A moment the pool cannot cover, and the slot or simultaneous slots
+     * that make it up.
+     */
+    public record Shortage(List<String> slotIds, LocalDate date, LocalTime at,
+                           int required, int available) {
+
+        public Shortage {
+            slotIds = List.copyOf(slotIds);
+        }
 
         public int missing() {
             return required - available;
+        }
+
+        /** Several slots at once, rather than a single overbooked séance. */
+        public boolean isConcurrent() {
+            return slotIds.size() > 1;
+        }
+
+        /** Label for a message: one slot id, or the simultaneous ones joined. */
+        public String slotId() {
+            return String.join(" + ", slotIds);
         }
     }
 
@@ -48,20 +75,38 @@ public final class StaffingCheck {
         Map<String, List<Duty>> dutiesBySlot = duties.stream()
                 .collect(Collectors.groupingBy(duty -> duty.slot().id()));
 
-        List<Shortage> shortages = new ArrayList<>();
-        for (ExamSlot slot : operation.slots()) {
-            List<Duty> slotDuties = dutiesBySlot.getOrDefault(slot.id(), List.of());
-            if (slotDuties.isEmpty()) continue;
+        List<ExamSlot> staffed = operation.slots().stream()
+                .filter(slot -> !dutiesBySlot.getOrDefault(slot.id(), List.of()).isEmpty())
+                .toList();
 
-            // a teacher counts as available for the slot if some duty of it is
-            // one they could legally take
+        List<Shortage> shortages = new ArrayList<>();
+        Set<List<String>> alreadyReported = new HashSet<>();
+
+        // Demand can only rise when something starts, so every slot's start
+        // is a moment worth measuring, and no moment between two starts can
+        // be worse than the start that precedes it.
+        for (ExamSlot opening : staffed) {
+            List<ExamSlot> running = staffed.stream()
+                    .filter(slot -> slot.covers(opening.date(), opening.startTime()))
+                    .toList();
+
+            List<Duty> concurrent = running.stream()
+                    .flatMap(slot -> dutiesBySlot.get(slot.id()).stream())
+                    .toList();
+
+            // a teacher counts once, however many of these duties they could
+            // take: they can only hold one of them
             long available = pool.stream()
-                    .filter(teacher -> slotDuties.stream()
+                    .filter(teacher -> concurrent.stream()
                             .anyMatch(duty -> eligibility.isEligible(teacher, duty)))
                     .count();
 
-            if (available < slotDuties.size()) {
-                shortages.add(new Shortage(slot.id(), slotDuties.size(), (int) available));
+            if (available >= concurrent.size()) continue;
+
+            List<String> ids = running.stream().map(ExamSlot::id).sorted().toList();
+            if (alreadyReported.add(ids)) {
+                shortages.add(new Shortage(ids, opening.date(), opening.startTime(),
+                        concurrent.size(), (int) available));
             }
         }
         return List.copyOf(shortages);

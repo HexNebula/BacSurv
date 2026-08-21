@@ -30,6 +30,11 @@ public record ExamSlot(String id, LocalDate date, LocalTime startTime, LocalTime
                 && other.startTime.isBefore(endTime);
     }
 
+    /** True when this slot is running at the given moment. */
+    public boolean covers(LocalDate day, LocalTime time) {
+        return date.equals(day) && !startTime.isAfter(time) && time.isBefore(endTime);
+    }
+
     /** Derived — used only by the AM/PM balance objective. */
     public HalfDay halfDay() {
         return startTime.isBefore(LocalTime.NOON) ? HalfDay.AM : HalfDay.PM;

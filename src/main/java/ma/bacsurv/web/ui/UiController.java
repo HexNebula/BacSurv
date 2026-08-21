@@ -80,8 +80,11 @@ public class UiController {
             return "redirect:/jobs/" + solveService.submit(id, seconds).id();
         } catch (InsufficientStaffException e) {
             var worst = e.worst();
-            flash.addFlashAttribute("error", say("solve.insufficient", worst.slotId(),
-                    worst.required(), worst.available(), e.shortages().size()));
+            // simultaneous épreuves need different wording: the number is what
+            // the centre must field at one moment, not what one séance asks for
+            flash.addFlashAttribute("error", say(
+                    worst.isConcurrent() ? "solve.insufficient.concurrent" : "solve.insufficient",
+                    worst.slotId(), worst.required(), worst.available(), e.shortages().size()));
             return "redirect:/";
         } catch (IllegalArgumentException e) {
             flash.addFlashAttribute("error", e.getMessage());
