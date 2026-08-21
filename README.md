@@ -119,12 +119,20 @@ zero. Where scarcity forces a repeat — four philosophie permanences and two
 specialists — the solver takes it, because the rule is a strong preference
 and not a hard bar.
 
-**The queue is scoped to the session, not the year.** Rattrapage cannot be
-sized in advance, so only the unfinished tail of the last round carries over:
-how many turns a teacher took beyond their slowest colleague, almost always
-0 or 1. A completed round cancels itself back to zero, so nothing accumulates
-and a small rattrapage cannot distort a large juin. It is recomputed from the
-previous session's stored assignments rather than kept as a running counter,
+**The queue survives between sessions.** Each session is solved on its own —
+rattrapage cannot be sized in advance, so nothing is planned ahead — but it
+starts where the earlier sessions left the queue: a teacher carries how many
+turns they have had beyond the colleague who has had the fewest, almost
+always 0 or 1. A completed round lifts everyone together and the number falls
+back to zero, so it cannot accumulate; session sizes never enter, since what
+is counted is turns per teacher.
+
+All past sessions count, not just the last. A session repays the people it
+owes only as far as its turns reach — 29 waiting and 18 turns to give leaves
+11 still waiting — and reading the newest session alone could not tell those
+11 from the ones already served, so the rattrapage would hand turns to people
+who had one in June while others finished the year with none. The position is
+recomputed from stored assignments rather than kept as a running counter,
 which is what stops it drifting.
 
 ## Cumulative fairness across operations

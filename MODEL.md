@@ -256,19 +256,28 @@ Teacher
 solve(operation N): balance (base[t] + new[t]), base = past operations
 ```
 
-**The privilege queue is scoped to the session, not the year.** Rattrapage
-cannot be sized in advance — its roster and its length are unknown until it
-happens — so planning privileges across a whole year is planning against an
-unknown. What travels between sessions is only the unfinished tail of the
-last round:
+**The privilege queue runs across sessions, as a queue position and not as a
+count.** Sessions are still solved one at a time — rattrapage cannot be sized
+in advance, so nothing is planned ahead across the year — but each session
+starts from where the previous ones left the queue:
 ```
-carry(t) = privileges(t, previous session) − min over the pool
+carry(t) = privilege turns of t in all past sessions − min over the pool
 ```
-Almost always 0 or 1. A completed round cancels itself back to zero, so the
-number cannot accumulate, and sessions of wildly different sizes (sixty
-privileges in juin, eight in rattrapage) cannot distort it. A teacher absent
-from the previous session counts as zero and goes to the front, which is
-correct — they have not had their turn.
+Almost always 0 or 1. The subtraction is what keeps it there: a completed
+round lifts everyone together, the floor lifts with them, and the numbers
+fall back to zero. It grows only where somebody genuinely got ahead — the
+sole specialist of a subject who must take that permanence whoever else is
+waiting. Session sizes never enter, since what is counted is turns per
+teacher.
+
+**Every past session counts, not only the last one.** A session repays the
+teachers it owes only as far as its turns reach. Twenty-nine teachers waiting
+and eighteen turns to give leaves eleven still waiting, and a carry that read
+the newest session alone could not tell those eleven from the ones already
+settled — so the rattrapage would serve people who had a turn in June while
+others finished the year with none. A teacher absent from earlier sessions
+counts as zero and goes to the front, which is correct — they have not had
+their turn.
 
 It is derived from the stored assignments of the previous session, never
 maintained as a counter: a ledger that is incremented and decremented drifts

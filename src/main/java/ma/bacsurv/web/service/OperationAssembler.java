@@ -145,24 +145,25 @@ public class OperationAssembler {
     }
 
     /**
-     * How many privilege turns each teacher took beyond the slowest colleague
-     * in the previous session.
+     * How many privilege turns each teacher has taken beyond the colleague
+     * who has had the fewest.
      *
-     * <p>A session rarely ends on a clean round: with 50 teachers and 60
-     * privileges, everyone gets one and ten get a second. Carrying the raw
-     * counts across a year would compare sessions of wildly different sizes —
-     * rattrapage might hand out eight privileges, juin sixty. Carrying only
-     * the unfinished tail cannot drift: once a round completes it cancels
-     * itself back to zero.
+     * <p>Not a count of turns, a place in a queue. The subtraction is what
+     * keeps it small: when a round completes everyone rises together and the
+     * floor rises with them, so the numbers fall back to zero on their own.
+     * It only grows where somebody genuinely got ahead — the sole specialist
+     * of a subject, who has to take that permanence whoever else is waiting.
+     * Session sizes never enter into it, since what is counted is turns per
+     * teacher and never the size of a session.
      *
-     * <p>The floor is taken over the whole current pool, so a teacher who was
-     * not in the previous session counts as zero and goes to the front — which
-     * is right, they have not had their turn.
+     * <p>The floor is taken over the whole current pool, so a teacher who
+     * missed the earlier sessions counts as zero and goes to the front —
+     * which is right, they have not had their turn.
      */
     private Map<Long, Integer> privilegeCarry(Long centerId, Long operationId,
                                               List<TeacherEntity> pool) {
         Map<Long, Integer> taken = new HashMap<>();
-        for (Object[] row : assignments.privilegesOfPreviousSession(centerId, operationId)) {
+        for (Object[] row : assignments.privilegeTurnsOfCenter(centerId, operationId)) {
             taken.put((Long) row[0], ((Number) row[1]).intValue());
         }
         return carryFrom(taken, pool.stream().map(TeacherEntity::getId).toList());

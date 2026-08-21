@@ -56,12 +56,15 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
     List<Object[]> priorWorkloadOfCenter(Long centerId, Long excludedOperationId);
 
     /**
-     * Privilege duties (réserve, permanence) handed out by the center's most
-     * recent finished operation — the previous session, not the whole year.
+     * Privilege turns (réserve, permanence) each teacher has taken in the
+     * center's earlier sessions — the newest finished job of each.
      *
-     * <p>Rattrapage cannot be sized in advance, so a year-long plan would be
-     * planning against an unknown. Only the last session is read, and only to
-     * work out who is still owed a turn; see OperationAssembler#privilegeCarry.
+     * <p>Every past session counts, not only the last. A session repays the
+     * people it owes just as far as its turns reach: 29 teachers waiting and
+     * 18 turns to give leaves 12 still waiting, and a query that reads only
+     * the newest session cannot tell those 12 from the ones it already
+     * settled. Turning these counts into a queue position is
+     * OperationAssembler#carryFrom.
      */
     @Query("""
             select a.teacher.id, count(a)
@@ -69,12 +72,12 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
             where a.teacher is not null
               and a.teacher.center.id = :centerId
               and a.role <> ma.bacsurv.domain.DutyRole.SURVEILLANCE
-              and a.job.id = (
+              and a.job.operation.id <> :excludedOperationId
+              and a.job.id in (
                   select max(j.id) from SolveJob j
                   where j.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE
-                    and j.operation.center.id = :centerId
-                    and j.operation.id <> :excludedOperationId)
+                  group by j.operation.id)
             group by a.teacher.id
             """)
-    List<Object[]> privilegesOfPreviousSession(Long centerId, Long excludedOperationId);
+    List<Object[]> privilegeTurnsOfCenter(Long centerId, Long excludedOperationId);
 }
