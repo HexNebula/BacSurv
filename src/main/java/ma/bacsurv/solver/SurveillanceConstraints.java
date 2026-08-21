@@ -6,6 +6,7 @@ import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import ai.timefold.solver.core.api.score.stream.Joiners;
+import ai.timefold.solver.core.api.score.stream.bi.BiConstraintStream;
 import ma.bacsurv.domain.DutyRole;
 import ma.bacsurv.domain.Teacher;
 import ma.bacsurv.rules.SchedulingPolicy;
@@ -14,11 +15,15 @@ import java.time.LocalDate;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * MODEL.md encoded for Timefold. Hard = legality, soft = quality.
- * Soft weights: pair/room repetition 10, consecutive-days 20,
- * per-role balance 1 per squared duty (sum-of-squares ⇒ balancing).
+ *
+ * <p>Fairness is two objectives, not one: surveillance — the work — is spread
+ * evenly, while réserve and permanence share a single queue of turns. The
+ * privilege queue outweighs the rest, since a repeated turn is the unfairness
+ * teachers actually notice.
  */
 public class SurveillanceConstraints implements ConstraintProvider {
 
@@ -27,7 +32,8 @@ public class SurveillanceConstraints implements ConstraintProvider {
     static final int WEIGHT_CONSECUTIVE_DAYS = 20;
     static final int UNFAIRNESS_SCALE = 1000;
     static final int WEIGHT_TOTAL_BALANCE = 3;
-    static final int WEIGHT_ROLE_BALANCE = 1;
+    static final int WEIGHT_SURVEILLANCE_BALANCE = 3;
+    static final int WEIGHT_PRIVILEGE_QUEUE = 8;
     static final int WEIGHT_HALF_DAY_IMBALANCE = 2;
     static final int WEIGHT_SAME_GENDER_PAIR = 1;
     static final int WEIGHT_IDLE_TEACHER = 5000;
@@ -51,9 +57,8 @@ public class SurveillanceConstraints implements ConstraintProvider {
                 noIdleTeacher(f),
                 balanceHalfDays(f),
                 mixedGenderPair(f),
-                balanceRole(f, DutyRole.SURVEILLANCE, "balance surveillance load"),
-                balanceRole(f, DutyRole.RESERVE, "balance reserve load"),
-                balanceRole(f, DutyRole.PERMANENCE, "balance permanence load"),
+                balanceSurveillance(f),
+                privilegeQueue(f),
         };
     }
 
@@ -184,20 +189,68 @@ public class SurveillanceConstraints implements ConstraintProvider {
         return longest;
     }
 
-    // S — per-role balance via Timefold's loadBalance collector. The third
-    // argument seeds each teacher with prior(role) from earlier operations of
-    // the year, so a teacher loaded in June is naturally relieved in July.
-    // unfairness() ≈ std deviation of loads; scaled to int soft points.
-    Constraint balanceRole(ConstraintFactory f, DutyRole role, String name) {
-        return f.forEach(DutyAssignment.class)
-                .filter(a -> a.role() == role)
+    /**
+     * S2 — surveillance is the real work, so it is spread evenly, seeded with
+     * what earlier operations already handed out.
+     */
+    Constraint balanceSurveillance(ConstraintFactory f) {
+        return loadPerTeacher(f, DutyAssignment::isSurveillance)
                 .groupBy(ConstraintCollectors.loadBalance(
-                        DutyAssignment::getTeacher,
-                        a -> 1L,
-                        a -> a.getTeacher().prior(role)))
+                        (Teacher t, Long load) -> t,
+                        (t, load) -> load,
+                        (t, load) -> t.prior(DutyRole.SURVEILLANCE)))
                 .penalize(HardSoftScore.ONE_SOFT,
-                        lb -> unfairnessPoints(lb, WEIGHT_ROLE_BALANCE))
-                .asConstraint(name);
+                        lb -> unfairnessPoints(lb, WEIGHT_SURVEILLANCE_BALANCE))
+                .asConstraint("balance surveillance load");
+    }
+
+    /**
+     * S3+S4 — the privilege queue. Réserve and permanence draw from different
+     * pools (permanence only from the subject's specialists) but share one
+     * counter: a teacher who has had either waits until every colleague has
+     * had a turn, then the cycle opens again.
+     *
+     * <p>Balancing the count is what produces the cycle — giving someone a
+     * second turn while a colleague sits at zero costs more than levelling
+     * up. The seed is {@code privilegeCarry}: turns taken beyond the slowest
+     * colleague in the previous session, so an unfinished round continues
+     * where it stopped instead of restarting in everyone's favour.
+     *
+     * <p>Scarcity can still force a repeat — four philosophie permanences and
+     * two specialists leaves no choice. That is why this is a strong
+     * preference and not a hard rule.
+     */
+    Constraint privilegeQueue(ConstraintFactory f) {
+        return loadPerTeacher(f, DutyAssignment::isPrivilege)
+                .groupBy(ConstraintCollectors.loadBalance(
+                        (Teacher t, Long load) -> t,
+                        (t, load) -> load,
+                        (t, load) -> t.privilegeCarry()))
+                .penalize(HardSoftScore.ONE_SOFT,
+                        lb -> unfairnessPoints(lb, WEIGHT_PRIVILEGE_QUEUE))
+                .asConstraint("privilege queue");
+    }
+
+    /**
+     * One row per matching duty carrying a load of 1, plus a zero row for
+     * every teacher holding none of them.
+     *
+     * <p>The zero rows are the point. A stream filtered to one kind of duty
+     * only ever contains the teachers already doing it, and a group of one
+     * has no imbalance — so six permanences to a single specialist scored
+     * exactly like two each to three of them. Teachers sitting at zero have
+     * to be visible for the balance to mean anything.
+     */
+    private BiConstraintStream<Teacher, Long> loadPerTeacher(
+            ConstraintFactory f, Predicate<DutyAssignment> matching) {
+        return f.forEach(DutyAssignment.class)
+                .filter(matching::test)
+                .map(DutyAssignment::getTeacher, a -> 1L)
+                .concat(f.forEach(Teacher.class)
+                        .ifNotExists(DutyAssignment.class,
+                                Joiners.equal(Function.identity(), DutyAssignment::getTeacher),
+                                Joiners.filtering((t, a) -> matching.test(a)))
+                        .expand(t -> 0L));
     }
 
     // S1 — total workload balance (cumulative via priorTotal). Weighted above

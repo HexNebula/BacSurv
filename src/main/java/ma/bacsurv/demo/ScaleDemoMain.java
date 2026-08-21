@@ -125,5 +125,20 @@ public final class ScaleDemoMain {
             System.out.printf("  %-12s min %d, max %d, total %d%n",
                     role, roleStats.getMin(), roleStats.getMax(), roleStats.getSum());
         }
+
+        // Réserve and permanence share one queue, so the two counts have to be
+        // read together: one of each is two turns, not one apiece.
+        Map<Integer, Long> privileges = new java.util.TreeMap<>();
+        for (Teacher teacher : pool) {
+            Map<DutyRole, Integer> roles = byRole.getOrDefault(teacher, Map.of());
+            int turns = roles.entrySet().stream()
+                    .filter(entry -> entry.getKey().isPrivilege())
+                    .mapToInt(Map.Entry::getValue).sum();
+            privileges.merge(turns, 1L, Long::sum);
+        }
+        System.out.println("  privilege turns (réserve + permanence together)");
+        privileges.forEach((turns, teachers) ->
+                System.out.printf("  %2d turns  : %s (%d)%n", turns,
+                        "#".repeat((int) Math.min(teachers, 60)), teachers));
     }
 }

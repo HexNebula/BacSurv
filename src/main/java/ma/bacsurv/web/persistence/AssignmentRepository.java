@@ -54,4 +54,27 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
             group by a.teacher.id, a.role
             """)
     List<Object[]> priorWorkloadOfCenter(Long centerId, Long excludedOperationId);
+
+    /**
+     * Privilege duties (réserve, permanence) handed out by the center's most
+     * recent finished operation — the previous session, not the whole year.
+     *
+     * <p>Rattrapage cannot be sized in advance, so a year-long plan would be
+     * planning against an unknown. Only the last session is read, and only to
+     * work out who is still owed a turn; see OperationAssembler#privilegeCarry.
+     */
+    @Query("""
+            select a.teacher.id, count(a)
+            from AssignmentEntity a
+            where a.teacher is not null
+              and a.teacher.center.id = :centerId
+              and a.role <> ma.bacsurv.domain.DutyRole.SURVEILLANCE
+              and a.job.id = (
+                  select max(j.id) from SolveJob j
+                  where j.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE
+                    and j.operation.center.id = :centerId
+                    and j.operation.id <> :excludedOperationId)
+            group by a.teacher.id
+            """)
+    List<Object[]> privilegesOfPreviousSession(Long centerId, Long excludedOperationId);
 }

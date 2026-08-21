@@ -103,6 +103,30 @@ Through the API: `POST /api/jobs/{id}/assignments/{dutyId}/review` to ask,
 `POST /api/jobs/{id}/assignments/{dutyId}` to save (409 with the reasons when it
 breaks a rule, `force=true` to insist), and `.../pin` to protect it.
 
+## Surveillance is the work, réserve and permanence are turns
+
+Standing in a room for a whole épreuve is not the same day as being on
+standby, even though all three count as one duty and are paid the same. So
+BacSurv balances two things instead of one: surveillance is spread evenly,
+and réserve and permanence share a **single queue** — different pools, since
+permanence needs a specialist of the subject, but one counter. A teacher who
+has had either waits until every colleague has had a turn; then the cycle
+opens again.
+
+At the size of a real centre this comes out exactly: 192 privileges over 150
+teachers gives one turn to all 150 and a second to 42 of them, nobody at
+zero. Where scarcity forces a repeat — four philosophie permanences and two
+specialists — the solver takes it, because the rule is a strong preference
+and not a hard bar.
+
+**The queue is scoped to the session, not the year.** Rattrapage cannot be
+sized in advance, so only the unfinished tail of the last round carries over:
+how many turns a teacher took beyond their slowest colleague, almost always
+0 or 1. A completed round cancels itself back to zero, so nothing accumulates
+and a small rattrapage cannot distort a large juin. It is recomputed from the
+previous session's stored assignments rather than kept as a running counter,
+which is what stops it drifting.
+
 ## Cumulative fairness across operations
 
 Importing an operation stores the center, its rooms and its teacher pool, not
@@ -119,10 +143,8 @@ center of a given size and reports what the solver achieved. Measured results:
 
 | Center | Duties | Teachers | Time | Result |
 | --- | --- | --- | --- | --- |
-| 6 days, 20 rooms | 552 | 100 | 30s | feasible, 0 hard, 1 soft, load 5–6 per teacher |
-| 6 days, 20 rooms | 552 | 100 | 10s | feasible, 0 hard, ~24 soft, same load spread |
-| 12 days, 30 rooms | ~1630 | 150 | 60s | feasible, 0 hard, ~120 soft, load 11–12 |
-| 12 days, 30 rooms | ~1630 | 150 | 120s | feasible, 0 hard, ~59 soft, load 11–12 |
+| 6 days, 20 rooms | 552 | 100 | 30s | feasible, 0 hard, load 5–6, 72 teachers with one turn and 28 with none |
+| 12 days, 30 rooms | ~1630 | 150 | 60s | feasible, 0 hard, load 10–11, one full round of turns then 42 into the second |
 
 Legality and fairness are reached quickly; extra time buys preference quality
 (room repetition, pairs). At the largest size most remaining soft penalties are

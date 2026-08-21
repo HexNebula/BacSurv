@@ -128,17 +128,58 @@ public class OperationAssembler {
     public Pool poolFor(OperationEntity operation) {
         Long centerId = operation.getCenter().getId();
         Map<Long, Map<DutyRole, Integer>> prior = priorWorkload(centerId, operation.getId());
+        List<TeacherEntity> entities = teachers.findPoolOfCenter(centerId);
+        Map<Long, Integer> carry = privilegeCarry(centerId, operation.getId(), entities);
 
         List<Teacher> pool = new java.util.ArrayList<>();
         Map<String, Long> idByMatricule = new HashMap<>();
         Map<Long, Teacher> byId = new HashMap<>();
-        for (TeacherEntity entity : teachers.findPoolOfCenter(centerId)) {
-            Teacher teacher = toDomain(entity, prior.getOrDefault(entity.getId(), Map.of()));
+        for (TeacherEntity entity : entities) {
+            Teacher teacher = toDomain(entity, prior.getOrDefault(entity.getId(), Map.of()))
+                    .withPrivilegeCarry(carry.getOrDefault(entity.getId(), 0));
             pool.add(teacher);
             idByMatricule.put(entity.getMatricule(), entity.getId());
             byId.put(entity.getId(), teacher);
         }
         return new Pool(List.copyOf(pool), Map.copyOf(idByMatricule), Map.copyOf(byId));
+    }
+
+    /**
+     * How many privilege turns each teacher took beyond the slowest colleague
+     * in the previous session.
+     *
+     * <p>A session rarely ends on a clean round: with 50 teachers and 60
+     * privileges, everyone gets one and ten get a second. Carrying the raw
+     * counts across a year would compare sessions of wildly different sizes —
+     * rattrapage might hand out eight privileges, juin sixty. Carrying only
+     * the unfinished tail cannot drift: once a round completes it cancels
+     * itself back to zero.
+     *
+     * <p>The floor is taken over the whole current pool, so a teacher who was
+     * not in the previous session counts as zero and goes to the front — which
+     * is right, they have not had their turn.
+     */
+    private Map<Long, Integer> privilegeCarry(Long centerId, Long operationId,
+                                              List<TeacherEntity> pool) {
+        Map<Long, Integer> taken = new HashMap<>();
+        for (Object[] row : assignments.privilegesOfPreviousSession(centerId, operationId)) {
+            taken.put((Long) row[0], ((Number) row[1]).intValue());
+        }
+        return carryFrom(taken, pool.stream().map(TeacherEntity::getId).toList());
+    }
+
+    /** The arithmetic of the rule above, kept separate so it can be read and tested alone. */
+    static Map<Long, Integer> carryFrom(Map<Long, Integer> taken, List<Long> poolIds) {
+        if (taken.isEmpty() || poolIds.isEmpty()) return Map.of();
+
+        int floor = poolIds.stream().mapToInt(id -> taken.getOrDefault(id, 0)).min().orElse(0);
+
+        Map<Long, Integer> carry = new HashMap<>();
+        for (Long id : poolIds) {
+            int extra = taken.getOrDefault(id, 0) - floor;
+            if (extra > 0) carry.put(id, extra);
+        }
+        return Map.copyOf(carry);
     }
 
     private Map<Long, Map<DutyRole, Integer>> priorWorkload(Long centerId, Long operationId) {

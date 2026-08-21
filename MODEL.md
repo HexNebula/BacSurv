@@ -177,9 +177,8 @@ SubjectConflictConstraint
 |---|---|---|
 | S1 | Balance total workload within operation | high |
 | S2 | Balance surveillance load within operation | high |
-| S3 | Balance reserve load within operation | medium |
-| S4 | Balance permanence load (within specialist pool) | high |
-| S5 | Balance cumulative workload across year (per role) | high |
+| S3+S4 | Privilege queue — réserve and permanence share one counter | high |
+| S5 | Carry the unfinished round into the next session | high |
 | S6 | AvoidRepeatedRoomAssignment — teacher not in same room twice | medium |
 | S7 | AvoidRepeatedPair — same duo not paired twice | medium |
 | S8 | Max consecutive days (e.g. 3) | medium |
@@ -210,16 +209,34 @@ Balancing objectives are independent and independently weighted (S1–S5):
 total-only balance is insufficient — 5 reserves ≠ 5 surveillances in work
 intensity for the same pay.
 
-### Fair-share ideal — role-specific, eligibility-aware
-```
-ideal(role) = total duties of role / teachers ELIGIBLE for that role
-```
-Eligible, not enrolled: unavailability and subject conflicts shrink the
-pool. Permanence example: 4 Math permanence duties, 6 Math specialists →
-idealPermanenceLoad computed over 6, not over the 50-teacher pool.
-Perfect equality often impossible (integer division) — some teachers get
-+1, that is correct behavior. Imbalance metric: sum of squared deviations
-from ideal.
+### Surveillance is the work, the other two are turns
+Surveillance means standing in a room for the whole épreuve. Réserve and
+permanence are lighter, and teachers experience them as a turn they are
+glad to get. Equal totals can therefore still be unfair:
+
+| | surveillance | réserve | permanence | total |
+|---|---|---|---|---|
+| A | 6 | 0 | 0 | 6 |
+| B | 0 | 2 | 4 | 6 |
+
+So two objectives, not one:
+- **Surveillance** is spread evenly — everyone carries their share of the work.
+- **Réserve and permanence share a single queue.** Different pools —
+  permanence only from the subject's specialists — but one counter: whoever
+  has had either waits until every colleague has had a turn, then the cycle
+  opens again.
+
+Balancing the counts is what produces the cycle: a second turn while a
+colleague sits at zero costs more than levelling up.
+
+**Teachers at zero must be counted.** A balance computed only over the
+people already holding a role sees a group of one as perfectly balanced, so
+six permanences to a single specialist scores exactly like two each to
+three of them. The zero rows are what make the objective mean anything.
+
+Scarcity can still force a repeat — four philosophie permanences and two
+specialists leaves no choice — so this is a strong preference, never a hard
+rule.
 
 ### Cumulative (cross-operation) tracking
 Operations are solved independently (June ≠ July roster), so history is
@@ -231,6 +248,24 @@ Teacher
 
 solve(operation N): balance (base[t] + new[t]), base = past operations
 ```
+
+**The privilege queue is scoped to the session, not the year.** Rattrapage
+cannot be sized in advance — its roster and its length are unknown until it
+happens — so planning privileges across a whole year is planning against an
+unknown. What travels between sessions is only the unfinished tail of the
+last round:
+```
+carry(t) = privileges(t, previous session) − min over the pool
+```
+Almost always 0 or 1. A completed round cancels itself back to zero, so the
+number cannot accumulate, and sessions of wildly different sizes (sixty
+privileges in juin, eight in rattrapage) cannot distort it. A teacher absent
+from the previous session counts as zero and goes to the front, which is
+correct — they have not had their turn.
+
+It is derived from the stored assignments of the previous session, never
+maintained as a counter: a ledger that is incremented and decremented drifts
+the first time a run is interrupted.
 A teacher unavailable half the exam must not make the schedule infeasible:
 that is why fairness is soft and only `maxDutiesPerTeacher` (if a real
 limit exists) is hard.

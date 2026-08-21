@@ -56,6 +56,8 @@ public class DutyAssignment {
     public String slotId() { return duty.slot().id(); }
     public LocalDate date() { return duty.slot().date(); }
     public boolean isSurveillance() { return duty.role() == DutyRole.SURVEILLANCE; }
+    /** Réserve or permanence — a turn, not the work. See {@link DutyRole#isPrivilege()}. */
+    public boolean isPrivilege() { return duty.role().isPrivilege(); }
     public Subject examSubject() { return duty.exam().map(e -> e.subject()).orElse(null); }
 
     /**

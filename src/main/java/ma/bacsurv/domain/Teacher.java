@@ -18,6 +18,12 @@ public final class Teacher {
     private final Set<TeacherQualification> qualifications;
     /** Duties carried from past operations of the year — cumulative fairness offset. */
     private final Map<DutyRole, Integer> priorWorkload;
+    /**
+     * Privilege turns already taken beyond the slowest colleague in the
+     * previous session. Almost always 0 or 1: a completed round cancels
+     * itself out, so this cannot accumulate across sessions.
+     */
+    private final int privilegeCarry;
 
     public Teacher(String id, String matricule, String name, Subject subject, String establishment,
                    Gender gender,
@@ -32,6 +38,17 @@ public final class Teacher {
                    Set<Unavailability> unavailabilities,
                    Set<TeacherQualification> qualifications,
                    Map<DutyRole, Integer> priorWorkload) {
+        this(id, matricule, name, subject, establishment, gender,
+                unavailabilities, qualifications, priorWorkload, 0);
+    }
+
+    public Teacher(String id, String matricule, String name, Subject subject, String establishment,
+                   Gender gender,
+                   Set<Unavailability> unavailabilities,
+                   Set<TeacherQualification> qualifications,
+                   Map<DutyRole, Integer> priorWorkload,
+                   int privilegeCarry) {
+        this.privilegeCarry = privilegeCarry;
         this.id = Objects.requireNonNull(id);
         this.matricule = requireText(matricule, "matricule");
         this.name = Objects.requireNonNull(name);
@@ -52,10 +69,18 @@ public final class Teacher {
     /** Copy with cumulative history from previous operations of the year. */
     public Teacher withPriorWorkload(Map<DutyRole, Integer> prior) {
         return new Teacher(id, matricule, name, subject, establishment, gender,
-                unavailabilities, qualifications, prior);
+                unavailabilities, qualifications, prior, privilegeCarry);
+    }
+
+    /** Copy with the privilege turns carried over from the previous session. */
+    public Teacher withPrivilegeCarry(int carry) {
+        return new Teacher(id, matricule, name, subject, establishment, gender,
+                unavailabilities, qualifications, priorWorkload, carry);
     }
 
     public int prior(DutyRole role) { return priorWorkload.getOrDefault(role, 0); }
+
+    public int privilegeCarry() { return privilegeCarry; }
 
     public int priorTotal() {
         return priorWorkload.values().stream().mapToInt(Integer::intValue).sum();
