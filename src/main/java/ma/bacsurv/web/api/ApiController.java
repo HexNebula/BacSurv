@@ -72,10 +72,15 @@ public class ApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(solveService.upload(name, body));
     }
 
-    /** Slots the pool cannot cover; empty means the operation can be staffed. */
+    /**
+     * Why this operation could not be scheduled: hours the pool cannot cover,
+     * and duties nobody is qualified to take. Both empty means it can be run.
+     */
     @GetMapping("/operations/{id}/staffing")
-    public List<StaffingCheck.Shortage> staffing(@PathVariable long id) {
-        return solveService.staffingShortages(id);
+    public Map<String, Object> staffing(@PathVariable long id) {
+        return Map.of(
+                "shortages", solveService.staffingShortages(id),
+                "unfillable", solveService.unfillableDuties(id));
     }
 
     @PostMapping("/operations/{id}/solve")
@@ -142,6 +147,7 @@ public class ApiController {
     public ResponseEntity<Map<String, Object>> insufficientStaff(InsufficientStaffException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                 "error", e.getMessage(),
-                "shortages", e.shortages()));
+                "shortages", e.shortages(),
+                "unfillable", e.unfillable()));
     }
 }

@@ -159,12 +159,24 @@ Legality and fairness are reached quickly; extra time buys preference quality
 arithmetically unavoidable: with 11 duties over 12 exam days, working more than
 three days in a row cannot be dodged, so that preference is always "violated".
 
-**Staffing is limited per slot, not per operation.** A teacher holds one duty at
-a time, so a slot needing 47 people cannot run with a pool of 45 no matter how
-long the solver runs. `StaffingCheck` verifies this before solving and the
-application refuses the run with a clear message naming the slot, its
-requirement and what is available — also exposed at
-`GET /api/operations/{id}/staffing`.
+**Staffing is limited per moment, not per operation.** A teacher holds one duty
+at a time, so an hour needing 47 people cannot run with a pool of 45 no matter
+how long the solver runs. The moment, not the slot: two papers can start
+together and end at different hours, which makes them two slots running at
+once — counted apart they read as 12 and 12 against a pool of 45 and pass,
+while the centre has to put 24 people in rooms at 15:00.
+
+A second way a schedule can fail to exist is that nobody may take a given duty
+— usually a permanence whose subject has no specialist present, because the
+specialists are absent that day or the centre examines a subject it does not
+staff. Headcount never finds it: the hour has plenty of people, just nobody
+allowed in that chair.
+
+`StaffingCheck` looks for both before solving, and the application refuses the
+run naming the hour and the requirement, or the subject with no specialist —
+in French and Arabic, and at `GET /api/operations/{id}/staffing`. Left to the
+solver, the first appears as a wall of hard violations and the second as a
+qualification violation blaming a teacher who did nothing wrong.
 
 ## Database
 

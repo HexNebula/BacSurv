@@ -1,6 +1,7 @@
 package ma.bacsurv.application;
 
 import ma.bacsurv.domain.Duty;
+import ma.bacsurv.domain.DutyRole;
 import ma.bacsurv.domain.ExamOperation;
 import ma.bacsurv.domain.ExamSlot;
 import ma.bacsurv.domain.Teacher;
@@ -56,6 +57,25 @@ public final class StaffingCheck {
         }
     }
 
+    /**
+     * A duty nobody in the pool may legally take, whatever the numbers say.
+     *
+     * <p>Typically a permanence whose subject has no specialist in the pool —
+     * the specialists are absent that day, or the centre examines a subject it
+     * does not staff. Counting heads never sees it: the hour has plenty of
+     * people, just nobody allowed to sit in that chair. Left to the solver it
+     * surfaces after a full search as a qualification violation naming a
+     * teacher who did nothing wrong.
+     */
+    public record Unfillable(String dutyId, DutyRole role, String subject,
+                             String slotId, LocalDate date, LocalTime at) {
+
+        /** What the administrator has to fix: a specialist of this subject. */
+        public boolean needsSpecialist() {
+            return role == DutyRole.PERMANENCE;
+        }
+    }
+
     private final Eligibility eligibility;
 
     public StaffingCheck(Eligibility eligibility) {
@@ -69,6 +89,28 @@ public final class StaffingCheck {
     /** Counts availability under the same eligibility rules as the solve. */
     public static StaffingCheck forPolicy(ma.bacsurv.rules.SchedulingPolicy policy) {
         return new StaffingCheck(new Eligibility(policy.subjectConflict()));
+    }
+
+    /**
+     * Duties no one in the pool could take. Reported per subject and slot
+     * rather than per duty: a subject with no specialist produces one
+     * unfillable permanence per slot it is examined in, and naming the
+     * subject once per slot is what the administrator acts on.
+     */
+    public List<Unfillable> unfillable(List<Teacher> pool, List<Duty> duties) {
+        List<Unfillable> impossible = new ArrayList<>();
+        Set<String> alreadyReported = new HashSet<>();
+
+        for (Duty duty : duties) {
+            if (pool.stream().anyMatch(teacher -> eligibility.isEligible(teacher, duty))) continue;
+
+            String subject = duty.exam().map(exam -> exam.subject().name()).orElse(null);
+            if (!alreadyReported.add(duty.slot().id() + "/" + duty.role() + "/" + subject)) continue;
+
+            impossible.add(new Unfillable(duty.id(), duty.role(), subject,
+                    duty.slot().id(), duty.slot().date(), duty.slot().startTime()));
+        }
+        return List.copyOf(impossible);
     }
 
     public List<Shortage> check(ExamOperation operation, List<Teacher> pool, List<Duty> duties) {

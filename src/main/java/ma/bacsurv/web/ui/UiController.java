@@ -44,6 +44,24 @@ public class UiController {
         return messages.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 
+    /**
+     * Why no schedule exists, in the words the administrator can act on.
+     * A missing specialist comes first: it is the specific fault, and a centre
+     * short of one is usually not short of people at all. Simultaneous
+     * épreuves get their own wording, since the number quoted is what has to
+     * be in rooms at one moment rather than what one séance asks for.
+     */
+    private String explain(InsufficientStaffException e) {
+        if (e.isMissingSpecialist()) {
+            var duty = e.firstUnfillable();
+            return say(duty.needsSpecialist() ? "solve.unfillable.permanence" : "solve.unfillable",
+                    duty.subject(), duty.date(), duty.at());
+        }
+        var worst = e.worst();
+        return say(worst.isConcurrent() ? "solve.insufficient.concurrent" : "solve.insufficient",
+                worst.slotId(), worst.required(), worst.available(), e.shortages().size());
+    }
+
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("operations", solveService.recentOperations());
@@ -79,12 +97,7 @@ public class UiController {
         try {
             return "redirect:/jobs/" + solveService.submit(id, seconds).id();
         } catch (InsufficientStaffException e) {
-            var worst = e.worst();
-            // simultaneous épreuves need different wording: the number is what
-            // the centre must field at one moment, not what one séance asks for
-            flash.addFlashAttribute("error", say(
-                    worst.isConcurrent() ? "solve.insufficient.concurrent" : "solve.insufficient",
-                    worst.slotId(), worst.required(), worst.available(), e.shortages().size()));
+            flash.addFlashAttribute("error", explain(e));
             return "redirect:/";
         } catch (IllegalArgumentException e) {
             flash.addFlashAttribute("error", e.getMessage());

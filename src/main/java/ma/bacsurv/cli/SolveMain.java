@@ -64,11 +64,26 @@ public final class SolveMain {
                 parsed.operation().id(), parsed.operation().slots().size(),
                 duties.size(), parsed.teachers().size(), seconds);
 
-        // No pool can be in two rooms at once, so an impossible hour is worth
-        // saying plainly instead of letting the solver return a wall of hard
-        // violations that nobody can act on.
+        // No pool can be in two rooms at once, and nobody can cover a subject
+        // they do not teach. Both are worth saying plainly instead of letting
+        // the solver return violations nobody can act on.
+        StaffingCheck staffing = StaffingCheck.withDefaults();
+
+        List<StaffingCheck.Unfillable> unfillable =
+                staffing.unfillable(parsed.teachers(), duties);
+        if (!unfillable.isEmpty()) {
+            System.err.println("No schedule exists — nobody can take these duties:");
+            for (StaffingCheck.Unfillable duty : unfillable) {
+                System.err.printf("  %s %s  %s%s — no eligible teacher in the pool%n",
+                        duty.date(), duty.at(), duty.role(),
+                        duty.subject() == null ? "" : " " + duty.subject());
+            }
+            System.exit(1);
+            return;
+        }
+
         List<StaffingCheck.Shortage> shortages =
-                StaffingCheck.withDefaults().check(parsed.operation(), parsed.teachers(), duties);
+                staffing.check(parsed.operation(), parsed.teachers(), duties);
         if (!shortages.isEmpty()) {
             System.err.println("Insufficient staff — no schedule exists:");
             for (StaffingCheck.Shortage shortage : shortages) {

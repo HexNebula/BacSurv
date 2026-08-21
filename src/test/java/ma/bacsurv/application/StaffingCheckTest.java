@@ -2,6 +2,7 @@ package ma.bacsurv.application;
 
 import ma.bacsurv.TestFixtures;
 import ma.bacsurv.domain.Duty;
+import ma.bacsurv.domain.DutyRole;
 import ma.bacsurv.domain.Exam;
 import ma.bacsurv.domain.ExamOperation;
 import ma.bacsurv.domain.ExamSlot;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -115,6 +117,63 @@ class StaffingCheckTest {
         // 5 duties per séance, and the same five people can do both
         assertTrue(check.check(operation, pool(5), duties).isEmpty(),
                 "the pool is reused between séances of one day");
+    }
+
+    /**
+     * Counting heads never finds this one: the hour has plenty of people, just
+     * nobody allowed to sit in that particular chair. Left to the solver it
+     * takes a full search and comes back blaming a teacher who did nothing
+     * wrong.
+     */
+    @Test
+    void namesADutyNobodyIsQualifiedToTake() {
+        ExamOperation operation = operation();
+        List<Duty> duties = new DutyGenerator().generate(operation);
+
+        // a full pool of maths teachers: plenty of surveillants, but the
+        // permanences of the fixture's two subjects have no specialist
+        var unfillable = check.unfillable(pool(50), duties);
+
+        assertEquals(2, unfillable.size(), "one per examined subject: " + unfillable);
+        assertTrue(unfillable.stream().allMatch(u -> u.role() == DutyRole.PERMANENCE));
+        assertTrue(unfillable.stream().allMatch(StaffingCheck.Unfillable::needsSpecialist));
+        assertEquals(Set.of("History-Geography", "French"),
+                unfillable.stream().map(StaffingCheck.Unfillable::subject)
+                        .collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test
+    void reportsNothingUnfillableWhenEverySubjectHasItsSpecialist() {
+        ExamOperation operation = operation();
+        List<Duty> duties = new DutyGenerator().generate(operation);
+
+        List<Teacher> mixed = new java.util.ArrayList<>(pool(20));
+        mixed.add(TestFixtures.teacher("HG", TestFixtures.HG));
+        mixed.add(TestFixtures.teacher("FR", TestFixtures.FRENCH));
+
+        assertTrue(check.unfillable(mixed, duties).isEmpty());
+    }
+
+    /** A specialist who is absent that day is no specialist for that slot. */
+    @Test
+    void aSpecialistAbsentThatDayDoesNotCount() {
+        ExamOperation operation = operation();
+        List<Duty> duties = new DutyGenerator().generate(operation);
+        LocalDate examDay = operation.slots().getFirst().date();
+
+        Teacher awayThatDay = new Teacher("HG", "M-HG", "Teacher-HG", TestFixtures.HG,
+                "Lycée Test", null,
+                Set.of(ma.bacsurv.domain.Unavailability.wholeDay(examDay)),
+                Set.of(ma.bacsurv.domain.TeacherQualification.permanenceFor(TestFixtures.HG)));
+
+        List<Teacher> mixed = new java.util.ArrayList<>(pool(20));
+        mixed.add(awayThatDay);
+        mixed.add(TestFixtures.teacher("FR", TestFixtures.FRENCH));
+
+        var unfillable = check.unfillable(mixed, duties);
+
+        assertEquals(1, unfillable.size());
+        assertEquals("History-Geography", unfillable.getFirst().subject());
     }
 
     @Test

@@ -85,7 +85,7 @@ public class SolveService {
         return OperationView.of(importer.importOperation(parsed), file.getId());
     }
 
-    /** Slots the pool cannot cover, empty when the operation can be staffed. */
+    /** Hours the pool cannot cover, empty when the operation can be staffed. */
     @Transactional(readOnly = true)
     public List<StaffingCheck.Shortage> staffingShortages(long operationId) {
         OperationEntity operation = operations.findWithCenter(operationId)
@@ -93,6 +93,18 @@ public class SolveService {
                         "no operation with id " + operationId));
         ExamOperation domain = assembler.toDomain(operation);
         return StaffingCheck.forPolicy(assembler.schedulingOf(operation)).check(domain,
+                assembler.poolFor(operation).teachers(),
+                new DutyGenerator().generate(domain, assembler.staffingOf(operation)));
+    }
+
+    /** Duties nobody in the pool may take — usually a subject with no specialist. */
+    @Transactional(readOnly = true)
+    public List<StaffingCheck.Unfillable> unfillableDuties(long operationId) {
+        OperationEntity operation = operations.findWithCenter(operationId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "no operation with id " + operationId));
+        ExamOperation domain = assembler.toDomain(operation);
+        return StaffingCheck.forPolicy(assembler.schedulingOf(operation)).unfillable(
                 assembler.poolFor(operation).teachers(),
                 new DutyGenerator().generate(domain, assembler.staffingOf(operation)));
     }
@@ -105,7 +117,9 @@ public class SolveService {
 
         // refuse impossible work up front rather than after a long solve
         List<StaffingCheck.Shortage> shortages = staffingShortages(operationId);
-        if (!shortages.isEmpty()) throw new InsufficientStaffException(shortages);
+        List<StaffingCheck.Unfillable> unfillable = unfillableDuties(operationId);
+        if (!shortages.isEmpty() || !unfillable.isEmpty())
+            throw new InsufficientStaffException(shortages, unfillable);
 
         SolveJob job = jobs.saveAndFlush(new SolveJob(operation, null, timeLimitSeconds));
         JobView view = JobView.of(job);
