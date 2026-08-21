@@ -151,11 +151,18 @@ x[t, d] ∈ {0,1}   teacher t fills duty d
 | # | Constraint |
 |---|---|
 | H1 | Every duty has exactly one teacher |
-| H2 | No teacher has two duties in the same slot (covers permanence-can't-sit-exam) |
+| H2 | No teacher has two duties **overlapping in time** (covers permanence-can't-sit-exam) |
 | H3 | Teacher must be available for the slot |
 | H4 | Teacher must be qualified for the duty (permanence → specialist of `duty.exam.subject`) |
 | H5 | Subject-conflict rule (see below) when configured HARD |
 | H6 | Optional absolute cap: `maxDutiesPerTeacher` — a real administrative limit if one exists. NOT a fairness device; fairness stays soft |
+
+**H2 compares clocks, not slot identity.** Two papers of one afternoon can
+start at the same hour and end at different ones — 15:00–18:00 for the
+literary streams beside 15:00–17:00 for the scientific ones — which makes
+them two slots. A rule written on slot id never compares them, so a teacher
+could hold a room in both and the schedule still reported as feasible. Slots
+that merely touch (one ending as the next begins) do not overlap.
 
 ### Subject-conflict rule (configurable strength, per-EXAM scope)
 Scope is the duty's exam, NOT the slot. A Math teacher is only barred

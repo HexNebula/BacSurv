@@ -19,6 +19,17 @@ public record ExamSlot(String id, LocalDate date, LocalTime startTime, LocalTime
             throw new IllegalArgumentException("reserveRequirement must be >= 0");
     }
 
+    /**
+     * True when the two slots occupy a common moment, so no teacher can hold
+     * a duty in both. Slots that merely touch — one ending as the other
+     * starts — do not overlap.
+     */
+    public boolean overlaps(ExamSlot other) {
+        return date.equals(other.date)
+                && startTime.isBefore(other.endTime)
+                && other.startTime.isBefore(endTime);
+    }
+
     /** Derived — used only by the AM/PM balance objective. */
     public HalfDay halfDay() {
         return startTime.isBefore(LocalTime.NOON) ? HalfDay.AM : HalfDay.PM;

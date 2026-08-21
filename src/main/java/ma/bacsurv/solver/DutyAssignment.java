@@ -10,6 +10,7 @@ import ma.bacsurv.domain.Subject;
 import ma.bacsurv.domain.Teacher;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Solver-side wrapper around a domain Duty. Keeps Timefold annotations
@@ -55,6 +56,21 @@ public class DutyAssignment {
     public DutyRole role() { return duty.role(); }
     public String slotId() { return duty.slot().id(); }
     public LocalDate date() { return duty.slot().date(); }
+
+    /**
+     * When the duty actually runs. Two slots of one afternoon can start
+     * together and end at different hours — a three-hour paper for the
+     * literary streams beside a two-hour one for the scientific ones — so
+     * sharing a slot is not what makes two duties incompatible. Occupying
+     * the same moment is.
+     */
+    public LocalDateTime startsAt() {
+        return LocalDateTime.of(duty.slot().date(), duty.slot().startTime());
+    }
+
+    public LocalDateTime endsAt() {
+        return LocalDateTime.of(duty.slot().date(), duty.slot().endTime());
+    }
     public boolean isSurveillance() { return duty.role() == DutyRole.SURVEILLANCE; }
     /** Réserve or permanence — a turn, not the work. See {@link DutyRole#isPrivilege()}. */
     public boolean isPrivilege() { return duty.role().isPrivilege(); }

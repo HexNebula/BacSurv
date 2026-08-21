@@ -11,6 +11,7 @@ import ma.bacsurv.rules.SchedulingPolicy;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -72,17 +73,34 @@ public final class ScheduleValidator {
                 .forEach(d -> out.add(Violation.hard("H1-coverage", "unfilled duty " + d)));
     }
 
-    // H2
+    /**
+     * H2 — nobody is in two places at once. Compares the hours, not the slot
+     * ids: two papers can start together and end at different times, which
+     * puts them in different slots while they still occupy the same room-hour
+     * for a teacher.
+     */
     private void checkOverlap(List<Duty> duties, List<Violation> out) {
-        Map<ExamSlot, Map<Teacher, Long>> perSlot = duties.stream()
+        Map<Teacher, List<Duty>> perTeacher = duties.stream()
                 .filter(d -> d.assignedTeacher().isPresent())
-                .collect(Collectors.groupingBy(Duty::slot,
-                        Collectors.groupingBy(d -> d.assignedTeacher().get(),
-                                Collectors.counting())));
-        perSlot.forEach((slot, byTeacher) -> byTeacher.forEach((t, n) -> {
-            if (n > 1) out.add(Violation.hard("H2-overlap",
-                    t.name() + " has " + n + " duties in slot " + slot.id()));
-        }));
+                .collect(Collectors.groupingBy(d -> d.assignedTeacher().get()));
+
+        perTeacher.forEach((teacher, held) -> {
+            List<Duty> ordered = held.stream()
+                    .sorted(Comparator.comparing((Duty d) -> d.slot().date())
+                            .thenComparing(d -> d.slot().startTime()))
+                    .toList();
+            for (int i = 0; i < ordered.size(); i++) {
+                for (int j = i + 1; j < ordered.size(); j++) {
+                    ExamSlot a = ordered.get(i).slot(), b = ordered.get(j).slot();
+                    if (!a.date().equals(b.date())) break; // sorted: later days cannot overlap
+                    if (!a.overlaps(b)) continue;
+                    out.add(Violation.hard("H2-overlap", teacher.name()
+                            + " is in two places at once on " + a.date() + ": "
+                            + a.id() + " (" + a.startTime() + "-" + a.endTime() + ") and "
+                            + b.id() + " (" + b.startTime() + "-" + b.endTime() + ")"));
+                }
+            }
+        });
     }
 
     // H3 + H4 + H5

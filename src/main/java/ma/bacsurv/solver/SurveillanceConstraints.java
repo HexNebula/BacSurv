@@ -62,13 +62,22 @@ public class SurveillanceConstraints implements ConstraintProvider {
         };
     }
 
-    // H2
+    /**
+     * H2 — nobody is in two places at once.
+     *
+     * <p>Compares clocks, not slot labels. Slots that start together and end
+     * at different hours are different slots, so a rule written on slot
+     * identity lets a teacher hold a room from 15:00 to 18:00 and another
+     * from 15:00 to 17:00 and calls the schedule feasible. Duties of one slot
+     * share their times exactly, so they still overlap and stay covered; a
+     * morning and an afternoon do not touch and stay allowed.
+     */
     Constraint noOverlapInSlot(ConstraintFactory f) {
         return f.forEachUniquePair(DutyAssignment.class,
-                        Joiners.equal(DutyAssignment::slotId),
-                        Joiners.equal(DutyAssignment::getTeacher))
+                        Joiners.equal(DutyAssignment::getTeacher),
+                        Joiners.overlapping(DutyAssignment::startsAt, DutyAssignment::endsAt))
                 .penalize(HardSoftScore.ONE_HARD)
-                .asConstraint("teacher twice in same slot");
+                .asConstraint("teacher in two places at once");
     }
 
     // H3
