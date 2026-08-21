@@ -23,7 +23,15 @@ import java.util.Locale;
 public class LocaleConfig implements WebMvcConfigurer {
 
     public static final Locale FRENCH = Locale.forLanguageTag("fr");
-    public static final Locale ARABIC = Locale.forLanguageTag("ar");
+    /**
+     * Moroccan Arabic, not Arabic in general: the Maghreb writes numbers with
+     * the digits 0-9, while plain {@code ar} formats them as ٠-٩. A room count
+     * or a matricule printed in eastern digits is not what an administration
+     * here puts on paper. The bundle stays {@code messages_ar.properties} —
+     * ar-MA falls back to it — and every comparison below is by language, so
+     * ?lang=ar still selects this.
+     */
+    public static final Locale ARABIC = Locale.forLanguageTag("ar-MA");
     public static final List<Locale> SUPPORTED = List.of(FRENCH, ARABIC);
 
     @Bean

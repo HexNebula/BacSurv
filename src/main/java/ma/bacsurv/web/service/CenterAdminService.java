@@ -1,0 +1,157 @@
+package ma.bacsurv.web.service;
+
+import ma.bacsurv.domain.OperationType;
+import ma.bacsurv.web.persistence.CenterEntity;
+import ma.bacsurv.web.persistence.CenterRepository;
+import ma.bacsurv.web.persistence.OperationEntity;
+import ma.bacsurv.web.persistence.OperationRepository;
+import ma.bacsurv.web.persistence.RoomEntity;
+import ma.bacsurv.web.persistence.RoomRepository;
+import ma.bacsurv.web.persistence.TeacherRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Setting a centre up: its name, its rooms, its sessions. Everything here is
+ * typed once and reused for years — a centre does not gain a room between
+ * June and July — so the screens are built for a first entry that is easy and
+ * a later correction that is safe.
+ */
+@Service
+public class CenterAdminService {
+
+    private final CenterRepository centers;
+    private final RoomRepository rooms;
+    private final OperationRepository operations;
+    private final TeacherRepository teachers;
+
+    public CenterAdminService(CenterRepository centers, RoomRepository rooms,
+                              OperationRepository operations, TeacherRepository teachers) {
+        this.centers = centers;
+        this.rooms = rooms;
+        this.operations = operations;
+        this.teachers = teachers;
+    }
+
+    /** A room as the administrator sees it. */
+    public record RoomView(Long id, String reference, String label, Integer surveillants) {}
+
+    /** A session of a centre, with what it holds so far. */
+    public record SessionView(Long id, String reference, String type,
+                              LocalDate startsOn, LocalDate endsOn, int slotCount) {}
+
+    /** A centre and everything set up under it. */
+    public record CenterDetail(Long id, String name, int teacherCount,
+                               List<RoomView> rooms, List<SessionView> sessions) {}
+
+    @Transactional(readOnly = true)
+    public CenterDetail detail(long centerId) {
+        CenterEntity center = centers.findById(centerId).orElseThrow(
+                () -> new IllegalArgumentException("no center with id " + centerId));
+
+        List<RoomView> roomViews = rooms.findByCenterIdOrderByReferenceAsc(centerId).stream()
+                .map(room -> new RoomView(room.getId(), room.getReference(), room.getLabel(),
+                        room.getSurveillantsOverride()))
+                .toList();
+
+        List<SessionView> sessionViews = operations.findAllWithCenter().stream()
+                .filter(operation -> operation.getCenter().getId().equals(centerId))
+                .map(operation -> new SessionView(operation.getId(), operation.getReference(),
+                        operation.getType(), operation.getStartsOn(), operation.getEndsOn(),
+                        operation.getSlots().size()))
+                .toList();
+
+        return new CenterDetail(center.getId(), center.getName(),
+                teachers.findPoolOfCenter(centerId).size(), roomViews, sessionViews);
+    }
+
+    @Transactional
+    public Long createCenter(String name) {
+        String cleaned = required(name, "center.name");
+        centers.findByName(cleaned).ifPresent(existing -> {
+            throw new IllegalArgumentException("center.exists");
+        });
+        return centers.save(new CenterEntity(cleaned)).getId();
+    }
+
+    @Transactional
+    public void renameCenter(long centerId, String name) {
+        CenterEntity center = centers.findById(centerId).orElseThrow(
+                () -> new IllegalArgumentException("no center with id " + centerId));
+        center.setName(required(name, "center.name"));
+    }
+
+    /**
+     * Adds {@code count} rooms numbered after the ones already there.
+     *
+     * <p>A centre with thirteen identical rooms should not be thirteen forms.
+     * The exceptions — a hall, a library — are renamed afterwards, which is
+     * the rare case and the one worth spending clicks on.
+     */
+    @Transactional
+    public int addRooms(long centerId, int count, String labelPrefix) {
+        if (count < 1) throw new IllegalArgumentException("rooms.count.invalid");
+        if (count > 200) throw new IllegalArgumentException("rooms.count.tooMany");
+
+        CenterEntity center = centers.findById(centerId).orElseThrow(
+                () -> new IllegalArgumentException("no center with id " + centerId));
+
+        List<RoomEntity> existing = rooms.findByCenterIdOrderByReferenceAsc(centerId);
+        int next = existing.stream()
+                .map(RoomEntity::getReference)
+                .filter(reference -> reference.matches("R\\d+"))
+                .mapToInt(reference -> Integer.parseInt(reference.substring(1)))
+                .max().orElse(0) + 1;
+
+        String prefix = labelPrefix == null || labelPrefix.isBlank() ? "Salle" : labelPrefix.trim();
+        for (int i = 0; i < count; i++) {
+            int number = next + i;
+            rooms.save(new RoomEntity(center, "R" + number, prefix + " " + number));
+        }
+        return count;
+    }
+
+    @Transactional
+    public void renameRoom(long roomId, String label, Integer surveillants) {
+        RoomEntity room = rooms.findById(roomId).orElseThrow(
+                () -> new IllegalArgumentException("no room with id " + roomId));
+        room.setLabel(required(label, "room.label"));
+        // below the official floor is not a centre's decision to make
+        if (surveillants != null && surveillants < 2)
+            throw new IllegalArgumentException("room.surveillants.tooFew");
+        room.setSurveillantsOverride(surveillants);
+    }
+
+    @Transactional
+    public void deleteRoom(long roomId) {
+        rooms.deleteById(roomId);
+    }
+
+    @Transactional
+    public Long createSession(long centerId, String reference, String type,
+                              LocalDate startsOn, LocalDate endsOn) {
+        CenterEntity center = centers.findById(centerId).orElseThrow(
+                () -> new IllegalArgumentException("no center with id " + centerId));
+
+        String cleaned = required(reference, "session.reference");
+        OperationType parsed;
+        try {
+            parsed = OperationType.valueOf(type);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("session.type.invalid");
+        }
+        if (startsOn == null || endsOn == null) throw new IllegalArgumentException("session.dates");
+        if (endsOn.isBefore(startsOn)) throw new IllegalArgumentException("session.dates.reversed");
+
+        return operations.save(new OperationEntity(center, cleaned, parsed.name(),
+                startsOn, endsOn)).getId();
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(field + ".required");
+        return value.trim();
+    }
+}

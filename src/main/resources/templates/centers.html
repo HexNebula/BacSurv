@@ -23,6 +23,15 @@
     <div class="flash error" th:if="${error}" th:text="${error}"></div>
 
     <section>
+        <h2 th:text="#{centers.create}">Nouveau centre</h2>
+        <form class="inline" method="post" action="/centers">
+            <input type="text" name="name" required maxlength="120"
+                   th:placeholder="#{centers.name.placeholder}">
+            <button type="submit" th:text="#{centers.create.button}">Créer</button>
+        </form>
+    </section>
+
+    <section>
         <h2 th:text="#{centers.title}">Centres</h2>
         <p class="muted small" th:if="${centers.isEmpty()}" th:text="#{centers.empty}">—</p>
         <div class="table-scroll" th:unless="${centers.isEmpty()}">
@@ -39,7 +48,7 @@
                     <td th:text="${c.name}">Centre</td>
                     <td th:text="${c.teacherCount}">0</td>
                     <td>
-                        <a class="button secondary" th:href="@{/centers/{id}/teachers(id=${c.id})}"
+                        <a class="button secondary" th:href="@{/centers/{id}(id=${c.id})}"
                            th:text="#{centers.open}">Ouvrir</a>
                     </td>
                 </tr>
