@@ -3,73 +3,68 @@ package ma.bacsurv.web.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.LocaleResolver;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.i18n.CookieLocaleResolver;
-import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
+import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * The interface exists in the two administrative languages of Morocco:
- * French and Arabic. The choice is kept in a cookie so it survives
- * navigation, and can be changed anywhere with ?lang=ar / ?lang=fr.
+ * The two administrative languages of Morocco: French and Arabic.
+ *
+ * <p>The interface keeps the choice and states it on every request through
+ * {@code Accept-Language}. It used to live in a cookie the server set, which
+ * made sense while the server rendered the pages; now that it does not, the
+ * language belongs to the caller. Anything else resolves to French rather
+ * than to a browser's own preference, so a machine set to English does not
+ * produce sentences in no supported language at all.
  */
 @Configuration
-public class LocaleConfig implements WebMvcConfigurer {
+public class LocaleConfig {
 
     public static final Locale FRENCH = Locale.forLanguageTag("fr");
     /**
      * Moroccan Arabic, not Arabic in general: the Maghreb writes numbers with
-     * the digits 0-9, while plain {@code ar} formats them as ٠-٩. A room count
-     * or a matricule printed in eastern digits is not what an administration
-     * here puts on paper. The bundle stays {@code messages_ar.properties} —
-     * ar-MA falls back to it — and every comparison below is by language, so
-     * ?lang=ar still selects this.
+     * the digits 0-9, while plain {@code ar} formats them as ٠-٩. The bundle
+     * stays {@code messages_ar.properties} — ar-MA falls back to it.
      */
     public static final Locale ARABIC = Locale.forLanguageTag("ar-MA");
     public static final List<Locale> SUPPORTED = List.of(FRENCH, ARABIC);
 
     @Bean
     public LocaleResolver localeResolver() {
-        // anything other than the two supported languages resolves to French,
-        // so a stray ?lang= value cannot leave the pages half-translated
-        CookieLocaleResolver resolver = new CookieLocaleResolver("bacsurv-lang") {
+        AcceptHeaderLocaleResolver resolver = new AcceptHeaderLocaleResolver() {
             @Override
-            public Locale resolveLocale(HttpServletRequest request) {
-                return supportedOrDefault(super.resolveLocale(request));
+            public Locale resolveLocale(jakarta.servlet.http.HttpServletRequest request) {
+                // The header is read here rather than through the default
+                // resolution: that matches the exact tag first and falls back
+                // to French before a language-level comparison ever happens,
+                // so a caller asking for "ar" — the natural thing to send —
+                // would be answered in French while "ar-MA" worked.
+                return java.util.Collections.list(request.getLocales()).stream()
+                        .map(LocaleConfig::supported)
+                        .flatMap(java.util.Optional::stream)
+                        .findFirst()
+                        .orElse(FRENCH);
             }
         };
+        resolver.setSupportedLocales(SUPPORTED);
         resolver.setDefaultLocale(FRENCH);
-        resolver.setCookieMaxAge(Duration.ofDays(365));
         return resolver;
     }
 
-    static Locale supportedOrDefault(Locale locale) {
+    /** Matched by language, so {@code ar} and {@code ar-MA} both mean Arabic. */
+    static java.util.Optional<Locale> supported(Locale requested) {
         return SUPPORTED.stream()
-                .filter(supported -> locale != null
-                        && supported.getLanguage().equals(locale.getLanguage()))
-                .findFirst()
-                .orElse(FRENCH);
+                .filter(supported -> requested != null
+                        && supported.getLanguage().equals(requested.getLanguage()))
+                .findFirst();
     }
 
-    @Bean
-    public LocaleChangeInterceptor localeChangeInterceptor() {
-        LocaleChangeInterceptor interceptor = new LocaleChangeInterceptor();
-        interceptor.setParamName("lang");
-        return interceptor;
+    static Locale supportedOrDefault(Locale locale) {
+        return supported(locale).orElse(FRENCH);
     }
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(localeChangeInterceptor());
-    }
-
-    /** Arabic is written right to left; templates use this for dir/lang. */
+    /** Arabic is written right to left. */
     public static boolean isRightToLeft(Locale locale) {
         return locale != null && ARABIC.getLanguage().equals(locale.getLanguage());
     }

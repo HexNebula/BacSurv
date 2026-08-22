@@ -79,15 +79,15 @@ class WebFlowTest {
                 .andExpect(jsonPath("$.assignments.length()").value(45))
                 .andExpect(jsonPath("$.workload.length()").value(16));
 
-        // the browser pages render the same data
-        mvc.perform(get("/"))
+        // the same run is listed and readable through the API the interface uses
+        mvc.perform(get("/api/operations"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("NAT-2026-JUIN")));
 
-        mvc.perform(get("/jobs/{id}", job.id()))
+        mvc.perform(get("/api/jobs/{id}", job.id()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("SURVEILLANCE")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Charge de travail")));
+                .andExpect(jsonPath("$.status").value("DONE"))
+                .andExpect(jsonPath("$.feasible").value(true));
     }
 
     @Test

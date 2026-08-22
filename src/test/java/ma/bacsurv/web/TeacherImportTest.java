@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -99,21 +100,57 @@ class TeacherImportTest {
         assertEquals(3, preview.errors().getFirst().line());
     }
 
+    /**
+     * Uploading answers with what the file would change and writes nothing.
+     *
+     * <p>This centre already holds those sixteen teachers — it was created by
+     * importing a session that names them — so the honest answer is sixteen
+     * already correct and nothing to do, which is exactly what an
+     * administrator re-sending last year's list should be told.
+     */
     @Test
-    void theBrowserFlowShowsThePreviewPage() throws Exception {
+    void uploadingReportsTheChangesWithoutMakingThem() throws Exception {
         CenterView center = centerNamed("Centre Import D");
+        int before = teacherImport.pool(center.id()).size();
         var file = new MockMultipartFile("file", "enseignants.csv", MediaType.TEXT_PLAIN_VALUE,
                 Files.readString(Path.of("samples", "teachers-sample.csv"))
                         .getBytes(StandardCharsets.UTF_8));
 
-        mvc.perform(multipart("/centers/{id}/teachers/preview", center.id()).file(file))
+        mvc.perform(multipart("/api/centers/{id}/teachers/preview", center.id()).file(file))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Aperçu de l&#39;import")))
+                .andExpect(jsonPath("$.unchanged.length()").value(16))
+                .andExpect(jsonPath("$.created.length()").value(0))
+                .andExpect(jsonPath("$.errors.length()").value(0))
                 .andExpect(content().string(containsString("D100001")));
 
-        mvc.perform(get("/centers/{id}/teachers", center.id()).param("lang", "ar"))
+        assertEquals(before, teacherImport.pool(center.id()).size(),
+                "reading the file must not change the pool");
+    }
+
+    /** A file of people the centre has never seen reads as additions. */
+    @Test
+    void uploadingNewTeachersReportsThemAsAdditions() throws Exception {
+        CenterView center = centerNamed("Centre Import F");
+        var file = new MockMultipartFile("file", "nouveaux.csv", MediaType.TEXT_PLAIN_VALUE,
+                """
+                matricule;nom;matiere
+                Z700001;Nouvelle Recrue;Anglais
+                Z700002;Autre Recrue;Philosophie
+                """.getBytes(StandardCharsets.UTF_8));
+
+        mvc.perform(multipart("/api/centers/{id}/teachers/preview", center.id()).file(file))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("dir=\"rtl\"")))
-                .andExpect(content().string(containsString("رقم التأجير")));
+                .andExpect(jsonPath("$.created.length()").value(2))
+                .andExpect(jsonPath("$.errors.length()").value(0));
+    }
+
+    @Test
+    void anEmptyFileIsRefusedRatherThanImported() throws Exception {
+        CenterView center = centerNamed("Centre Import E");
+        var empty = new MockMultipartFile("file", "vide.csv", MediaType.TEXT_PLAIN_VALUE,
+                new byte[0]);
+
+        mvc.perform(multipart("/api/centers/{id}/teachers/preview", center.id()).file(empty))
+                .andExpect(status().isBadRequest());
     }
 }

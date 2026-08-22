@@ -5,6 +5,8 @@
  * of people — and throwing that away would leave the administrator guessing.
  */
 
+import { LANGUAGES, storedLanguage } from '../i18n'
+
 export class ApiError extends Error {
   readonly status: number
   readonly details?: unknown
@@ -22,6 +24,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       Accept: 'application/json',
+      // the server writes its refusals as sentences, so it has to be told
+      // which language to write them in
+      'Accept-Language': LANGUAGES[storedLanguage()].tag,
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...init?.headers,
     },

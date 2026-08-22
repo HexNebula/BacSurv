@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.MessageSource;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.util.TreeSet;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,29 +30,52 @@ class LocalisationTest {
     @Autowired MockMvc mvc;
     @Autowired MessageSource messages;
 
+    /**
+     * The interface is React now, so the server's share of the two languages
+     * is what it writes back when it refuses something. That sentence has to
+     * arrive translated, because the interface shows it as it comes rather
+     * than inventing its own wording.
+     */
     @Test
-    void frenchIsTheDefault() throws Exception {
-        mvc.perform(get("/"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("lang=\"fr\"")))
-                .andExpect(content().string(containsString("dir=\"ltr\"")))
-                .andExpect(content().string(containsString("Importer une opération")));
+    void aRefusalIsWrittenInTheCallersLanguage() throws Exception {
+        mvc.perform(post("/api/centers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Le nom du centre est obligatoire")));
+
+        // read as UTF-8: MockMvc decodes with the response's declared charset,
+        // which for JSON is not stated and falls back to Latin-1
+        String arabic = mvc.perform(post("/api/centers")
+                        .header("Accept-Language", "ar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(arabic.contains("اسم المركز إجباري"),
+                "a caller asking for Arabic must be refused in Arabic: " + arabic);
     }
 
     @Test
-    void arabicRendersRightToLeft() throws Exception {
-        mvc.perform(get("/").param("lang", "ar"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("lang=\"ar\"")))
-                .andExpect(content().string(containsString("dir=\"rtl\"")))
-                .andExpect(content().string(containsString("استيراد عملية")));
+    void anUnknownLanguageFallsBackToFrench() throws Exception {
+        mvc.perform(post("/api/centers")
+                        .header("Accept-Language", "de")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Le nom du centre est obligatoire")));
     }
 
+    /**
+     * Moroccan Arabic writes numbers 0123456789. Plain {@code ar} would render
+     * a count of 45 as ٤٥, which is not what an administration here puts on
+     * paper.
+     */
     @Test
-    void unknownLanguageFallsBackToFrench() throws Exception {
-        mvc.perform(get("/").param("lang", "de"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("lang=\"fr\"")));
+    void arabicNumbersUseTheDigitsUsedInMorocco() {
+        assertEquals("45", new java.text.MessageFormat("{0}", LocaleConfig.ARABIC)
+                .format(new Object[]{45}));
     }
 
     @Test
