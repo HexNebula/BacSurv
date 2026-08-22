@@ -11,3 +11,7 @@ Exam Surveillance in Morocco_files/
 .idea/
 *.iml
 .vscode/
+
+# frontend build artefacts
+frontend/node_modules/
+frontend/dist/

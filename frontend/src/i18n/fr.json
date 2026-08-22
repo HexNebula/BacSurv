@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "BacSurv",
+    "tagline": "Répartition de la surveillance des examens",
+    "language": "Langue",
+    "back": "Retour",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue.",
+    "retry": "Réessayer"
+  },
+  "nav": {
+    "centers": "Centres",
+    "sessions": "Sessions",
+    "teachers": "Enseignants",
+    "schedule": "Planning",
+    "results": "Résultats",
+    "statistics": "Statistiques"
+  },
+  "centers": {
+    "title": "Centres d'examen",
+    "empty": "Aucun centre pour le moment.",
+    "create": "Nouveau centre",
+    "name": "Nom du centre",
+    "teachers": "Enseignants",
+    "rooms": "Salles",
+    "sessions": "Sessions",
+    "open": "Ouvrir"
+  }
+}
