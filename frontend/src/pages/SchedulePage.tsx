@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Copy, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import {
   Button,
   Checkbox,
+  ComboBox,
   Input,
   Label,
   ListBox,
@@ -40,6 +41,10 @@ type Timetable = {
   exams: Exam[]
 }
 type CenterDetail = { id: number; rooms: RoomRef[] }
+type Teacher = { matricule: string; subject: string }
+
+/** A subject taught at the centre, and how many people teach it. */
+type SubjectOption = { name: string; teachers: number }
 
 const CHOSEN_SESSION = 'bacsurv-session'
 
@@ -211,6 +216,7 @@ function ExamForm({
   stream,
   day,
   half,
+  subjects,
   existing,
   open,
   onClose,
@@ -219,6 +225,7 @@ function ExamForm({
   stream: Stream | null
   day: string | null
   half: Half
+  subjects: SubjectOption[]
   existing?: Exam
   open: boolean
   onClose: () => void
@@ -236,6 +243,10 @@ function ExamForm({
     setStart(existing ? readTime(existing.startTime) : from)
     setEnd(existing ? readTime(existing.endTime) : to)
   }, [open, existing, half])
+
+  const suggestions = subjects.filter((option) =>
+    option.name.toLowerCase().includes(subject.trim().toLowerCase()),
+  )
 
   const save = useApiMutation({
     run: () =>
@@ -282,10 +293,57 @@ function ExamForm({
                   save.mutate(undefined)
                 }}
               >
-                <TextField value={subject} onChange={setSubject} fullWidth autoFocus>
+                {/*
+                  Suggested from the teacher pool, because the solver matches a
+                  teacher's subject to an épreuve's by exact string. "Maths"
+                  typed where the list says "Mathématiques" does not fail
+                  loudly — it quietly stops a maths teacher from being barred
+                  from the maths paper. Free text is still allowed: a centre may
+                  examine a subject nobody there teaches.
+                */}
+                <ComboBox
+                  allowsCustomValue
+                  menuTrigger="focus"
+                  inputValue={subject}
+                  onInputChange={setSubject}
+                  onSelectionChange={(key) => key !== null && setSubject(String(key))}
+                  fullWidth
+                >
                   <Label>{t('schedule.subject')}</Label>
-                  <Input placeholder={t('schedule.subjectHint')} />
-                </TextField>
+                  <ComboBox.InputGroup>
+                    <Input placeholder={t('schedule.subjectHint')} autoFocus />
+                    <ComboBox.Trigger />
+                  </ComboBox.InputGroup>
+                  <ComboBox.Popover>
+                    <ListBox>
+                      {suggestions.map((option) => (
+                        <ListBox.Item
+                          key={option.name}
+                          id={option.name}
+                          textValue={option.name}
+                        >
+                          <span className="flex w-full items-baseline justify-between gap-4">
+                            <span>{option.name}</span>
+                            <span className="numeric text-[11px] text-[var(--color-quiet)]">
+                              {option.teachers}
+                            </span>
+                          </span>
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </ComboBox.Popover>
+                </ComboBox>
+
+                {subject.trim() !== '' && !subjects.some((s) => s.name === subject.trim()) && (
+                  <p className="flex items-start gap-2 text-[12px] text-[var(--color-quiet)]">
+                    <TriangleAlert
+                      size={14}
+                      className="mt-0.5 shrink-0 text-amber-500"
+                      aria-hidden
+                    />
+                    {t('schedule.unknownSubject')}
+                  </p>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <TimeField value={start} onChange={setStart} hourCycle={24}>
@@ -460,6 +518,26 @@ export function SchedulePage() {
     queryFn: () => api.get<Timetable>(`/sessions/${sessionId}/timetable`),
     enabled: sessionId !== null,
   })
+
+  const pool = useQuery({
+    queryKey: ['teachers', grid.data?.centerId],
+    queryFn: () => api.get<Teacher[]>(`/centers/${grid.data?.centerId}/teachers`),
+    enabled: grid.data?.centerId !== undefined,
+  })
+
+  /** The subjects actually taught at the centre — the list the solver matches
+      an épreuve against, so it is also the list worth suggesting. */
+  const subjects = useMemo<SubjectOption[]>(() => {
+    const counts = new Map<string, number>()
+    for (const teacher of pool.data ?? []) {
+      counts.set(teacher.subject, (counts.get(teacher.subject) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .map(([name, teachers]) => ({ name, teachers }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [pool.data])
+
+  const taught = useMemo(() => new Set(subjects.map((s) => s.name)), [subjects])
 
   const dayNames = useMemo(
     () => new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' }),
@@ -681,8 +759,18 @@ export function SchedulePage() {
                                   }
                                   className="w-full rounded-md border-s-2 border-s-[var(--color-brand)] bg-[var(--color-ground)] px-2 py-1.5 text-start transition-colors hover:bg-[var(--color-hairline)]/60"
                                 >
-                                  <span className="block text-[13px] font-medium leading-tight">
-                                    {exam.subject}
+                                  <span className="flex items-start gap-1 text-[13px] font-medium leading-tight">
+                                    {/* nobody teaches it: the permanence has no
+                                        specialist and the own-subject rule
+                                        cannot bite */}
+                                    {pool.isSuccess && !taught.has(exam.subject) && (
+                                      <TriangleAlert
+                                        size={12}
+                                        className="mt-0.5 shrink-0 text-amber-500"
+                                        aria-label={t('schedule.unknownSubject')}
+                                      />
+                                    )}
+                                    <span>{exam.subject}</span>
                                   </span>
                                   <span className="numeric mt-0.5 block text-[11px] text-[var(--color-quiet)]">
                                     {shortTime(exam.startTime)} — {shortTime(exam.endTime)}
@@ -732,6 +820,7 @@ export function SchedulePage() {
             stream={examForm.stream}
             day={examForm.day}
             half={examForm.half}
+            subjects={subjects}
             existing={examForm.exam}
             open={examForm.open}
             onClose={() => setExamForm({ open: false, stream: null, day: null, half: 'morning' })}

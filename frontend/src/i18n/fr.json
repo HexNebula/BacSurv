@@ -160,6 +160,7 @@
     "afternoon": "Après-midi",
     "addMore": "Ajouter une autre",
     "roomCount_one": "salle",
-    "roomCount_other": "salles"
+    "roomCount_other": "salles",
+    "unknownSubject": "Aucun enseignant du centre n'enseigne cette matière : la permanence n'aura pas de spécialiste."
   }
 }

@@ -184,6 +184,7 @@
     "roomCount_two": "قاعتان",
     "roomCount_few": "قاعات",
     "roomCount_many": "قاعة",
-    "roomCount_other": "قاعة"
+    "roomCount_other": "قاعة",
+    "unknownSubject": "لا أحد من أساتذة المركز يدرّس هذه المادة: لن يكون للحراسة الدائمة مختص."
   }
 }
