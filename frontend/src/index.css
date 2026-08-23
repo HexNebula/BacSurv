@@ -27,6 +27,45 @@
 @theme {
   --font-sans: 'Inter Variable', 'Inter', sans-serif;
   --font-arabic: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Inter Variable', sans-serif;
+
+  /*
+   * Ink and one blue. The rail and the text are near-black, the ground is a
+   * warm off-white rather than a grey, and the single saturated colour is
+   * spent only on things you can act on. Nothing else on a screen is allowed
+   * to be coloured, which is what keeps a page of forty-five rows quiet.
+   */
+  --color-ground: #fafaf9;
+  --color-surface: #ffffff;
+  --color-ink: #0c0a09;
+  --color-rail: #1c1917;
+  --color-brand: #2563eb;
+  --color-quiet: #78716c;
+  --color-hairline: #e7e5e4;
+  --color-alarm: #dc2626;
+}
+
+/*
+ * HeroUI derives its hover, soft and secondary shades with color-mix from
+ * these few, so setting the roots is enough — no component needs overriding
+ * one at a time. Declared unlayered so they beat the packaged theme layer.
+ */
+:root {
+  --background: var(--color-ground);
+  --foreground: var(--color-ink);
+  --muted: var(--color-quiet);
+  --accent: var(--color-brand);
+  --danger: var(--color-alarm);
+  --border: var(--color-hairline);
+  --separator: var(--color-hairline);
+
+  /* crisp, not soft: 6px everywhere, and fields keep the same corner as
+     everything else instead of the library's 1.5× pill */
+  --radius: 0.375rem;
+  --field-radius: var(--radius);
+  --field-border: var(--color-hairline);
+  --field-border-width: 1px;
+  --field-background: var(--color-surface);
+  --field-shadow: none;
 }
 
 html[lang='ar'] body {
@@ -36,7 +75,9 @@ html[lang='ar'] body {
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  @apply antialiased;
 }
 
 /* Tabular figures keep matricules and counts aligned down a column. */

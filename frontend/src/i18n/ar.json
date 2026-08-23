@@ -27,7 +27,26 @@
     "teachers": "الأساتذة",
     "rooms": "القاعات",
     "sessions": "الدورات",
-    "open": "فتح"
+    "open": "فتح",
+    "subtitle": "المؤسسات التي تجرى فيها الاختبارات.",
+    "teacherCount_zero": "أستاذ",
+    "teacherCount_one": "أستاذ",
+    "teacherCount_two": "أستاذان",
+    "teacherCount_few": "أساتذة",
+    "teacherCount_many": "أستاذًا",
+    "teacherCount_other": "أستاذ",
+    "roomCount_zero": "قاعة",
+    "roomCount_one": "قاعة",
+    "roomCount_two": "قاعتان",
+    "roomCount_few": "قاعات",
+    "roomCount_many": "قاعة",
+    "roomCount_other": "قاعة",
+    "sessionCount_zero": "دورة",
+    "sessionCount_one": "دورة",
+    "sessionCount_two": "دورتان",
+    "sessionCount_few": "دورات",
+    "sessionCount_many": "دورة",
+    "sessionCount_other": "دورة"
   },
   "center": {
     "rename": "تغيير اسم المركز",
@@ -41,7 +60,7 @@
     "deleted": "تم حذف القاعة.",
     "surveillants": {
       "label": "الحراس",
-      "default": "2 افتراضيًا"
+      "default": "افتراضي"
     },
     "added_zero": "لم تُضف أي قاعة.",
     "added_one": "تمت إضافة قاعة واحدة.",
@@ -51,7 +70,7 @@
     "added_other": "تمت إضافة {{count}} قاعة.",
     "add": {
       "count": "كم عدد القاعات؟",
-      "prefix": "الاسم (قاعة)",
+      "prefix": "الاسم",
       "placeholder": "قاعة",
       "button": "إضافة",
       "hint": "تُرقَّم القاعات بالتتابع. غيّر بعد ذلك اسم القاعات التي لها تسمية خاصة."

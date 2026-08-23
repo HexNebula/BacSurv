@@ -18,15 +18,15 @@ function LanguageSwitch() {
   const current = useLanguage()
 
   return (
-    <div className="flex items-center gap-1 rounded-lg bg-neutral-100 p-0.5">
+    <div className="flex items-center gap-0.5 rounded-md bg-white/5 p-0.5">
       {(Object.keys(LANGUAGES) as Language[]).map((language) => (
         <button
           key={language}
           onClick={() => applyLanguage(language)}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+          className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
             current === language
-              ? 'bg-white text-neutral-900 shadow-sm'
-              : 'text-neutral-500 hover:text-neutral-800'
+              ? 'bg-white/15 text-white'
+              : 'text-white/45 hover:text-white/80'
           }`}
         >
           {LANGUAGES[language].label}
@@ -47,32 +47,47 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="no-print flex w-56 shrink-0 flex-col border-e border-neutral-200 bg-white">
-        <div className="px-5 py-5">
-          <div className="text-lg font-semibold tracking-tight">{t('app.name')}</div>
-          <div className="mt-0.5 text-xs leading-snug text-neutral-500">{t('app.tagline')}</div>
+      {/*
+        The rail is the dark surface and the only one — everything to its side
+        is paper. Making it ink rather than white means the active section can
+        be marked with plain contrast instead of a heavy black block sitting on
+        a white page and out-weighing the content.
+      */}
+      <aside className="no-print flex w-60 shrink-0 flex-col bg-[var(--color-rail)]">
+        <div className="px-5 pb-6 pt-6">
+          <div className="text-[15px] font-semibold tracking-tight text-white">{t('app.name')}</div>
+          <div className="mt-1 text-xs leading-snug text-white/45">{t('app.tagline')}</div>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 px-3">
+        <nav className="flex flex-1 flex-col gap-px px-3">
           {SECTIONS.map(({ to, key, Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                `group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition-colors ${
                   isActive
-                    ? 'bg-neutral-900 font-medium text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+                    ? 'bg-white/10 font-medium text-white'
+                    : 'text-white/55 hover:bg-white/5 hover:text-white/90'
                 }`
               }
             >
-              <Icon size={16} strokeWidth={2} aria-hidden />
-              {t(key)}
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    size={16}
+                    strokeWidth={2}
+                    className={isActive ? 'text-[var(--color-brand)]' : ''}
+                    aria-hidden
+                  />
+                  {t(key)}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="px-3 py-4">
+        <div className="px-3 pb-4 pt-6">
           <LanguageSwitch />
         </div>
       </aside>

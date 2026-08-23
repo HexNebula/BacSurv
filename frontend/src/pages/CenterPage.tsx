@@ -17,7 +17,7 @@ import {
 import { CalendarDate, parseDate } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
-import { Page, Failed, Loading, Empty } from '../components/Page'
+import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
 
 type Room = {
   id: number
@@ -46,27 +46,6 @@ type CenterDetail = {
 
 const SESSION_TYPES = ['REGIONAL_1BAC', 'NATIONAL_2BAC', 'NATIONAL_2BAC_RATTRAPAGE'] as const
 
-/** A card is one thing the administrator sets up: the rooms, the sessions. */
-function Section({
-  title,
-  hint,
-  children,
-}: {
-  title: string
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="rounded-xl border border-neutral-200 bg-white">
-      <header className="border-b border-neutral-200 px-4 py-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {hint && <p className="mt-0.5 text-xs text-neutral-500">{hint}</p>}
-      </header>
-      {children}
-    </section>
-  )
-}
-
 /**
  * The centre's name, changed in place. Renaming is rare enough that a field
  * sitting open all the time would only invite a stray keystroke.
@@ -88,7 +67,7 @@ function CenterName({ center }: { center: CenterDetail }) {
   if (!editing) {
     return (
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">{center.name}</h1>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.01em]">{center.name}</h1>
         <Button
           variant="ghost"
           size="sm"
@@ -156,7 +135,7 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
 
   if (editing) {
     return (
-      <tr className="border-t border-neutral-100">
+      <tr className="border-b border-[var(--color-hairline)] bg-[var(--color-ground)] last:border-b-0">
         <td className="px-4 py-2 align-middle">
           <TextField value={label} onChange={setLabel} aria-label={t('rooms.label')} autoFocus>
             <Input />
@@ -201,13 +180,26 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
   }
 
   return (
-    <tr className="border-t border-neutral-100">
-      <td className="px-4 py-2.5 text-sm">{room.label}</td>
-      <td className="px-4 py-2.5 text-sm">
+    <tr className="group border-b border-[var(--color-hairline)] last:border-b-0 hover:bg-[var(--color-ground)]">
+      <td className="px-4 py-2.5">
+        <div className="flex items-center gap-2.5">
+          {/* the reference is what the order and the printed sheets go by, so
+              it is on the row rather than hidden behind the label */}
+          <span className="numeric w-9 shrink-0 text-[11px] font-medium text-[var(--color-quiet)]">
+            {room.reference}
+          </span>
+          <span className="text-[13px] font-medium">{room.label}</span>
+        </div>
+      </td>
+      <td className="px-4 py-2.5">
         {room.surveillants === null ? (
-          <span className="text-neutral-400">{t('rooms.surveillants.default')}</span>
+          <span className="text-xs text-[var(--color-quiet)]">
+            {t('rooms.surveillants.default')}
+          </span>
         ) : (
-          <span className="numeric">{room.surveillants}</span>
+          <span className="numeric text-[13px] font-medium tabular-nums">
+            {room.surveillants}
+          </span>
         )}
       </td>
       <td className="px-4 py-2.5 text-end">
@@ -218,7 +210,7 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
         */}
         {confirming ? (
           <div className="flex items-center justify-end gap-2">
-            <span className="text-xs text-neutral-600">
+            <span className="text-xs text-[var(--color-quiet)]">
               {t('rooms.delete.confirm', { room: room.label })}
             </span>
             <Button
@@ -242,8 +234,14 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
               aria-label={t('rooms.edit')}
               onPress={() => setEditing(true)}
             >
-              <Pencil size={14} aria-hidden />
+              <Pencil
+                size={14}
+                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
+                aria-hidden
+              />
             </Button>
+            {/* quiet until reached for: a red bin repeated down thirteen rows
+                reads as thirteen warnings rather than one available action */}
             <Button
               size="sm"
               variant="ghost"
@@ -251,7 +249,11 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
               aria-label={t('app.delete')}
               onPress={() => setConfirming(true)}
             >
-              <Trash2 size={14} className="text-red-600" aria-hidden />
+              <Trash2
+                size={14}
+                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-alarm)]"
+                aria-hidden
+              />
             </Button>
           </div>
         )}
@@ -282,7 +284,7 @@ function AddRooms({ centerId }: { centerId: number }) {
 
   return (
     <form
-      className="flex flex-wrap items-end gap-3 border-t border-neutral-200 bg-neutral-50 px-4 py-3"
+      className="flex flex-wrap items-end gap-3"
       onSubmit={(event) => {
         event.preventDefault()
         add.mutate(undefined)
@@ -477,76 +479,98 @@ export function CenterPage() {
   const detail = center.data
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-7">
+    <div className="mx-auto max-w-5xl px-10 py-9">
       <Link
         to="/centers"
-        className="mb-4 inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-900"
+        className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
       >
-        <ArrowLeft size={14} className="rtl:rotate-180" aria-hidden />
+        <ArrowLeft size={13} className="rtl:rotate-180" aria-hidden />
         {t('centers.title')}
       </Link>
 
-      <header className="mb-6">
+      <header className="mb-8">
         <CenterName center={detail} />
-        <p className="mt-1 text-sm text-neutral-500">
-          <span className="numeric">{detail.teacherCount}</span> {t('centers.teachers')} ·{' '}
-          <span className="numeric">{detail.rooms.length}</span> {t('centers.rooms')}
+        {/* the noun agrees with the number: "1 session", not "1 sessions" */}
+        <p className="mt-2 flex items-center gap-2 text-[13px] text-[var(--color-quiet)]">
+          {(
+            [
+              ['teacherCount', detail.teacherCount],
+              ['roomCount', detail.rooms.length],
+              ['sessionCount', detail.sessions.length],
+            ] as const
+          ).map(([key, value], index) => (
+            <span key={key} className="flex items-center gap-2">
+              {index > 0 && <span className="text-[var(--color-hairline)]">/</span>}
+              <span>
+                <span className="numeric font-medium text-[var(--color-ink)]">{value}</span>{' '}
+                {t(`centers.${key}`, { count: value })}
+              </span>
+            </span>
+          ))}
         </p>
       </header>
 
-      <div className="space-y-6">
-        <Section title={t('rooms.title')} hint={t('rooms.add.hint')}>
-          {detail.rooms.length === 0 ? (
-            <div className="px-4 py-6">
-              <Empty>{t('rooms.empty')}</Empty>
-            </div>
-          ) : (
-            <table className="w-full text-start">
-              <thead>
-                <tr className="text-xs font-medium text-neutral-500">
-                  <th className="px-4 py-2 text-start font-medium">{t('rooms.label')}</th>
-                  <th className="px-4 py-2 text-start font-medium">{t('rooms.surveillants.label')}</th>
-                  <th className="px-4 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {detail.rooms.map((room) => (
-                  <RoomRow key={room.id} centerId={detail.id} room={room} />
-                ))}
-              </tbody>
-            </table>
-          )}
-          <AddRooms centerId={detail.id} />
-        </Section>
-
-        <Section title={t('sessions.title')}>
-          {detail.sessions.length === 0 ? (
-            <div className="px-4 py-6">
-              <Empty>{t('sessions.empty')}</Empty>
-            </div>
-          ) : (
-            <ul className="divide-y divide-neutral-100">
-              {detail.sessions.map((session) => (
-                <li key={session.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{session.reference}</div>
-                    <div className="mt-0.5 text-xs text-neutral-500">
-                      {t(`sessions.type.${session.type}`, { defaultValue: session.type })} ·{' '}
-                      <span className="numeric">{span(session)}</span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-xs text-neutral-500">
-                    <span className="numeric">{session.slotCount}</span> {t('sessions.slots')}
-                  </span>
-                </li>
+      <Panel
+        title={t('rooms.title')}
+        count={detail.rooms.length}
+        hint={t('rooms.add.hint')}
+        footer={<AddRooms centerId={detail.id} />}
+      >
+        {detail.rooms.length === 0 ? (
+          <Empty>{t('rooms.empty')}</Empty>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[var(--color-hairline)]">
+                <th className="px-4 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]">
+                  {t('rooms.label')}
+                </th>
+                <th className="w-40 px-4 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]">
+                  {t('rooms.surveillants.label')}
+                </th>
+                <th className="w-28 px-4 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {detail.rooms.map((room) => (
+                <RoomRow key={room.id} centerId={detail.id} room={room} />
               ))}
-            </ul>
-          )}
-          <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-3">
-            <NewSession centerId={detail.id} />
-          </div>
-        </Section>
-      </div>
+            </tbody>
+          </table>
+        )}
+      </Panel>
+
+      <Panel
+        title={t('sessions.title')}
+        count={detail.sessions.length}
+        footer={<NewSession centerId={detail.id} />}
+      >
+        {detail.sessions.length === 0 ? (
+          <Empty>{t('sessions.empty')}</Empty>
+        ) : (
+          <ul className="divide-y divide-[var(--color-hairline)]">
+            {detail.sessions.map((session) => (
+              <li
+                key={session.id}
+                className="flex items-center justify-between gap-4 px-4 py-3.5"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-medium">{session.reference}</div>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-[var(--color-quiet)]">
+                    <span className="rounded border border-[var(--color-hairline)] px-1.5 py-0.5 text-[11px] font-medium">
+                      {t(`sessions.type.${session.type}`, { defaultValue: session.type })}
+                    </span>
+                    <span className="numeric">{span(session)}</span>
+                  </div>
+                </div>
+                <span className="numeric shrink-0 text-xs text-[var(--color-quiet)]">
+                  {session.slotCount} {t('sessions.slots')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
     </div>
   )
 }

@@ -27,7 +27,14 @@
     "teachers": "Enseignants",
     "rooms": "Salles",
     "sessions": "Sessions",
-    "open": "Ouvrir"
+    "open": "Ouvrir",
+    "subtitle": "Les établissements où se déroulent les épreuves.",
+    "teacherCount_one": "enseignant",
+    "teacherCount_other": "enseignants",
+    "roomCount_one": "salle",
+    "roomCount_other": "salles",
+    "sessionCount_one": "session",
+    "sessionCount_other": "sessions"
   },
   "center": {
     "rename": "Renommer le centre",
@@ -41,13 +48,13 @@
     "deleted": "Salle supprimée.",
     "surveillants": {
       "label": "Surveillants",
-      "default": "2 par défaut"
+      "default": "Par défaut"
     },
     "added_one": "{{count}} salle ajoutée.",
     "added_other": "{{count}} salles ajoutées.",
     "add": {
       "count": "Combien de salles ?",
-      "prefix": "Nom (Salle)",
+      "prefix": "Nom",
       "placeholder": "Salle",
       "button": "Ajouter",
       "hint": "Les salles sont numérotées à la suite. Renommez ensuite celles qui ont un nom propre."

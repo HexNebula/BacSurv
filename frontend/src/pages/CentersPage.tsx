@@ -87,40 +87,49 @@ export function CentersPage() {
   })
 
   return (
-    <Page title={t('centers.title')} actions={<NewCenter />}>
-      {centers.isPending && <Loading />}
-      {centers.isError && (
-        <Failed error={centers.error as Error} onRetry={() => void centers.refetch()} />
-      )}
+    <Page
+      title={t('centers.title')}
+      subtitle={t('centers.subtitle')}
+      actions={<NewCenter />}
+    >
+      <div className="print-clean overflow-hidden rounded-md border border-[var(--color-hairline)] bg-white">
+        {centers.isPending && <Loading />}
+        {centers.isError && (
+          <div className="p-4">
+            <Failed error={centers.error as Error} onRetry={() => void centers.refetch()} />
+          </div>
+        )}
 
-      {centers.isSuccess &&
-        (centers.data.length === 0 ? (
-          <Empty>{t('centers.empty')}</Empty>
-        ) : (
-          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-            {centers.data.map((center) => (
-              <li key={center.id}>
-                <Link
-                  to={`/centers/${center.id}`}
-                  className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-neutral-50"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{center.name}</span>
-                    <span className="mt-0.5 block text-xs text-neutral-500">
-                      <span className="numeric">{center.teacherCount}</span> {t('centers.teachers')}
+        {centers.isSuccess &&
+          (centers.data.length === 0 ? (
+            <Empty action={<NewCenter />}>{t('centers.empty')}</Empty>
+          ) : (
+            <ul className="divide-y divide-[var(--color-hairline)]">
+              {centers.data.map((center) => (
+                <li key={center.id}>
+                  <Link
+                    to={`/centers/${center.id}`}
+                    className="group flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--color-ground)]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium">{center.name}</span>
+                      <span className="mt-1 block text-xs text-[var(--color-quiet)]">
+                        <span className="numeric">{center.teacherCount}</span>{' '}
+                        {t('centers.teachers')}
+                      </span>
                     </span>
-                  </span>
-                  {/* rtl:rotate-180 so the chevron points the way the page reads */}
-                  <ChevronRight
-                    size={16}
-                    className="shrink-0 text-neutral-400 rtl:rotate-180"
-                    aria-hidden
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ))}
+                    {/* rtl:rotate-180 so the chevron points the way the page reads */}
+                    <ChevronRight
+                      size={15}
+                      className="shrink-0 text-[var(--color-hairline)] transition-colors group-hover:text-[var(--color-brand)] rtl:rotate-180"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ))}
+      </div>
     </Page>
   )
 }
