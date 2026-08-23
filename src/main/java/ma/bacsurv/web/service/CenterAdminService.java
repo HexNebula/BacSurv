@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Setting a centre up: its name, its rooms, its sessions. Everything here is
@@ -47,6 +50,39 @@ public class CenterAdminService {
     public record CenterDetail(Long id, String name, int teacherCount,
                                List<RoomView> rooms, List<SessionView> sessions) {}
 
+    /**
+     * R1, R2, … R13 — not R1, R10, R11, R2.
+     *
+     * <p>The database orders references as text, which puts the tenth room
+     * second in a centre of thirteen. Nobody reads a room list that way, so the
+     * number is compared as a number and the letters around it as text. A
+     * reference with no digits keeps its alphabetical place.
+     */
+    private static final Comparator<RoomView> BY_REFERENCE =
+            Comparator.comparing((RoomView room) -> lettersOf(room.reference()))
+                    .thenComparingLong(room -> digitsOf(room.reference()))
+                    .thenComparing(RoomView::reference);
+
+    private static final Pattern TRAILING_NUMBER = Pattern.compile("^(.*?)(\\d+)$");
+
+    private static String lettersOf(String reference) {
+        if (reference == null) return "";
+        Matcher matcher = TRAILING_NUMBER.matcher(reference);
+        return matcher.matches() ? matcher.group(1) : reference;
+    }
+
+    /** Whatever has no trailing number sorts last, after the numbered rooms. */
+    private static long digitsOf(String reference) {
+        if (reference == null) return Long.MAX_VALUE;
+        Matcher matcher = TRAILING_NUMBER.matcher(reference);
+        if (!matcher.matches()) return Long.MAX_VALUE;
+        try {
+            return Long.parseLong(matcher.group(2));
+        } catch (NumberFormatException tooLong) {
+            return Long.MAX_VALUE;
+        }
+    }
+
     @Transactional(readOnly = true)
     public CenterDetail detail(long centerId) {
         CenterEntity center = centers.findById(centerId).orElseThrow(
@@ -55,6 +91,7 @@ public class CenterAdminService {
         List<RoomView> roomViews = rooms.findByCenterIdOrderByReferenceAsc(centerId).stream()
                 .map(room -> new RoomView(room.getId(), room.getReference(), room.getLabel(),
                         room.getSurveillantsOverride()))
+                .sorted(BY_REFERENCE)
                 .toList();
 
         List<SessionView> sessionViews = operations.findAllWithCenter().stream()

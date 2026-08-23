@@ -1,14 +1,82 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ChevronRight, Plus } from 'lucide-react'
+import { Button, Input, Label, Modal, TextField } from '@heroui/react'
 import { api } from '../lib/api'
+import { useApiMutation } from '../lib/mutation'
 import { Page, Failed, Loading, Empty } from '../components/Page'
 
 type Center = {
   id: number
   name: string
   teacherCount: number
+}
+
+/**
+ * A new centre is a name and nothing else — rooms, teachers and sessions are
+ * set up on its own screen, so the administrator lands there rather than back
+ * on a list with one more line in it.
+ */
+function NewCenter() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+
+  const create = useApiMutation({
+    run: () => api.post<Center>('/centers', { name }),
+    invalidate: ['centers'],
+    onDone: (created) => {
+      setOpen(false)
+      setName('')
+      void navigate(`/centers/${created.id}`)
+    },
+  })
+
+  return (
+    <>
+      <Button size="sm" onPress={() => setOpen(true)}>
+        <Plus size={15} aria-hidden />
+        {t('centers.create')}
+      </Button>
+
+      <Modal isOpen={open} onOpenChange={setOpen}>
+        <Modal.Backdrop>
+          <Modal.Container>
+            <Modal.Dialog>
+              <Modal.Header>
+                <Modal.Heading>{t('centers.create')}</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                <form
+                  id="new-center"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    create.mutate(undefined)
+                  }}
+                >
+                  <TextField value={name} onChange={setName} fullWidth autoFocus>
+                    <Label>{t('centers.name')}</Label>
+                    <Input />
+                  </TextField>
+                </form>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="ghost" onPress={() => setOpen(false)}>
+                  {t('app.cancel')}
+                </Button>
+                <Button type="submit" form="new-center" isPending={create.isPending}>
+                  {t('app.save')}
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+    </>
+  )
 }
 
 export function CentersPage() {
@@ -19,7 +87,7 @@ export function CentersPage() {
   })
 
   return (
-    <Page title={t('centers.title')}>
+    <Page title={t('centers.title')} actions={<NewCenter />}>
       {centers.isPending && <Loading />}
       {centers.isError && (
         <Failed error={centers.error as Error} onRetry={() => void centers.refetch()} />

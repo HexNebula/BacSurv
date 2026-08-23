@@ -28,5 +28,49 @@
     "rooms": "Salles",
     "sessions": "Sessions",
     "open": "Ouvrir"
+  },
+  "center": {
+    "rename": "Renommer le centre",
+    "renamed": "Centre renommé."
+  },
+  "rooms": {
+    "title": "Les salles",
+    "empty": "Aucune salle pour le moment.",
+    "label": "Salle",
+    "edit": "Modifier la salle",
+    "deleted": "Salle supprimée.",
+    "surveillants": {
+      "label": "Surveillants",
+      "default": "2 par défaut"
+    },
+    "added_one": "{{count}} salle ajoutée.",
+    "added_other": "{{count}} salles ajoutées.",
+    "add": {
+      "count": "Combien de salles ?",
+      "prefix": "Nom (Salle)",
+      "placeholder": "Salle",
+      "button": "Ajouter",
+      "hint": "Les salles sont numérotées à la suite. Renommez ensuite celles qui ont un nom propre."
+    }
+  },
+  "sessions": {
+    "title": "Les sessions",
+    "empty": "Aucune session pour le moment.",
+    "create": "Nouvelle session",
+    "created": "Session créée.",
+    "reference": {
+      "label": "Nom de la session",
+      "hint": "Bac 2026 — session de juin"
+    },
+    "startsOn": "Début",
+    "endsOn": "Fin",
+    "slots": "épreuves",
+    "datesUnset": "Dates non renseignées",
+    "type": {
+      "label": "Type",
+      "REGIONAL_1BAC": "1re année — régional",
+      "NATIONAL_2BAC": "2e année — national",
+      "NATIONAL_2BAC_RATTRAPAGE": "2e année — rattrapage"
+    }
   }
 }

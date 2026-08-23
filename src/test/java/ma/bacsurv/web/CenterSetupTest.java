@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,6 +31,40 @@ class CenterSetupTest {
         assertEquals("Salle 1", rooms.getFirst().label());
         assertEquals("R1", rooms.getFirst().reference());
         assertTrue(rooms.stream().anyMatch(r -> r.label().equals("Salle 13")));
+    }
+
+    /**
+     * The database orders references as text, which reads R1, R10, R11, R2 —
+     * a list nobody with thirteen rooms can scan. The tenth room belongs after
+     * the ninth.
+     */
+    @Test
+    void roomsAreListedInTheOrderTheyAreNumbered() {
+        long centre = admin.createCenter("Lycée Al Khawarizmi " + System.nanoTime());
+        admin.addRooms(centre, 13, null);
+
+        var references = admin.detail(centre).rooms().stream()
+                .map(CenterAdminService.RoomView::reference).toList();
+
+        assertEquals(java.util.stream.IntStream.rangeClosed(1, 13)
+                .mapToObj(n -> "R" + n).toList(), references);
+    }
+
+    /**
+     * Renaming a room touches its label only. The reference is what the order
+     * is built on, so a room called by its own name keeps its place in the
+     * list rather than jumping to the front.
+     */
+    @Test
+    void renamingARoomLeavesItWhereItWas() {
+        long centre = admin.createCenter("Lycée Moulay Youssef " + System.nanoTime());
+        admin.addRooms(centre, 3, null);
+        var second = admin.detail(centre).rooms().get(1);
+        admin.renameRoom(second.id(), "Amphithéâtre", null);
+
+        var labels = admin.detail(centre).rooms().stream()
+                .map(CenterAdminService.RoomView::label).toList();
+        assertEquals(List.of("Salle 1", "Amphithéâtre", "Salle 3"), labels);
     }
 
     @Test
