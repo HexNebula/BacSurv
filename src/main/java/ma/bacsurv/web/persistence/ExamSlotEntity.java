@@ -74,6 +74,11 @@ public class ExamSlotEntity {
         exams.add(exam);
     }
 
+    /** Ordinals follow the clock, so a slot added earlier takes its place. */
+    public void setOrdinalInDay(int ordinalInDay) {
+        this.ordinalInDay = ordinalInDay;
+    }
+
     public Long getId() { return id; }
     public OperationEntity getOperation() { return operation; }
     public String getReference() { return reference; }

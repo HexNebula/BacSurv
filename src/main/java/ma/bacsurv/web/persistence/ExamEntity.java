@@ -62,6 +62,17 @@ public class ExamEntity {
         this.rooms = new ArrayList<>(rooms);
     }
 
+    /** Follows a filière that has been renamed: the exam remembers it by name. */
+    public void rename(String stream) {
+        this.stream = stream;
+    }
+
+    /** Rooms are set from the filière, which holds them for the whole session. */
+    public void occupy(List<RoomEntity> replacements) {
+        rooms.clear();
+        rooms.addAll(replacements);
+    }
+
     public Long getId() { return id; }
     public ExamSlotEntity getSlot() { return slot; }
     public String getReference() { return reference; }
