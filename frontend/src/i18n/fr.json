@@ -155,6 +155,11 @@
     "copyFrom": "Copier depuis",
     "copyInto": "Copier vers {{name}}",
     "copyExplain": "Les épreuves de la filière choisie seront recopiées ici, avec les salles de cette filière-ci.",
-    "copied": "Épreuves copiées vers {{name}}."
+    "copied": "Épreuves copiées vers {{name}}.",
+    "morning": "Matin",
+    "afternoon": "Après-midi",
+    "addMore": "Ajouter une autre",
+    "roomCount_one": "salle",
+    "roomCount_other": "salles"
   }
 }

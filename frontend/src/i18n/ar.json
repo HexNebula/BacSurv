@@ -175,6 +175,15 @@
     "copyFrom": "نسخ من",
     "copyInto": "نسخ إلى {{name}}",
     "copyExplain": "ستُنسخ اختبارات المسلك المختار إلى هنا، مع قاعات هذا المسلك.",
-    "copied": "تم نسخ الاختبارات إلى {{name}}."
+    "copied": "تم نسخ الاختبارات إلى {{name}}.",
+    "morning": "صباحًا",
+    "afternoon": "بعد الزوال",
+    "addMore": "إضافة اختبار آخر",
+    "roomCount_zero": "قاعة",
+    "roomCount_one": "قاعة",
+    "roomCount_two": "قاعتان",
+    "roomCount_few": "قاعات",
+    "roomCount_many": "قاعة",
+    "roomCount_other": "قاعة"
   }
 }

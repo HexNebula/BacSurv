@@ -43,6 +43,28 @@ type CenterDetail = { id: number; rooms: RoomRef[] }
 
 const CHOSEN_SESSION = 'bacsurv-session'
 
+/**
+ * Which half of the day an épreuve falls in.
+ *
+ * <p>A centre runs a morning séance and an afternoon one, and a filière can sit
+ * a paper in each on the same day. Noon is the divider — the hours themselves
+ * stay free, because a three-hour paper starting at 15:00 and a two-hour one
+ * starting at 14:30 are both the afternoon séance.
+ */
+type Half = 'morning' | 'afternoon'
+
+const HALVES: Half[] = ['morning', 'afternoon']
+
+function halfOf(startTime: string): Half {
+  return Number(startTime.slice(0, 2)) < 12 ? 'morning' : 'afternoon'
+}
+
+/** What an empty cell offers, by the séance it sits in. */
+const DEFAULT_HOURS: Record<Half, [Time, Time]> = {
+  morning: [new Time(8, 0), new Time(11, 0)],
+  afternoon: [new Time(15, 0), new Time(17, 0)],
+}
+
 /** "08:00:00" from the server, "08:00" to it. */
 function readTime(value: string): Time {
   return parseTime(value.length > 5 ? value.slice(0, 5) : value)
@@ -188,6 +210,7 @@ function ExamForm({
   sessionId,
   stream,
   day,
+  half,
   existing,
   open,
   onClose,
@@ -195,6 +218,7 @@ function ExamForm({
   sessionId: number
   stream: Stream | null
   day: string | null
+  half: Half
   existing?: Exam
   open: boolean
   onClose: () => void
@@ -207,10 +231,11 @@ function ExamForm({
   useEffect(() => {
     if (!open) return
     setSubject(existing?.subject ?? '')
-    // morning is the usual case, so it is what an empty cell offers
-    setStart(existing ? readTime(existing.startTime) : new Time(8, 0))
-    setEnd(existing ? readTime(existing.endTime) : new Time(11, 0))
-  }, [open, existing])
+    // an empty cell opens on the hours of the séance it belongs to
+    const [from, to] = DEFAULT_HOURS[half]
+    setStart(existing ? readTime(existing.startTime) : from)
+    setEnd(existing ? readTime(existing.endTime) : to)
+  }, [open, existing, half])
 
   const save = useApiMutation({
     run: () =>
@@ -243,6 +268,9 @@ function ExamForm({
           <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>{stream?.name ?? t('schedule.exam')}</Modal.Heading>
+              <p className="mt-0.5 text-[13px] text-[var(--color-quiet)]">
+                {t(`schedule.${half}`)}
+              </p>
             </Modal.Header>
 
             <Modal.Body>
@@ -409,8 +437,9 @@ export function SchedulePage() {
     open: boolean
     stream: Stream | null
     day: string | null
+    half: Half
     exam?: Exam
-  }>({ open: false, stream: null, day: null })
+  }>({ open: false, stream: null, day: null, half: 'morning' })
   const [copyFor, setCopyFor] = useState<Stream | null>(null)
 
   const sessions = useQuery({
@@ -437,9 +466,17 @@ export function SchedulePage() {
     [i18n.language],
   )
 
-  /** The épreuve a filière sits on a day, if any. */
-  const cell = (streamId: number, day: string) =>
-    grid.data?.exams.find((exam) => exam.streamId === streamId && exam.date === day)
+  /**
+   * Every épreuve a filière sits in one séance — not the first one found.
+   * A filière with a paper in the morning and another in the afternoon has
+   * two, and showing only one is how an épreuve goes missing from the screen
+   * while sitting perfectly well in the database.
+   */
+  const cell = (streamId: number, day: string, half: Half) =>
+    (grid.data?.exams ?? [])
+      .filter((exam) => exam.streamId === streamId && exam.date === day)
+      .filter((exam) => halfOf(exam.startTime) === half)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
   if (sessions.isError) {
     return (
@@ -528,36 +565,68 @@ export function SchedulePage() {
             </Empty>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px]">
+              <table className="w-full min-w-[720px] table-fixed border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--color-hairline)]">
-                    <th className="w-56 px-4 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]">
+                  {/* two rows: the day, then the séance inside it */}
+                  <tr>
+                    <th
+                      rowSpan={2}
+                      className="w-[230px] border-b border-[var(--color-hairline)] px-4 py-2 text-start align-bottom text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]"
+                    >
                       {t('schedule.stream')}
                     </th>
                     {data.days.map((day) => (
                       <th
                         key={day}
-                        className="px-3 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]"
+                        colSpan={2}
+                        className="border-s border-[var(--color-hairline)] px-3 pb-1 pt-2 text-center text-[12px] font-semibold"
                       >
                         {dayNames.format(new Date(`${day}T00:00:00`))}
                       </th>
                     ))}
+                  </tr>
+                  <tr>
+                    {data.days.flatMap((day) =>
+                      HALVES.map((half) => (
+                        <th
+                          key={`${day}-${half}`}
+                          className={`border-b border-[var(--color-hairline)] px-2 pb-1.5 text-start text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--color-quiet)] ${
+                            half === 'morning' ? 'border-s border-s-[var(--color-hairline)]' : ''
+                          }`}
+                        >
+                          {t(`schedule.${half}`)}
+                        </th>
+                      )),
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {data.streams.map((stream) => (
                     <tr
                       key={stream.id}
-                      className="border-b border-[var(--color-hairline)] last:border-b-0"
+                      className="group border-b border-[var(--color-hairline)] last:border-b-0"
                     >
-                      <td className="px-4 py-3 align-top">
+                      <td className="px-4 py-2.5 align-top">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="truncate text-[13px] font-medium">{stream.name}</div>
-                            <div className="numeric mt-0.5 truncate text-[11px] text-[var(--color-quiet)]">
-                              {stream.rooms.length === 0
-                                ? t('schedule.noRoomsYet')
-                                : stream.rooms.map((room) => room.label).join(', ')}
+                            <div className="text-[13px] font-medium leading-tight">{stream.name}</div>
+                            {/* the count, not the list: "Salle 2, Salle 3, Salle
+                                4, Salle 5" costs more width than the filière's
+                                own name. The full list is on hover. */}
+                            <div
+                              className="mt-0.5 text-[11px] text-[var(--color-quiet)]"
+                              title={stream.rooms.map((room) => room.label).join(', ')}
+                            >
+                              {stream.rooms.length === 0 ? (
+                                <span className="text-[var(--color-alarm)]">
+                                  {t('schedule.noRoomsYet')}
+                                </span>
+                              ) : (
+                                <>
+                                  <span className="numeric">{stream.rooms.length}</span>{' '}
+                                  {t('schedule.roomCount', { count: stream.rooms.length })}
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-0.5">
@@ -591,40 +660,56 @@ export function SchedulePage() {
                         </div>
                       </td>
 
-                      {data.days.map((day) => {
-                        const exam = cell(stream.id, day)
-                        return (
-                          <td key={day} className="px-1.5 py-1.5 align-top">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExamForm({ open: true, stream, day, exam })
-                              }
-                              className={`w-full rounded-md px-3 py-2 text-start transition-colors ${
-                                exam
-                                  ? 'bg-[var(--color-ground)] hover:bg-[var(--color-hairline)]/60'
-                                  : 'border border-dashed border-[var(--color-hairline)] hover:border-[var(--color-brand)] hover:bg-[var(--color-ground)]'
+                      {data.days.flatMap((day) =>
+                        HALVES.map((half) => {
+                          const exams = cell(stream.id, day, half)
+                          return (
+                            <td
+                              key={`${day}-${half}`}
+                              className={`space-y-1 px-1.5 py-1.5 align-top ${
+                                half === 'morning'
+                                  ? 'border-s border-[var(--color-hairline)]'
+                                  : ''
                               }`}
                             >
-                              {exam ? (
-                                <>
-                                  <span className="block truncate text-[13px] font-medium">
+                              {exams.map((exam) => (
+                                <button
+                                  key={exam.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setExamForm({ open: true, stream, day, half, exam })
+                                  }
+                                  className="w-full rounded-md border-s-2 border-s-[var(--color-brand)] bg-[var(--color-ground)] px-2 py-1.5 text-start transition-colors hover:bg-[var(--color-hairline)]/60"
+                                >
+                                  <span className="block text-[13px] font-medium leading-tight">
                                     {exam.subject}
                                   </span>
                                   <span className="numeric mt-0.5 block text-[11px] text-[var(--color-quiet)]">
                                     {shortTime(exam.startTime)} — {shortTime(exam.endTime)}
                                   </span>
-                                </>
-                              ) : (
-                                <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-quiet)]">
-                                  <Plus size={12} aria-hidden />
-                                  {t('schedule.addExam')}
-                                </span>
-                              )}
-                            </button>
-                          </td>
-                        )
-                      })}
+                                </button>
+                              ))}
+
+                              {/* an empty séance stays reachable, and a filled
+                                  one can still take a second paper */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExamForm({ open: true, stream, day, half, exam: undefined })
+                                }
+                                className={`w-full items-center gap-1.5 rounded-md px-2 text-[11px] text-[var(--color-quiet)] transition-colors hover:text-[var(--color-brand)] ${
+                                  exams.length === 0
+                                    ? 'flex justify-center border border-dashed border-[var(--color-hairline)] py-2.5 hover:border-[var(--color-brand)]'
+                                    : 'hidden py-1 group-hover:flex group-focus-within:flex'
+                                }`}
+                              >
+                                <Plus size={12} aria-hidden />
+                                {exams.length === 0 ? t('schedule.addExam') : t('schedule.addMore')}
+                              </button>
+                            </td>
+                          )
+                        }),
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -646,9 +731,10 @@ export function SchedulePage() {
             sessionId={sessionId}
             stream={examForm.stream}
             day={examForm.day}
+            half={examForm.half}
             existing={examForm.exam}
             open={examForm.open}
-            onClose={() => setExamForm({ open: false, stream: null, day: null })}
+            onClose={() => setExamForm({ open: false, stream: null, day: null, half: 'morning' })}
           />
           <CopyStream
             sessionId={sessionId}
