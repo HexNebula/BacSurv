@@ -51,6 +51,9 @@
       "placeholder": "Salle",
       "button": "Ajouter",
       "hint": "Les salles sont numérotées à la suite. Renommez ensuite celles qui ont un nom propre."
+    },
+    "delete": {
+      "confirm": "Supprimer {{room}} ?"
     }
   },
   "sessions": {

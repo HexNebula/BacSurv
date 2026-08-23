@@ -2,15 +2,31 @@
 @import '@heroui/styles';
 
 /*
+ * The faces are carried inside the application, not named and hoped for.
+ * Naming a font the machine turns out not to have is how a page ends up in
+ * whatever the system picked — on one Linux desktop `system-ui` resolves to a
+ * monospace face and the whole interface reads like a terminal. A centre may
+ * also be offline, so nothing is fetched from a font service either: these
+ * imports put the woff2 files in the build, and the build goes in the jar.
+ */
+@import '@fontsource-variable/inter';
+@import '@fontsource/noto-naskh-arabic/arabic-400.css';
+@import '@fontsource/noto-naskh-arabic/arabic-600.css';
+
+/*
  * A tool an administration uses for days at a time: readable at forty-five
  * rows, calm enough to stare at, and printable. The Arabic face is listed
  * first for Arabic text so RTL pages never fall back to a stub font, and
  * Arabic gets slightly more size and line height — it reads small at the
  * size that suits Latin text.
+ *
+ * The fallbacks end at `sans-serif` rather than passing through `system-ui`:
+ * the whole point is that a misconfigured machine cannot drag the interface
+ * into a face nobody chose.
  */
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-arabic: 'Noto Naskh Arabic', 'Noto Sans Arabic', Tahoma, sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', sans-serif;
+  --font-arabic: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Inter Variable', sans-serif;
 }
 
 html[lang='ar'] body {

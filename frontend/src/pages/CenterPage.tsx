@@ -135,6 +135,7 @@ function CenterName({ center }: { center: CenterDetail }) {
 function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [label, setLabel] = useState(room.label)
   const [surveillants, setSurveillants] = useState<number | null>(room.surveillants)
 
@@ -210,27 +211,50 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
         )}
       </td>
       <td className="px-4 py-2.5 text-end">
-        <div className="flex items-center justify-end gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            aria-label={t('rooms.edit')}
-            onPress={() => setEditing(true)}
-          >
-            <Pencil size={14} aria-hidden />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            aria-label={t('app.delete')}
-            isPending={remove.isPending}
-            onPress={() => remove.mutate(undefined)}
-          >
-            <Trash2 size={14} className="text-red-600" aria-hidden />
-          </Button>
-        </div>
+        {/*
+          Deleting asks first, in the row itself. A single stray click on a
+          bin should not cost a room, and a question that appears where the
+          hand already is beats a dialog in the middle of the screen.
+        */}
+        {confirming ? (
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-xs text-neutral-600">
+              {t('rooms.delete.confirm', { room: room.label })}
+            </span>
+            <Button
+              size="sm"
+              variant="danger"
+              isPending={remove.isPending}
+              onPress={() => remove.mutate(undefined)}
+            >
+              {t('app.delete')}
+            </Button>
+            <Button size="sm" variant="ghost" onPress={() => setConfirming(false)}>
+              {t('app.cancel')}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              isIconOnly
+              aria-label={t('rooms.edit')}
+              onPress={() => setEditing(true)}
+            >
+              <Pencil size={14} aria-hidden />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              isIconOnly
+              aria-label={t('app.delete')}
+              onPress={() => setConfirming(true)}
+            >
+              <Trash2 size={14} className="text-red-600" aria-hidden />
+            </Button>
+          </div>
+        )}
       </td>
     </tr>
   )

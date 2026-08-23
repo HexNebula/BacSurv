@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import fr from './fr.json'
@@ -24,6 +25,26 @@ export function storedLanguage(): Language {
   return saved === 'ar' || saved === 'fr' ? saved : 'fr'
 }
 
+const listeners = new Set<() => void>()
+
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => void listeners.delete(listener)
+}
+
+/**
+ * The current language, as React state.
+ *
+ * <p>React Aria formats dates and numbers from the locale it is handed at
+ * render time, not from {@code <html lang>}. Read once at start-up it goes
+ * stale the moment somebody switches language: the page turns Arabic while a
+ * date field still asks for jj/mm/aaaa. Subscribing keeps the two together
+ * without a reload.
+ */
+export function useLanguage(): Language {
+  return useSyncExternalStore(subscribe, storedLanguage, storedLanguage)
+}
+
 /** Direction and language belong on <html>: the whole page mirrors, not a div. */
 export function applyLanguage(language: Language) {
   const { dir } = LANGUAGES[language]
@@ -31,6 +52,7 @@ export function applyLanguage(language: Language) {
   document.documentElement.dir = dir
   localStorage.setItem(STORAGE_KEY, language)
   void i18n.changeLanguage(language)
+  listeners.forEach((listener) => listener())
 }
 
 void i18n.use(initReactI18next).init({

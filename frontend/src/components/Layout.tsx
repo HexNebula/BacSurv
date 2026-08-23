@@ -1,8 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Building2, CalendarDays, Users, LayoutGrid, ListChecks, ChartNoAxesColumn } from 'lucide-react'
-import { LANGUAGES, applyLanguage, storedLanguage, type Language } from '../i18n'
-import { useState } from 'react'
+import { LANGUAGES, applyLanguage, useLanguage, type Language } from '../i18n'
 
 const SECTIONS = [
   { to: '/centers', key: 'nav.centers', Icon: Building2 },
@@ -14,19 +13,16 @@ const SECTIONS = [
 ] as const
 
 function LanguageSwitch() {
-  const [current, setCurrent] = useState<Language>(storedLanguage)
-
-  const choose = (language: Language) => {
-    applyLanguage(language)
-    setCurrent(language)
-  }
+  // the same source the whole app reads, so the button and React Aria's
+  // formatting can never disagree about which language is on
+  const current = useLanguage()
 
   return (
     <div className="flex items-center gap-1 rounded-lg bg-neutral-100 p-0.5">
       {(Object.keys(LANGUAGES) as Language[]).map((language) => (
         <button
           key={language}
-          onClick={() => choose(language)}
+          onClick={() => applyLanguage(language)}
           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
             current === language
               ? 'bg-white text-neutral-900 shadow-sm'

@@ -6,12 +6,11 @@ import { I18nProvider } from 'react-aria'
 import { Toast } from '@heroui/react'
 import App from './App.tsx'
 import './index.css'
-import { LANGUAGES, applyLanguage, storedLanguage } from './i18n'
+import { LANGUAGES, applyLanguage, storedLanguage, useLanguage } from './i18n'
 
 // the saved choice decides direction before the first paint, so an Arabic
 // user never sees the page laid out left to right and then flip
-const language = storedLanguage()
-applyLanguage(language)
+applyLanguage(storedLanguage())
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,10 +23,14 @@ const queryClient = new QueryClient({
   },
 })
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {/* React Aria formats dates and numbers from this, and mirrors its
-        components: ar-MA gives 0123456789 where plain ar gives ٠١٢٣ */}
+function Root() {
+  // follows the switch: read once, a date field keeps asking for jj/mm/aaaa
+  // long after the rest of the page has turned Arabic
+  const language = useLanguage()
+
+  return (
+    /* React Aria formats dates and numbers from this, and mirrors its
+       components: ar-MA gives 0123456789 where plain ar gives ٠١٢٣ */
     <I18nProvider locale={LANGUAGES[language].tag}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
@@ -44,5 +47,11 @@ createRoot(document.getElementById('root')!).render(
         <Toast.Provider placement="bottom end" />
       </QueryClientProvider>
     </I18nProvider>
+  )
+}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <Root />
   </StrictMode>,
 )
