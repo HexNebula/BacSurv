@@ -19,6 +19,12 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
     Optional<AssignmentEntity> findByJobIdAndDutyId(Long jobId, String dutyId);
 
     /**
+     * Has this teacher ever been given a duty? Removing somebody who has would
+     * take their réserve and permanence turns out of the queue with them.
+     */
+    long countByTeacherId(Long teacherId);
+
+    /**
      * The pinned assignments of the newest finished job of an operation:
      * the hand-made decisions a re-solve of that operation must respect.
      */

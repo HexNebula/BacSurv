@@ -23,7 +23,20 @@ public final class TeacherCsv {
                       String establishment, String gender) {}
 
     /** One row that could not be used, and why. */
-    public record RowError(int line, String reason, String content) {}
+    /**
+     * Why one line could not be read.
+     *
+     * <p>The reason is a key rather than a sentence: the person looking at a
+     * rejected row is an administrator reading French or Arabic, not an
+     * engineer reading English. {@code detail} carries the one value some of
+     * them need — the missing column, the matricule seen twice.
+     */
+    public record RowError(int line, String reason, String detail, String content) {
+
+        public RowError(int line, String reason, String content) {
+            this(line, reason, null, content);
+        }
+    }
 
     public record Parsed(List<Row> rows, List<RowError> errors) {
 
@@ -51,7 +64,7 @@ public final class TeacherCsv {
     public Parsed parse(String content) {
         List<String> lines = splitLines(stripBom(content));
         if (lines.isEmpty()) {
-            return new Parsed(List.of(), List.of(new RowError(1, "empty file", "")));
+            return new Parsed(List.of(), List.of(new RowError(1, "empty", "")));
         }
 
         char separator = detectSeparator(lines.getFirst());
@@ -60,7 +73,7 @@ public final class TeacherCsv {
         List<RowError> errors = new ArrayList<>();
         for (String required : List.of("matricule", "name", "subject")) {
             if (!columns.containsKey(required)) {
-                errors.add(new RowError(1, "missing column: " + required, lines.getFirst()));
+                errors.add(new RowError(1, "missingColumn", required, lines.getFirst()));
             }
         }
         if (!errors.isEmpty()) return new Parsed(List.of(), List.copyOf(errors));
@@ -78,13 +91,13 @@ public final class TeacherCsv {
             String subject = value(values, columns.get("subject"));
 
             if (matricule.isBlank()) {
-                errors.add(new RowError(number, "no matricule", line));
+                errors.add(new RowError(number, "noMatricule", line));
             } else if (name.isBlank()) {
-                errors.add(new RowError(number, "no name", line));
+                errors.add(new RowError(number, "noName", line));
             } else if (subject.isBlank()) {
-                errors.add(new RowError(number, "no subject", line));
+                errors.add(new RowError(number, "noSubject", line));
             } else if (!seenMatricules.add(matricule)) {
-                errors.add(new RowError(number, "matricule appears twice: " + matricule, line));
+                errors.add(new RowError(number, "duplicateMatricule", matricule, line));
             } else {
                 rows.add(new Row(number, matricule, name, subject,
                         value(values, columns.get("establishment")),

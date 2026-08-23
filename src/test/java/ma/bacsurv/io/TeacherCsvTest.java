@@ -76,7 +76,8 @@ class TeacherCsvTest {
         assertEquals(2, parsed.rows().size(), "the two usable rows survive");
         assertEquals(4, parsed.errors().size());
         assertEquals(3, parsed.errors().getFirst().line(), "line numbers point at the file");
-        assertTrue(parsed.errors().stream().anyMatch(e -> e.reason().contains("twice")));
+        assertTrue(parsed.errors().stream().anyMatch(e -> e.reason().equals("duplicateMatricule")
+                && "D1".equals(e.detail())), "the repeated matricule is named, not described");
     }
 
     @Test
@@ -85,7 +86,7 @@ class TeacherCsvTest {
 
         assertTrue(parsed.rows().isEmpty());
         assertEquals(2, parsed.errors().size());
-        assertTrue(parsed.errors().stream().allMatch(e -> e.reason().startsWith("missing column")));
+        assertTrue(parsed.errors().stream().allMatch(e -> e.reason().equals("missingColumn")));
     }
 
     @Test

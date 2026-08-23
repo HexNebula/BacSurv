@@ -82,5 +82,48 @@
       "NATIONAL_2BAC": "2e année — national",
       "NATIONAL_2BAC_RATTRAPAGE": "2e année — rattrapage"
     }
+  },
+  "teachers": {
+    "title": "Enseignants",
+    "subtitle": "Le pool dans lequel la surveillance est répartie.",
+    "center": "Centre",
+    "pickCenter": "Choisissez un centre pour voir son pool.",
+    "noCenter": "Créez d'abord un centre : un pool appartient à un centre.",
+    "pool": "Le pool",
+    "empty": "Aucun enseignant pour le moment. Importez la liste de l'établissement.",
+    "noMatch": "Aucun enseignant ne correspond à « {{search}} ».",
+    "search": "Rechercher",
+    "searchHint": "Nom, matricule ou matière",
+    "matricule": "Matricule",
+    "name": "Nom",
+    "subject": "Matière",
+    "establishment": "Établissement",
+    "subjects": "Par matière",
+    "add": "Ajouter",
+    "added": "Enseignant ajouté.",
+    "edit": "Modifier",
+    "saved": "Enseignant modifié.",
+    "removed": "Enseignant retiré.",
+    "import": "Importer",
+    "chooseFile": "Choisir un fichier",
+    "columns": "Colonnes attendues : matricule, nom, matière, établissement",
+    "willAdd": "Seront ajoutés",
+    "willChange": "Seront modifiés",
+    "alreadyCorrect": "Déjà à jour",
+    "unreadable": "Lignes illisibles",
+    "line": "Ligne {{line}}",
+    "badRowsSkipped": "Ces lignes seront ignorées. Les autres seront importées normalement.",
+    "nothingToDo": "Ce fichier ne change rien : tout y est déjà à jour.",
+    "confirmImport": "Importer",
+    "imported_one": "{{count}} enseignant importé.",
+    "imported_other": "{{count}} enseignants importés.",
+    "rowError": {
+      "empty": "Le fichier est vide.",
+      "missingColumn": "Colonne « {{detail}} » absente du fichier.",
+      "noMatricule": "Matricule manquant.",
+      "noName": "Nom manquant.",
+      "noSubject": "Matière manquante.",
+      "duplicateMatricule": "Le matricule {{detail}} apparaît deux fois."
+    }
   }
 }

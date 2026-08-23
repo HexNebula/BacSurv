@@ -1,8 +1,13 @@
 package ma.bacsurv.web.api;
 
+import ma.bacsurv.web.service.TeacherAdminService;
 import ma.bacsurv.web.service.TeacherImportService;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,9 +36,14 @@ import java.util.Map;
 public class TeacherApiController {
 
     private final TeacherImportService teachers;
+    private final TeacherAdminService admin;
+    private final MessageSource messages;
 
-    public TeacherApiController(TeacherImportService teachers) {
+    public TeacherApiController(TeacherImportService teachers, TeacherAdminService admin,
+                                MessageSource messages) {
         this.teachers = teachers;
+        this.admin = admin;
+        this.messages = messages;
     }
 
     /** The file's text, carried from the preview into the confirmation. */
@@ -41,6 +51,34 @@ public class TeacherApiController {
 
     @GetMapping
     public List<TeacherImportService.Change> pool(@PathVariable long id) {
+        return teachers.pool(id);
+    }
+
+    /**
+     * One teacher, added by hand. {@code /preview} and {@code /apply} are
+     * literal segments, so they are matched before the matricule below —
+     * a pool would have to contain a teacher numbered "preview" for the two
+     * to collide.
+     */
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TeacherImportService.Change>> add(
+            @PathVariable long id, @RequestBody TeacherAdminService.Details body) {
+        admin.add(id, body);
+        return ResponseEntity.status(HttpStatus.CREATED).body(teachers.pool(id));
+    }
+
+    @PostMapping(value = "/{matricule}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public List<TeacherImportService.Change> edit(@PathVariable long id,
+                                                  @PathVariable String matricule,
+                                                  @RequestBody TeacherAdminService.Details body) {
+        admin.edit(id, matricule, body);
+        return teachers.pool(id);
+    }
+
+    @DeleteMapping("/{matricule}")
+    public List<TeacherImportService.Change> remove(@PathVariable long id,
+                                                    @PathVariable String matricule) {
+        admin.remove(id, matricule);
         return teachers.pool(id);
     }
 
@@ -70,8 +108,20 @@ public class TeacherApiController {
         return new String(file.getBytes(), StandardCharsets.UTF_8);
     }
 
+    /**
+     * The same contract the rest of the API uses: a sentence in the caller's
+     * language plus the key behind it, so the interface can show what the
+     * server says instead of inventing its own wording.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> refused(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+        String key = String.valueOf(e.getMessage());
+        String sentence;
+        try {
+            sentence = messages.getMessage("error." + key, null, LocaleContextHolder.getLocale());
+        } catch (RuntimeException untranslated) {
+            sentence = key;
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", sentence, "code", key));
     }
 }

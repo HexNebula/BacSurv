@@ -1,0 +1,147 @@
+package ma.bacsurv.web;
+
+import ma.bacsurv.domain.DutyRole;
+import ma.bacsurv.web.persistence.AssignmentEntity;
+import ma.bacsurv.web.persistence.AssignmentRepository;
+import ma.bacsurv.web.persistence.OperationRepository;
+import ma.bacsurv.web.persistence.SolveJob;
+import ma.bacsurv.web.persistence.SolveJobRepository;
+import ma.bacsurv.web.persistence.TeacherEntity;
+import ma.bacsurv.web.persistence.TeacherRepository;
+import ma.bacsurv.web.service.CenterAdminService;
+import ma.bacsurv.web.service.TeacherAdminService;
+import ma.bacsurv.web.service.TeacherAdminService.Details;
+import ma.bacsurv.web.service.TeacherImportService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Keeping a pool once it has arrived: a teacher changes subject, somebody was
+ * entered wrongly, somebody leaves. Re-importing forty-five rows to fix one of
+ * them is what made the previous application unusable.
+ */
+@SpringBootTest
+class TeacherAdminTest {
+
+    @Autowired TeacherAdminService admin;
+    @Autowired TeacherImportService pool;
+    @Autowired CenterAdminService centers;
+    @Autowired TeacherRepository teachers;
+    @Autowired AssignmentRepository assignments;
+    @Autowired SolveJobRepository jobs;
+    @Autowired OperationRepository operations;
+
+    private long centre() {
+        return centers.createCenter("Lycée Test " + System.nanoTime());
+    }
+
+    private static Details details(String matricule, String name, String subject) {
+        return new Details(matricule, name, subject, "Lycée Ibn Sina", "F");
+    }
+
+    @Test
+    void aTeacherCanBeAddedByHand() {
+        long centre = centre();
+        admin.add(centre, details("D500001", "Amina El Fassi", "Mathématiques"));
+
+        var teachers = pool.pool(centre);
+        assertEquals(1, teachers.size());
+        assertEquals("D500001", teachers.getFirst().matricule());
+        assertEquals("Mathématiques", teachers.getFirst().subject());
+    }
+
+    @Test
+    void theSameMatriculeIsRefusedTwiceInOneCentre() {
+        long centre = centre();
+        admin.add(centre, details("D500002", "Youssef Benali", "Français"));
+
+        var refused = assertThrows(IllegalArgumentException.class,
+                () -> admin.add(centre, details("D500002", "Quelqu'un d'autre", "Anglais")));
+        assertEquals("teacher.matricule.exists", refused.getMessage());
+    }
+
+    /** The matricule is per centre, so the same person may serve two. */
+    @Test
+    void theSameMatriculeIsFineInAnotherCentre() {
+        long first = centre();
+        long second = centre();
+        admin.add(first, details("D500003", "Karima Idrissi", "Physique et chimie"));
+
+        assertDoesNotThrow(() -> admin.add(second, details("D500003", "Karima Idrissi", "Physique et chimie")));
+        assertEquals(1, pool.pool(first).size());
+        assertEquals(1, pool.pool(second).size());
+    }
+
+    @Test
+    void editingChangesTheDescriptionButNotTheIdentity() {
+        long centre = centre();
+        admin.add(centre, details("D500004", "Hakim Alaoui", "Histoire et géographie"));
+
+        admin.edit(centre, "D500004",
+                new Details("D500004", "Hakim Alaoui", "Éducation islamique", null, "M"));
+
+        var teacher = pool.pool(centre).getFirst();
+        assertEquals("D500004", teacher.matricule(), "the matricule is the identity, untouched");
+        assertEquals("Éducation islamique", teacher.subject());
+        assertNull(teacher.establishment(), "a blank établissement clears it rather than storing \"\"");
+    }
+
+    @Test
+    void aTeacherWithNoHistoryCanBeRemoved() {
+        long centre = centre();
+        admin.add(centre, details("D500005", "Nadia Tazi", "SVT"));
+
+        admin.remove(centre, "D500005");
+        assertTrue(pool.pool(centre).isEmpty());
+    }
+
+    @Test
+    void refusalsNameTheFieldThatIsMissing() {
+        long centre = centre();
+
+        assertEquals("teacher.matricule.required", assertThrows(IllegalArgumentException.class,
+                () -> admin.add(centre, details("  ", "Sans matricule", "Anglais"))).getMessage());
+        assertEquals("teacher.name.required", assertThrows(IllegalArgumentException.class,
+                () -> admin.add(centre, details("D500006", "", "Anglais"))).getMessage());
+        assertEquals("teacher.subject.required", assertThrows(IllegalArgumentException.class,
+                () -> admin.add(centre, details("D500007", "Sans matière", " "))).getMessage());
+    }
+
+    /**
+     * The whole point of the matricule is that a past session still counts.
+     * Deleting somebody who has already served would take their réserve and
+     * permanence turns out of the queue with them, and the next session would
+     * hand a privilege to a colleague who has already had one.
+     */
+    @Test
+    void aTeacherWhoHasAlreadyServedCannotBeRemoved() {
+        long centre = centre();
+        admin.add(centre, details("D500008", "Rachid Bennani", "Anglais"));
+        TeacherEntity teacher = teachers.findByCenterIdAndMatricule(centre, "D500008").orElseThrow();
+
+        // one finished duty is enough history to protect: no solve needed
+        long sessionId = centers.createSession(centre, "Bac 2026", "NATIONAL_2BAC",
+                LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 6));
+        SolveJob job = jobs.save(new SolveJob(operations.findById(sessionId).orElseThrow(), null, 5));
+        assignments.save(new AssignmentEntity(job, "S1-E1-R1-SURV-1", "S1", "E1", "R1",
+                DutyRole.SURVEILLANCE, teacher));
+
+        var refused = assertThrows(IllegalArgumentException.class,
+                () -> admin.remove(centre, "D500008"));
+        assertEquals("teacher.hasHistory", refused.getMessage());
+        assertEquals(1, pool.pool(centre).size(), "the refusal must leave the pool untouched");
+    }
+
+    @Test
+    void editingSomebodyWhoIsNotInThePoolIsRefused() {
+        long centre = centre();
+        var refused = assertThrows(IllegalArgumentException.class,
+                () -> admin.edit(centre, "D999999", details("D999999", "Fantôme", "Anglais")));
+        assertEquals("teacher.unknown", refused.getMessage());
+    }
+}
