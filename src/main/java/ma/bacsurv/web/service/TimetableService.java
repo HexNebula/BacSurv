@@ -65,7 +65,8 @@ public class TimetableService {
      * that fill it. Days come from the session's declared dates when it has
      * them, so an empty timetable still has columns to fill.
      */
-    public record Timetable(Long operationId, String reference, String centerName,
+    public record Timetable(Long operationId, String reference,
+                            Long centerId, String centerName,
                             List<LocalDate> days, List<StreamView> streams,
                             List<ExamView> exams) {}
 
@@ -91,8 +92,8 @@ public class TimetableService {
         }
 
         return new Timetable(operation.getId(), operation.getReference(),
-                operation.getCenter().getName(), List.copyOf(days), streamViews,
-                List.copyOf(exams));
+                operation.getCenter().getId(), operation.getCenter().getName(),
+                List.copyOf(days), streamViews, List.copyOf(exams));
     }
 
     @Transactional

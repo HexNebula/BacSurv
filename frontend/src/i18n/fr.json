@@ -125,5 +125,36 @@
       "noSubject": "Matière manquante.",
       "duplicateMatricule": "Le matricule {{detail}} apparaît deux fois."
     }
+  },
+  "schedule": {
+    "title": "Planning",
+    "subtitle": "L'emploi du temps des épreuves.",
+    "session": "Session",
+    "noSession": "Créez d'abord une session dans un centre.",
+    "grid": "Les épreuves",
+    "hint": "Une case par filière et par jour : la matière et ses horaires.",
+    "stream": "Filière",
+    "noStream": "Aucune filière. Commencez par déclarer les filières et leurs salles.",
+    "addStream": "Nouvelle filière",
+    "editStream": "Modifier la filière",
+    "streamName": "Nom de la filière",
+    "streamHint": "Sciences physiques",
+    "streamAdded": "Filière ajoutée.",
+    "streamSaved": "Filière modifiée.",
+    "rooms": "Salles occupées",
+    "noRooms": "Ce centre n'a pas encore de salles.",
+    "noRoomsYet": "Aucune salle",
+    "exam": "Épreuve",
+    "addExam": "Ajouter",
+    "subject": "Matière",
+    "subjectHint": "Mathématiques",
+    "from": "De",
+    "to": "À",
+    "examRemoved": "Épreuve supprimée.",
+    "copy": "Copier",
+    "copyFrom": "Copier depuis",
+    "copyInto": "Copier vers {{name}}",
+    "copyExplain": "Les épreuves de la filière choisie seront recopiées ici, avec les salles de cette filière-ci.",
+    "copied": "Épreuves copiées vers {{name}}."
   }
 }

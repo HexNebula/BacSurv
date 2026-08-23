@@ -3,6 +3,7 @@ import { Layout } from './components/Layout'
 import { CentersPage } from './pages/CentersPage'
 import { CenterPage } from './pages/CenterPage'
 import { TeachersPage } from './pages/TeachersPage'
+import { SchedulePage } from './pages/SchedulePage'
 import { Page, Empty } from './components/Page'
 
 /** A section named in the rail but not built yet — honest rather than absent. */
@@ -23,7 +24,7 @@ export default function App() {
         <Route path="/centers/:id" element={<CenterPage />} />
         <Route path="/sessions" element={<NotBuilt title="Sessions" />} />
         <Route path="/teachers" element={<TeachersPage />} />
-        <Route path="/schedule" element={<NotBuilt title="Planning" />} />
+        <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/results" element={<NotBuilt title="Résultats" />} />
         <Route path="/statistics" element={<NotBuilt title="Statistiques" />} />
       </Route>
