@@ -99,6 +99,20 @@ public class OperationAssembler {
                 .orElseGet(SolverSettings::defaults);
     }
 
+    /**
+     * An unreadable gender is treated as unstated rather than fatal: it is a
+     * descriptive field, and no constraint depends on it, so a bad row from an
+     * older import must not stop a centre distributing its surveillance.
+     */
+    private static Gender readGender(String stored) {
+        if (stored == null || stored.isBlank()) return null;
+        try {
+            return Gender.valueOf(stored.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException unreadable) {
+            return null;
+        }
+    }
+
     private ExamSlot toDomain(ExamSlotEntity slot, StaffingPolicy staffing) {
         List<Exam> exams = slot.getExams().stream()
                 .map(exam -> toDomain(exam, staffing)).toList();
@@ -203,7 +217,7 @@ public class OperationAssembler {
 
         return new Teacher(entity.getReference(), entity.getMatricule(), entity.getName(),
                 subject, entity.getEstablishment(),
-                entity.getGender() == null ? null : Gender.valueOf(entity.getGender()),
+                readGender(entity.getGender()),
                 unavailabilities,
                 Set.of(TeacherQualification.forRole(DutyRole.SURVEILLANCE),
                         TeacherQualification.forRole(DutyRole.RESERVE),

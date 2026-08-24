@@ -191,5 +191,40 @@
     "center": "Centre",
     "session": "Session",
     "noSession": "Aucune session"
+  },
+  "sessionsPage": {
+    "noCenter": "Créez d'abord un centre.",
+    "noSession": "Ce centre n'a pas encore de session."
+  },
+  "readiness": {
+    "title": "Où en est cette session",
+    "go": "Continuer",
+    "step": {
+      "rooms": "Les salles",
+      "teachers": "Les enseignants",
+      "filieres": "Les filières",
+      "timetable": "L'emploi du temps",
+      "staffing": "Les effectifs",
+      "distribution": "La répartition"
+    },
+    "detail": {
+      "rooms.none": "Aucune salle dans ce centre.",
+      "rooms.count": "{{one}} salles.",
+      "teachers.none": "Aucun enseignant. Importez la liste de l'établissement.",
+      "teachers.count": "{{one}} enseignants dans le pool.",
+      "filieres.none": "Aucune filière déclarée pour cette session.",
+      "filieres.roomless": "{{one}} filière(s) sans salle : elles ne peuvent recevoir aucune épreuve.",
+      "filieres.count": "{{one}} filière(s), toutes avec des salles.",
+      "timetable.none": "Aucune épreuve saisie.",
+      "timetable.idleFiliere": "{{one}} filière(s) ne passent aucune épreuve.",
+      "timetable.count": "{{one}} épreuves réparties sur {{two}} séances.",
+      "staffing.waiting": "En attente des étapes précédentes.",
+      "staffing.unfillable": "{{one}} tâche(s) sans candidat possible, dont « {{two}} ».",
+      "staffing.shortage": "Il manque {{one}} personne(s) le {{two}} à {{three}}.",
+      "staffing.ok": "Le pool suffit à couvrir chaque heure.",
+      "distribution.none": "Pas encore de répartition.",
+      "distribution.broken": "{{one}} contrainte(s) non respectée(s), {{two}} tâche(s) non pourvue(s).",
+      "distribution.ok": "Répartition complète et sans conflit."
+    }
   }
 }

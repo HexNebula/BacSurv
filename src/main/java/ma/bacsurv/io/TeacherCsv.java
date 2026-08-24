@@ -101,14 +101,21 @@ public final class TeacherCsv {
             } else {
                 rows.add(new Row(number, matricule, name, subject,
                         value(values, columns.get("establishment")),
-                        gender(value(values, columns.get("gender")))));
+                        normaliseGender(value(values, columns.get("gender")))));
             }
         }
         return new Parsed(List.copyOf(rows), List.copyOf(errors));
     }
 
-    /** MALE, FEMALE, or null when the file does not say. */
-    private static String gender(String raw) {
+    /**
+     * MALE, FEMALE, or null when the source does not say.
+     *
+     * <p>Public because a spreadsheet is not the only way a teacher arrives:
+     * the API accepts one directly, and storing a raw "F" there would break the
+     * next solve with {@code No enum constant Gender.F} — long after anyone
+     * could connect the crash to the row that caused it.
+     */
+    public static String normaliseGender(String raw) {
         String key = fold(raw);
         if (MALE.contains(key)) return "MALE";
         if (FEMALE.contains(key)) return "FEMALE";

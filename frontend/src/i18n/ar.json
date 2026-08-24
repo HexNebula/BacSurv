@@ -227,5 +227,40 @@
     "center": "المركز",
     "session": "الدورة",
     "noSession": "لا توجد دورة"
+  },
+  "sessionsPage": {
+    "noCenter": "أنشئ مركزًا أولًا.",
+    "noSession": "لا توجد دورة بهذا المركز بعد."
+  },
+  "readiness": {
+    "title": "وضعية هذه الدورة",
+    "go": "متابعة",
+    "step": {
+      "rooms": "القاعات",
+      "teachers": "الأساتذة",
+      "filieres": "المسالك",
+      "timetable": "جدول الاختبارات",
+      "staffing": "الأعداد",
+      "distribution": "التوزيع"
+    },
+    "detail": {
+      "rooms.none": "لا توجد قاعات بهذا المركز.",
+      "rooms.count": "{{one}} قاعة.",
+      "teachers.none": "لا يوجد أساتذة. استورد لائحة المؤسسة.",
+      "teachers.count": "{{one}} أستاذ في اللائحة.",
+      "filieres.none": "لم تُحدَّد أي مسالك لهذه الدورة.",
+      "filieres.roomless": "{{one}} مسلك بدون قاعة: لا يمكنه احتضان أي اختبار.",
+      "filieres.count": "{{one}} مسلك، ولكل منها قاعات.",
+      "timetable.none": "لم يُسجَّل أي اختبار.",
+      "timetable.idleFiliere": "{{one}} مسلك لا يجتاز أي اختبار.",
+      "timetable.count": "{{one}} اختبارًا على {{two}} حصة.",
+      "staffing.waiting": "في انتظار المراحل السابقة.",
+      "staffing.unfillable": "{{one}} مهمة بدون مرشح ممكن، منها «{{two}}».",
+      "staffing.shortage": "ينقص {{one}} شخصًا يوم {{two}} على الساعة {{three}}.",
+      "staffing.ok": "اللائحة تكفي لتغطية كل ساعة.",
+      "distribution.none": "لا يوجد توزيع بعد.",
+      "distribution.broken": "{{one}} قيدًا غير محترم، و{{two}} مهمة غير مسندة.",
+      "distribution.ok": "توزيع كامل وبدون تعارض."
+    }
   }
 }

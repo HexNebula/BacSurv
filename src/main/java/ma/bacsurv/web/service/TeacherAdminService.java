@@ -1,5 +1,6 @@
 package ma.bacsurv.web.service;
 
+import ma.bacsurv.io.TeacherCsv;
 import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.CenterEntity;
 import ma.bacsurv.web.persistence.CenterRepository;
@@ -59,7 +60,7 @@ public class TeacherAdminService {
         // not two to keep in step
         catalogue.rememberSubject(centerId, subject);
         teachers.save(new TeacherEntity(center, matricule, matricule, name, subject,
-                blankToNull(details.establishment()), blankToNull(details.gender())));
+                blankToNull(details.establishment()), gender(details.gender())));
     }
 
     /** Everything but the matricule, which is the identity rather than a field. */
@@ -71,7 +72,7 @@ public class TeacherAdminService {
                 required(details.name(), "teacher.name"),
                 required(details.subject(), "teacher.subject"),
                 blankToNull(details.establishment()),
-                blankToNull(details.gender()));
+                gender(details.gender()));
     }
 
     /**
@@ -106,5 +107,10 @@ public class TeacherAdminService {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
+    }
+
+    /** "F" becomes FEMALE here rather than an exception at solve time. */
+    private static String gender(String raw) {
+        return TeacherCsv.normaliseGender(raw);
     }
 }
