@@ -35,7 +35,8 @@ public class CatalogueApiController {
         this.messages = messages;
     }
 
-    public record NewEntry(String name) {}
+    /** A subject sends only a name; a filière sends the level it belongs to. */
+    public record NewEntry(String name, String level) {}
 
     @GetMapping("/subjects")
     public List<CatalogueService.Entry> subjects(@PathVariable long id) {
@@ -72,7 +73,7 @@ public class CatalogueApiController {
     @PostMapping("/streams")
     public ResponseEntity<List<CatalogueService.Entry>> addStream(@PathVariable long id,
                                                                   @RequestBody NewEntry body) {
-        catalogue.addStream(id, body.name());
+        catalogue.addStream(id, body.name(), body.level());
         return ResponseEntity.status(HttpStatus.CREATED).body(catalogue.streamsOf(id));
     }
 
@@ -80,7 +81,7 @@ public class CatalogueApiController {
     public List<CatalogueService.Entry> renameStream(@PathVariable long id,
                                                      @PathVariable long streamId,
                                                      @RequestBody NewEntry body) {
-        catalogue.renameStream(streamId, body.name());
+        catalogue.renameStream(streamId, body.name(), body.level());
         return catalogue.streamsOf(id);
     }
 

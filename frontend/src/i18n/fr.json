@@ -284,7 +284,16 @@
     "rooms": "Les salles",
     "noExam": "Aucune épreuve",
     "examCount_one": "{{count}} épreuve",
-    "examCount_other": "{{count}} épreuves"
+    "examCount_other": "{{count}} épreuves",
+    "level": "Niveau",
+    "levelBAC1": "1re année (1BAC)",
+    "levelBAC2": "2e année (2BAC)",
+    "pick": "Choisir une filière",
+    "pickHint": "Les filières de ce niveau, telles que le centre les a listées.",
+    "create": "Créer une filière",
+    "createdAt": "Elle sera ajoutée à la liste du centre en {{level}}.",
+    "noneAtLevel": "Aucune filière listée pour ce niveau. Créez-en une.",
+    "back": "Choisir dans la liste"
   },
   "subjects": {
     "title": "Les matières",

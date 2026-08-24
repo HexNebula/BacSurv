@@ -38,13 +38,63 @@ class CatalogueTest {
         return entries.stream().map(CatalogueService.Entry::name).toList();
     }
 
+    /**
+     * 1BAC and 2BAC run different filières, and a centre runs both. The name
+     * alone therefore cannot identify one: Sciences expérimentales exists at
+     * each level, sitting different papers with different candidates, and a
+     * list that held it once would offer the wrong one when planning.
+     */
+    @Test
+    void oneNameBelongsToEachLevelSeparately() {
+        long centre = centre();
+
+        catalogue.addStream(centre, "Sciences expérimentales", "BAC1");
+        catalogue.addStream(centre, "Sciences expérimentales", "BAC2");
+
+        var levels = catalogue.streamsOf(centre).stream()
+                .map(CatalogueService.Entry::level).sorted().toList();
+        assertEquals(List.of("BAC1", "BAC2"), levels);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> catalogue.addStream(centre, "Sciences expérimentales", "BAC2"),
+                "the same filière at the same level is still one filière");
+    }
+
+    /**
+     * The level is what the whole list is for, so a filière cannot be recorded
+     * without one — a filière belonging to neither year would be offered when
+     * planning both.
+     */
+    @Test
+    void aFiliereCannotBeLevelless() {
+        long centre = centre();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> catalogue.addStream(centre, "Lettres", null));
+        assertThrows(IllegalArgumentException.class,
+                () -> catalogue.addStream(centre, "Lettres", "TRONC_COMMUN"));
+    }
+
+    /** A filière listed at the wrong year is corrected without renaming it. */
+    @Test
+    void aFiliereMovesBetweenLevels() {
+        long centre = centre();
+        long lettres = catalogue.addStream(centre, "Lettres", "BAC1");
+
+        catalogue.renameStream(lettres, "Lettres", "BAC2");
+
+        var entry = catalogue.streamsOf(centre).getFirst();
+        assertEquals("Lettres", entry.name());
+        assertEquals("BAC2", entry.level());
+    }
+
     @Test
     void aCentreKeepsItsOwnLists() {
         long first = centre();
         long second = centre();
 
         catalogue.addSubject(first, "Philosophie");
-        catalogue.addStream(first, "Lettres");
+        catalogue.addStream(first, "Lettres", "BAC2");
         catalogue.addSubject(second, "Informatique");
 
         assertEquals(List.of("Philosophie"), names(catalogue.subjectsOf(first)));

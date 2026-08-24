@@ -10,4 +10,8 @@ public interface CenterStreamRepository extends JpaRepository<CenterStreamEntity
     List<CenterStreamEntity> findByCenterIdOrderByNameAsc(Long centerId);
 
     Optional<CenterStreamEntity> findByCenterIdAndName(Long centerId, String name);
+
+    /** A name belongs to one level, so both are needed to find the one meant. */
+    Optional<CenterStreamEntity> findByCenterIdAndNameAndLevel(Long centerId, String name,
+                                                               String level);
 }

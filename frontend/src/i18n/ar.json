@@ -328,7 +328,16 @@
     "examCount_two": "اختباران",
     "examCount_few": "{{count}} اختبارات",
     "examCount_many": "{{count}} اختبارًا",
-    "examCount_other": "{{count}} اختبار"
+    "examCount_other": "{{count}} اختبار",
+    "level": "المستوى",
+    "levelBAC1": "السنة الأولى (1 باك)",
+    "levelBAC2": "السنة الثانية (2 باك)",
+    "pick": "اختر مسلكًا",
+    "pickHint": "مسالك هذا المستوى كما حددها المركز.",
+    "create": "إنشاء مسلك",
+    "createdAt": "سيُضاف إلى لائحة المركز في {{level}}.",
+    "noneAtLevel": "لا مسلك في هذا المستوى. أنشئ واحدًا.",
+    "back": "الاختيار من اللائحة"
   },
   "subjects": {
     "title": "المواد",

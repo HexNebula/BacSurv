@@ -1,5 +1,6 @@
 package ma.bacsurv.web.service;
 
+import ma.bacsurv.web.persistence.CenterStreamEntity;
 import ma.bacsurv.web.persistence.ExamEntity;
 import ma.bacsurv.web.persistence.ExamSlotEntity;
 import ma.bacsurv.web.persistence.OperationEntity;
@@ -108,7 +109,10 @@ public class TimetableService {
         });
 
         int ordinal = streams.ofOperation(operationId).size();
-        catalogue.rememberStream(operation.getCenter().getId(), cleaned);
+        // a filière declared in a 2BAC session belongs to the 2BAC list: the
+        // session's type is what says which year sits it
+        catalogue.rememberStream(operation.getCenter().getId(), cleaned,
+                CenterStreamEntity.levelOf(operation.getType()));
         return streams.save(new StreamEntity(operation, cleaned, ordinal, roomsOf(roomIds)))
                 .getId();
     }

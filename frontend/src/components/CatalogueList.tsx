@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
+import { LEVELS, type Level } from '../lib/levels'
 import {
   Badge,
   Button,
@@ -12,6 +13,7 @@ import {
   CardRule,
   Empty,
   Failed,
+  Select,
   Skeleton,
   TextField,
 } from '../ui'
@@ -19,6 +21,8 @@ import {
 export type Entry = {
   id: number
   name: string
+  /** BAC1 or BAC2 for a filière; a subject has none. */
+  level: Level | null
   usedByTeachers: number
   usedByExams: number
 }
@@ -40,6 +44,9 @@ export function CatalogueList({
 }) {
   const { t } = useTranslation()
   const [adding, setAdding] = useState('')
+  // 2BAC first: it is the session a centre runs most, and the one whose
+  // filières get typed in most often
+  const [level, setLevel] = useState<Level>('BAC2')
 
   const entries = useQuery({
     queryKey: [kind, centerId],
@@ -47,7 +54,13 @@ export function CatalogueList({
   })
 
   const add = useApiMutation({
-    run: () => api.post<Entry[]>(`/centers/${centerId}/${kind}`, { name: adding.trim() }),
+    run: () =>
+      api.post<Entry[]>(`/centers/${centerId}/${kind}`, {
+        name: adding.trim(),
+        // a filière belongs to one year: without it the picker would offer it
+        // when planning both
+        level: kind === 'streams' ? level : null,
+      }),
     invalidate: [kind, centerId],
     onDone: () => {
       setAdding('')
@@ -83,13 +96,22 @@ export function CatalogueList({
           }}
         >
           <TextField
-            label=""
             aria-label={t(`catalogue.${kind}.title`)}
             value={adding}
             onChange={setAdding}
             placeholder={t(`catalogue.${kind}.placeholder`)}
             className="flex-1"
           />
+          {kind === 'streams' && (
+            <Select
+              label={t('streams.level')}
+              hideLabel
+              className="w-44"
+              value={level}
+              onChange={(key) => setLevel(key as Level)}
+              choices={LEVELS.map((one) => ({ id: one, label: t(`streams.level${one}`) }))}
+            />
+          )}
           <Button type="submit" isPending={add.isPending} isDisabled={adding.trim() === ''}>
             <Plus size={16} aria-hidden />
             {t('app.add')}
@@ -115,11 +137,15 @@ function Row({
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(entry.name)
+  const [level, setLevel] = useState<Level | null>(entry.level)
   const [confirming, setConfirming] = useState(false)
 
   const rename = useApiMutation({
     run: () =>
-      api.post<Entry[]>(`/centers/${centerId}/${kind}/${entry.id}`, { name: name.trim() }),
+      api.post<Entry[]>(`/centers/${centerId}/${kind}/${entry.id}`, {
+        name: name.trim(),
+        level,
+      }),
     invalidate: [kind, centerId],
     onDone: () => {
       setEditing(false)
@@ -145,13 +171,22 @@ function Row({
     return (
       <li className="flex items-center gap-2 border-b border-[var(--color-hairline)] bg-[var(--color-accent-tint)]/40 px-5 py-3 last:border-b-0">
         <TextField
-          label=""
           aria-label={t('app.rename')}
           value={name}
           onChange={setName}
           className="flex-1"
           autoFocus
         />
+        {kind === 'streams' && (
+          <Select
+            label={t('streams.level')}
+            hideLabel
+            className="w-44"
+            value={level}
+            onChange={(key) => setLevel(key as Level)}
+            choices={LEVELS.map((one) => ({ id: one, label: t(`streams.level${one}`) }))}
+          />
+        )}
         <Button isPending={rename.isPending} onPress={() => rename.mutate(undefined)}>
           <Check size={16} aria-hidden />
           {t('app.save')}
@@ -174,7 +209,10 @@ function Row({
   return (
     <li className="flex items-center justify-between gap-4 border-b border-[var(--color-hairline)] px-5 py-3.5 transition-colors last:border-b-0 hover:bg-[var(--color-sunken)]">
       <span className="min-w-0">
-        <span className="block truncate text-[14px] font-medium">{entry.name}</span>
+        <span className="flex items-center gap-2">
+          <span className="truncate text-[14px] font-medium">{entry.name}</span>
+          {entry.level && <Badge tone="accent">{t(`streams.level${entry.level}`)}</Badge>}
+        </span>
         <span className="mt-0.5 block text-[11.5px] text-[var(--color-quiet)]">
           {used
             ? [

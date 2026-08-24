@@ -56,8 +56,13 @@ public class CatalogueService {
         this.sessionStreams = sessionStreams;
     }
 
-    /** An entry and what already depends on it, so the screen can say so. */
-    public record Entry(Long id, String name, int usedByTeachers, int usedByExams) {
+    /**
+     * An entry and what already depends on it, so the screen can say so.
+     *
+     * <p>{@code level} is the filière's — {@code BAC1} or {@code BAC2}. A
+     * subject has none: a paper is a paper whichever year sits it.
+     */
+    public record Entry(Long id, String name, String level, int usedByTeachers, int usedByExams) {
 
         public boolean isUsed() {
             return usedByTeachers > 0 || usedByExams > 0;
@@ -72,7 +77,7 @@ public class CatalogueService {
         List<TeacherEntity> pool = teachers.findPoolOfCenter(centerId);
 
         return subjects.findByCenterIdOrderByNameAsc(centerId).stream()
-                .map(subject -> new Entry(subject.getId(), subject.getName(),
+                .map(subject -> new Entry(subject.getId(), subject.getName(), null,
                         (int) pool.stream()
                                 .filter(t -> subject.getName().equals(t.getSubject())).count(),
                         (int) exams.stream()
@@ -136,7 +141,7 @@ public class CatalogueService {
                 .map(OperationEntity::getId).toList();
 
         return streams.findByCenterIdOrderByNameAsc(centerId).stream()
-                .map(stream -> new Entry(stream.getId(), stream.getName(),
+                .map(stream -> new Entry(stream.getId(), stream.getName(), stream.getLevel(),
                         // a filière is "used" by the sessions that declared it
                         (int) operationIds.stream()
                                 .flatMap(id -> sessionStreams.ofOperation(id).stream())
@@ -147,27 +152,44 @@ public class CatalogueService {
                 .toList();
     }
 
+    /**
+     * A filière of the centre, at one level.
+     *
+     * <p>The level is not optional. A filière with none would be offered when
+     * planning either year, which is the situation this list exists to stop.
+     */
     @Transactional
-    public Long addStream(long centerId, String name) {
+    public Long addStream(long centerId, String name, String level) {
         CenterEntity center = center(centerId);
         String cleaned = required(name, "stream.name");
-        streams.findByCenterIdAndName(centerId, cleaned).ifPresent(existing -> {
-            throw new IllegalArgumentException("stream.exists");
-        });
-        return streams.save(new CenterStreamEntity(center, cleaned)).getId();
+        String cleanedLevel = level(level);
+        streams.findByCenterIdAndNameAndLevel(centerId, cleaned, cleanedLevel)
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("stream.listed");
+                });
+        return streams.save(new CenterStreamEntity(center, cleaned, cleanedLevel)).getId();
     }
 
     @Transactional
-    public void renameStream(long streamId, String name) {
+    public void renameStream(long streamId, String name, String level) {
         CenterStreamEntity stream = streams.findById(streamId)
                 .orElseThrow(() -> new IllegalArgumentException("stream.unknown"));
         long centerId = stream.getCenter().getId();
         String cleaned = required(name, "stream.name");
-        if (cleaned.equals(stream.getName())) return;
+        // the level may be corrected on its own: a filière listed at the wrong
+        // year is the mistake the backfill was always going to leave behind
+        String cleanedLevel = level == null ? stream.getLevel() : level(level);
+        boolean sameName = cleaned.equals(stream.getName());
+        if (sameName && cleanedLevel.equals(stream.getLevel())) return;
 
-        streams.findByCenterIdAndName(centerId, cleaned).ifPresent(other -> {
-            throw new IllegalArgumentException("stream.exists");
-        });
+        streams.findByCenterIdAndNameAndLevel(centerId, cleaned, cleanedLevel)
+                .filter(other -> !other.getId().equals(streamId))
+                .ifPresent(other -> {
+                    throw new IllegalArgumentException("stream.listed");
+                });
+
+        stream.setLevel(cleanedLevel);
+        if (sameName) return;
 
         String previous = stream.getName();
         stream.rename(cleaned);
@@ -213,11 +235,23 @@ public class CatalogueService {
 
     /** Same idea for a filière named while building a session's timetable. */
     @Transactional
-    public void rememberStream(long centerId, String name) {
+    public void rememberStream(long centerId, String name, String level) {
         if (name == null || name.isBlank()) return;
         String cleaned = name.trim();
-        if (streams.findByCenterIdAndName(centerId, cleaned).isPresent()) return;
-        streams.save(new CenterStreamEntity(center(centerId), cleaned));
+        String cleanedLevel = level(level);
+        if (streams.findByCenterIdAndNameAndLevel(centerId, cleaned, cleanedLevel).isPresent()) {
+            return;
+        }
+        streams.save(new CenterStreamEntity(center(centerId), cleaned, cleanedLevel));
+    }
+
+    /** Only the two levels exist; anything else is a caller's mistake. */
+    private static String level(String value) {
+        String cleaned = value == null ? "" : value.trim();
+        if (!cleaned.equals("BAC1") && !cleaned.equals("BAC2")) {
+            throw new IllegalArgumentException("stream.level");
+        }
+        return cleaned;
     }
 
     private List<ExamEntity> examsOf(long centerId) {
