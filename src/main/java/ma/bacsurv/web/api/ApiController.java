@@ -108,6 +108,23 @@ public class ApiController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT).build());
     }
 
+    /**
+     * Who could take a duty instead: the pool this schedule was solved from.
+     *
+     * <p>The teacher list a screen already has is keyed by matricule, and a
+     * reassignment is made by id, so a picker cannot be built without this.
+     */
+    @GetMapping("/jobs/{id}/candidates")
+    public List<ScheduleEditor.Candidate> candidates(@PathVariable long id) {
+        return editor.candidates(id);
+    }
+
+    /** One duty as it stands: what it is, who holds it, whether it is pinned. */
+    @GetMapping("/jobs/{id}/duties/{dutyId}")
+    public ScheduleEditor.DutyView duty(@PathVariable long id, @PathVariable String dutyId) {
+        return editor.duty(id, dutyId);
+    }
+
     /** What a reassignment would break, without saving it. */
     @PostMapping("/jobs/{id}/assignments/{dutyId}/review")
     public ScheduleEditor.ChangeReview review(@PathVariable long id, @PathVariable String dutyId,

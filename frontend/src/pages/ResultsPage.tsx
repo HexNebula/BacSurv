@@ -6,6 +6,7 @@ import {
   Check,
   CircleSlash,
   ListChecks,
+  Pencil,
   Play,
   RotateCw,
   TriangleAlert,
@@ -15,6 +16,7 @@ import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
+import { ChangeDuty } from '../components/ChangeDuty'
 import {
   Badge,
   Button,
@@ -124,6 +126,8 @@ export function ResultsPage() {
   const queryClient = useQueryClient()
   const { sessionId, sessionsHere, isLoading } = useWorkspace()
   const [view, setView] = useState('day')
+  // the duty being reassigned by hand, if any
+  const [editing, setEditing] = useState<string | null>(null)
 
   const jobs = useQuery({
     queryKey: ['jobs'],
@@ -329,6 +333,7 @@ export function ResultsPage() {
                     <Th width="140px">{t('teachers.matricule')}</Th>
                     <Th>{t('results.teacher')}</Th>
                     <Th width="150px">{t('schedule.from')}</Th>
+                    <Th width="120px" className="no-print" />
                   </tr>
                 </thead>
                 <tbody>
@@ -361,6 +366,16 @@ export function ResultsPage() {
                             <bdi dir="ltr" className="numeric text-[12.5px]">
                               {hhmm(duty.start)} — {hhmm(duty.end)}
                             </bdi>
+                          </Td>
+                          <Td className="no-print text-end">
+                            <Button
+                              size="sm"
+                              variant="quiet"
+                              onPress={() => setEditing(duty.dutyId)}
+                            >
+                              <Pencil size={14} aria-hidden />
+                              {t('change.edit')}
+                            </Button>
                           </Td>
                         </Tr>
                       )),
@@ -434,6 +449,7 @@ export function ResultsPage() {
                   <Th width="150px">{t('results.role')}</Th>
                   <Th>{t('schedule.subject')}</Th>
                   <Th width="150px">{t('schedule.stream')}</Th>
+                  <Th width="120px" className="no-print" />
                 </tr>
               </thead>
               <tbody>
@@ -451,12 +467,25 @@ export function ResultsPage() {
                     </Td>
                     <Td className="text-[var(--color-quiet)]">{duty.subject ?? '—'}</Td>
                     <Td className="text-[var(--color-quiet)]">{duty.stream ?? '—'}</Td>
+                    <Td className="no-print text-end">
+                      <Button size="sm" variant="secondary" onPress={() => setEditing(duty.dutyId)}>
+                        {t('change.apply')}
+                      </Button>
+                    </Td>
                   </Tr>
                 ))}
               </tbody>
             </Table>
           )}
         </Card>
+      )}
+      {job && (
+        <ChangeDuty
+          jobId={job.id}
+          dutyId={editing}
+          open={editing !== null}
+          onClose={() => setEditing(null)}
+        />
       )}
     </Page>
   )

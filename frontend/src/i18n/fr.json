@@ -335,5 +335,30 @@
     "duties": "tâches",
     "finishedAt": "Terminée à {{time}}",
     "showPartial": "La répartition est affichée telle qu’elle est : ce qui manque est marqué."
+  },
+  "change": {
+    "title": "Modifier une affectation",
+    "current": "Actuellement",
+    "replaceWith": "Remplacer par",
+    "nobodyYet": "Personne pour le moment",
+    "legal": "Cette modification ne casse rien.",
+    "illegal": "Cette modification enfreint le règlement.",
+    "force": "Modifier quand même",
+    "apply": "Modifier",
+    "applied": "Affectation modifiée.",
+    "workload": "{{name}} passerait de {{before}} à {{after}} missions.",
+    "pin": "Garder cette affectation",
+    "pinHint": "Une affectation gardée n’est pas retouchée par une nouvelle répartition.",
+    "pinned": "Gardée",
+    "pinnedOn": "Affectation gardée.",
+    "pinnedOff": "Affectation libérée.",
+    "clear": "Laisser vide",
+    "breach": {
+      "unavailable": "{{one}} est indisponible le {{two}}.",
+      "busy": "{{one}} a déjà une autre mission sur ce créneau : {{two}}.",
+      "notSpecialist": "{{one}} n’est pas spécialiste de {{two}} et ne peut pas assurer la permanence.",
+      "ownSubject": "{{one}} ne peut pas surveiller une épreuve de sa propre matière ({{two}})."
+    },
+    "edit": "Modifier"
   }
 }

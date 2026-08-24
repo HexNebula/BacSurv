@@ -60,7 +60,13 @@ export function Select({
           focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
       >
         {leading && <span className="shrink-0 text-[var(--color-accent)]">{leading}</span>}
-        <SelectValue className="min-w-0 flex-1 truncate text-start data-[placeholder]:text-[var(--color-faint)]" />
+        {/* the label alone: an item may carry a second line, and rendering the
+            whole item here makes the closed field two lines tall */}
+        <SelectValue className="min-w-0 flex-1 truncate text-start data-[placeholder]:text-[var(--color-faint)]">
+          {({ selectedText, isPlaceholder, defaultChildren }) =>
+            isPlaceholder ? defaultChildren : selectedText
+          }
+        </SelectValue>
         <ChevronDown size={15} className="shrink-0 text-[var(--color-faint)]" aria-hidden />
       </AriaButton>
 
