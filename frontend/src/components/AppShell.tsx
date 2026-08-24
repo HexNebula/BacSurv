@@ -2,19 +2,33 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import {
+  BookOpen,
   Building2,
   CalendarCheck,
   ChartNoAxesColumn,
+  DoorOpen,
+  GraduationCap,
+  Home,
   LayoutGrid,
   ListChecks,
   Users,
 } from 'lucide-react'
 import { api } from '../lib/api'
+import { screenOf } from '../lib/screens'
 import { useWorkspace } from '../context/Workspace'
 
+/*
+ * Each thing an administrator sets up is a place to go, not a section buried
+ * inside another screen: the rooms, the subjects and the filières used to exist
+ * only inside the centre's page and inside a dialog in the planning grid, which
+ * meant there was no way to simply look at them.
+ */
 const SECTIONS = [
-  { to: '/sessions', key: 'nav.sessions', Icon: CalendarCheck },
+  { to: '/sessions', key: 'nav.home', Icon: Home },
   { to: '/center', key: 'nav.center', Icon: Building2 },
+  { to: '/rooms', key: 'nav.rooms', Icon: DoorOpen },
+  { to: '/subjects', key: 'nav.subjects', Icon: BookOpen },
+  { to: '/streams', key: 'nav.streams', Icon: GraduationCap },
   { to: '/teachers', key: 'nav.teachers', Icon: Users },
   { to: '/schedule', key: 'nav.schedule', Icon: LayoutGrid },
   { to: '/results', key: 'nav.results', Icon: ListChecks },
@@ -22,6 +36,7 @@ const SECTIONS = [
 ] as const
 
 type Step = { key: string; state: 'READY' | 'CHECK' | 'TODO'; screen: string }
+
 type Readiness = { steps: Step[]; next: string | null }
 
 /**
@@ -82,7 +97,8 @@ export function AppShell() {
   const steps = readiness.data?.steps ?? []
   const done = steps.filter((step) => step.state === 'READY').length
   // the screen the next unfinished step lives on, so the rail can point at it
-  const nextScreen = steps.find((step) => step.key === readiness.data?.next)?.screen
+  const next = steps.find((step) => step.key === readiness.data?.next)
+  const nextScreen = next ? screenOf(next) : undefined
 
   return (
     <div className="flex min-h-screen">
@@ -127,7 +143,7 @@ export function AppShell() {
                   <span className="min-w-0 flex-1 truncate">{t(key)}</span>
                   {/* the section holding the next thing to do, marked where the
                       eye already is rather than only on the session screen */}
-                  {!isActive && nextScreen && to === `/${nextScreen}` && (
+                  {!isActive && to === nextScreen && (
                     <span
                       className="size-1.5 shrink-0 rounded-full bg-[var(--color-warn)]"
                       aria-label={t('readiness.go')}

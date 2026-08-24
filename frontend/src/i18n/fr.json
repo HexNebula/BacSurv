@@ -20,7 +20,11 @@
     "schedule": "Planning",
     "results": "Résultats",
     "statistics": "Statistiques",
-    "center": "Le centre"
+    "center": "Le centre",
+    "home": "Accueil",
+    "rooms": "Les salles",
+    "subjects": "Les matières",
+    "streams": "Les filières"
   },
   "centers": {
     "title": "Centres d'examen",
@@ -41,7 +45,18 @@
   },
   "center": {
     "rename": "Renommer le centre",
-    "renamed": "Centre renommé."
+    "renamed": "Centre renommé.",
+    "title": "Identification du centre",
+    "hint": "Ce qui figure en tête des convocations et des listes. Rien de tout cela n’entre dans la répartition.",
+    "academy": "Académie régionale",
+    "academyHint": "AREF Drâa-Tafilalet",
+    "directorate": "Direction provinciale",
+    "directorateHint": "Direction provinciale d’Ouarzazate",
+    "commune": "Commune",
+    "ministerialReference": "Référence ministérielle",
+    "empty": "Non renseignée",
+    "edit": "Modifier",
+    "saved": "Centre enregistré."
   },
   "rooms": {
     "title": "Les salles",
@@ -64,7 +79,11 @@
     },
     "delete": {
       "confirm": "Supprimer {{room}} ?"
-    }
+    },
+    "subtitle": "Les salles du centre, et la filière qui les occupe cette session.",
+    "heldBy": "Filière",
+    "idle_one": "{{count}} salle inutilisée cette session",
+    "idle_other": "{{count}} salles inutilisées cette session"
   },
   "sessions": {
     "title": "Les sessions",
@@ -257,5 +276,23 @@
       "rooms": "Salles du centre",
       "exams": "Épreuves de la session"
     }
+  },
+  "streams": {
+    "title": "Les filières",
+    "subtitle": "Les filières de cette session et les salles qu’elles occupent.",
+    "thisSession": "Cette session",
+    "rooms": "Les salles",
+    "noExam": "Aucune épreuve",
+    "examCount_one": "{{count}} épreuve",
+    "examCount_other": "{{count}} épreuves"
+  },
+  "subjects": {
+    "title": "Les matières",
+    "subtitle": "Ce que le centre examine, et qui peut en assurer la permanence.",
+    "coverage": "Couverture",
+    "teachers": "Enseignants",
+    "exams": "Épreuves",
+    "noSpecialist": "Aucun spécialiste",
+    "uncovered": "Examinées sans aucun enseignant de la matière : {{names}}. La permanence n’a personne."
   }
 }

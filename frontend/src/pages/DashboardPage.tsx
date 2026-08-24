@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react'
 import { api } from '../lib/api'
+import { screenOf } from '../lib/screens'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import { Badge, Button, Card, CardHead, CardRule, Empty, Skeleton, Stat } from '../ui'
@@ -167,7 +168,7 @@ export function DashboardPage() {
                 })}
               </p>
             </div>
-            <Button onPress={() => void navigate(`/${next.screen}`)}>
+            <Button onPress={() => void navigate(screenOf(next))}>
               {t('readiness.go')}
               <ArrowRight size={16} className="rtl:rotate-180" aria-hidden />
             </Button>
@@ -221,7 +222,7 @@ export function DashboardPage() {
             return (
               <li key={step.key}>
                 <Link
-                  to={`/${step.screen}`}
+                  to={screenOf(step)}
                   className="flex items-center gap-4 border-b border-[var(--color-hairline)] px-5 py-4 transition-colors last:border-b-0 hover:bg-[var(--color-sunken)]"
                 >
                   <span
