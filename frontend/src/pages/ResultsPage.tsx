@@ -384,7 +384,6 @@ export function ResultsPage() {
                 <Th width="130px">{t('results.surveillanceCount')}</Th>
                 <Th width="110px">{t('results.roleRESERVE')}</Th>
                 <Th width="130px">{t('results.rolePERMANENCE')}</Th>
-                <Th width="140px">{t('results.privileges')}</Th>
                 <Th width="140px">{t('results.priorTotal')}</Th>
                 <Th width="100px">{t('results.total')}</Th>
               </tr>
@@ -398,18 +397,16 @@ export function ResultsPage() {
                   <Td className="font-medium">{row.name}</Td>
                   <Td className="numeric">{row.surveillance}</Td>
                   {/*
-                    each duty on its own, because they are different jobs: réserve
-                    is standby, permanence is being the subject's specialist on
-                    call. Their sum still has a column of its own, because that
-                    is the figure the fairness rule goes by — the two share one
-                    queue, and nobody gets a second privilege while a colleague
-                    has had none.
+                    Each duty on its own: réserve is standby, permanence is being
+                    the subject's specialist on call, and the administrator reads
+                    this to know what one teacher is actually doing.
+                    <p>Their sum is not shown. The two share one queue and that is
+                    what the fairness rule compares, but the queue is the solver's
+                    business — an administrator who is not an IT person should not
+                    have to learn the machinery to read a duty roster.
                   */}
                   <Td className="numeric">{row.reserve}</Td>
                   <Td className="numeric">{row.permanence}</Td>
-                  <Td className="numeric text-[var(--color-accent-ink)]">
-                    {row.reserve + row.permanence}
-                  </Td>
                   <Td className="numeric text-[var(--color-quiet)]">{row.priorTotal}</Td>
                   <Td className="numeric font-semibold">{row.total}</Td>
                 </Tr>
