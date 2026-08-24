@@ -11,7 +11,8 @@
     "error": "Une erreur est survenue.",
     "retry": "Réessayer",
     "add": "Ajouter",
-    "rename": "Renommer"
+    "rename": "Renommer",
+    "notBuilt": "Cette partie n’est pas encore construite."
   },
   "nav": {
     "sessions": "Sessions",
@@ -83,7 +84,8 @@
       "REGIONAL_1BAC": "1re année — régional",
       "NATIONAL_2BAC": "2e année — national",
       "NATIONAL_2BAC_RATTRAPAGE": "2e année — rattrapage"
-    }
+    },
+    "current": "En cours"
   },
   "teachers": {
     "title": "Enseignants",
@@ -126,7 +128,9 @@
       "noName": "Nom manquant.",
       "noSubject": "Matière manquante.",
       "duplicateMatricule": "Le matricule {{detail}} apparaît deux fois."
-    }
+    },
+    "matriculeFixed": "Le matricule ne change pas : les sessions passées y sont rattachées.",
+    "thinSubject": "Un seul enseignant"
   },
   "schedule": {
     "title": "Planning",
@@ -163,7 +167,8 @@
     "addMore": "Ajouter une autre",
     "roomCount_one": "salle",
     "roomCount_other": "salles",
-    "unknownSubject": "Aucun enseignant de cette matière au centre : la permanence n'aura pas de spécialiste."
+    "unknownSubject": "Aucun enseignant de cette matière au centre : la permanence n'aura pas de spécialiste.",
+    "roomlessStreams": "{{names}} : aucune salle, donc aucune épreuve possible."
   },
   "catalogue": {
     "renamed": "Renommé. Les enseignants et les épreuves concernés ont suivi.",
@@ -185,7 +190,8 @@
       "placeholder": "Sciences physiques"
     },
     "usedBySessions_one": "session",
-    "usedBySessions_other": "sessions"
+    "usedBySessions_other": "sessions",
+    "unusedShort": "Inutilisée"
   },
   "workspace": {
     "center": "Centre",
@@ -233,5 +239,23 @@
     "placeholder": "Lycée Ibn Batouta",
     "start": "Créer le centre",
     "created": "Centre créé."
+  },
+  "dashboard": {
+    "next": "À FAIRE MAINTENANT",
+    "allReady": "Tout est en place : la répartition peut être lancée.",
+    "solve": "Lancer la répartition",
+    "steps": "Les étapes",
+    "doneOf": "{{done}} sur {{total}}",
+    "sessionExplains": "Une session est une période d’examens : 1re année en juin, 2e année en juin, le rattrapage en juillet.",
+    "state": {
+      "READY": "Fait",
+      "CHECK": "À vérifier",
+      "TODO": "À faire"
+    },
+    "stat": {
+      "teachers": "Enseignants dans le pool",
+      "rooms": "Salles du centre",
+      "exams": "Épreuves de la session"
+    }
   }
 }

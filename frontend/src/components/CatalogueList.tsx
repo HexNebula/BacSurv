@@ -2,10 +2,19 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { Button, Input, TextField } from '@heroui/react'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
-import { Panel, Failed, Loading, Empty } from './Page'
+import {
+  Badge,
+  Button,
+  Card,
+  CardHead,
+  CardRule,
+  Empty,
+  Failed,
+  Skeleton,
+  TextField,
+} from '../ui'
 
 export type Entry = {
   id: number
@@ -46,45 +55,51 @@ export function CatalogueList({
   })
 
   return (
-    <Panel
-      title={t(`catalogue.${kind}.title`)}
-      count={entries.data?.length}
-      hint={t(`catalogue.${kind}.hint`)}
-      footer={
-        <form
-          className="flex items-end gap-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (adding.trim() !== '') add.mutate(undefined)
-          }}
-        >
-          <TextField value={adding} onChange={setAdding} className="flex-1">
-            <Input placeholder={t(`catalogue.${kind}.placeholder`)} />
-          </TextField>
-          <Button type="submit" size="sm" isPending={add.isPending}>
-            <Plus size={15} aria-hidden />
-            {t('app.add')}
-          </Button>
-        </form>
-      }
-    >
-      {entries.isPending && <Loading rows={3} />}
+    <Card>
+      <CardHead title={t(`catalogue.${kind}.title`)} count={entries.data?.length} />
+      <CardRule />
+
+      {entries.isPending && <Skeleton rows={3} />}
       {entries.isError && (
-        <div className="p-4">
-          <Failed error={entries.error as Error} onRetry={() => void entries.refetch()} />
-        </div>
+        <Failed error={entries.error as Error} onRetry={() => void entries.refetch()} />
       )}
       {entries.isSuccess &&
         (entries.data.length === 0 ? (
           <Empty>{t(`catalogue.${kind}.empty`)}</Empty>
         ) : (
-          <ul className="divide-y divide-[var(--color-hairline)]">
+          <ul>
             {entries.data.map((entry) => (
               <Row key={entry.id} centerId={centerId} kind={kind} entry={entry} />
             ))}
           </ul>
         ))}
-    </Panel>
+
+      <div className="rounded-b-[var(--radius-card)] border-t border-[var(--color-hairline)] bg-[var(--color-sunken)] px-5 py-4">
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (adding.trim() !== '') add.mutate(undefined)
+          }}
+        >
+          <TextField
+            label=""
+            aria-label={t(`catalogue.${kind}.title`)}
+            value={adding}
+            onChange={setAdding}
+            placeholder={t(`catalogue.${kind}.placeholder`)}
+            className="flex-1"
+          />
+          <Button type="submit" isPending={add.isPending} isDisabled={adding.trim() === ''}>
+            <Plus size={16} aria-hidden />
+            {t('app.add')}
+          </Button>
+        </form>
+        <p className="mt-2.5 text-[11.5px] text-[var(--color-faint)]">
+          {t(`catalogue.${kind}.hint`)}
+        </p>
+      </div>
+    </Card>
   )
 }
 
@@ -128,51 +143,55 @@ function Row({
 
   if (editing) {
     return (
-      <li className="flex items-center gap-2 bg-[var(--color-ground)] px-4 py-2">
-        <TextField value={name} onChange={setName} className="flex-1" autoFocus>
-          <Input />
-        </TextField>
-        <Button size="sm" isPending={rename.isPending} onPress={() => rename.mutate(undefined)}>
-          <Check size={14} aria-hidden />
+      <li className="flex items-center gap-2 border-b border-[var(--color-hairline)] bg-[var(--color-accent-tint)]/40 px-5 py-3 last:border-b-0">
+        <TextField
+          label=""
+          aria-label={t('app.rename')}
+          value={name}
+          onChange={setName}
+          className="flex-1"
+          autoFocus
+        />
+        <Button isPending={rename.isPending} onPress={() => rename.mutate(undefined)}>
+          <Check size={16} aria-hidden />
           {t('app.save')}
         </Button>
         <Button
-          size="sm"
-          variant="ghost"
-          isIconOnly
+          variant="quiet"
+          isIcon
           aria-label={t('app.cancel')}
           onPress={() => {
             setName(entry.name)
             setEditing(false)
           }}
         >
-          <X size={14} aria-hidden />
+          <X size={16} aria-hidden />
         </Button>
       </li>
     )
   }
 
   return (
-    <li className="flex items-center justify-between gap-4 px-4 py-2.5 hover:bg-[var(--color-ground)]">
+    <li className="flex items-center justify-between gap-4 border-b border-[var(--color-hairline)] px-5 py-3.5 transition-colors last:border-b-0 hover:bg-[var(--color-sunken)]">
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-medium">{entry.name}</span>
-        <span className="mt-0.5 block text-[11px] text-[var(--color-quiet)]">
+        <span className="block truncate text-[14px] font-medium">{entry.name}</span>
+        <span className="mt-0.5 block text-[11.5px] text-[var(--color-quiet)]">
           {used
             ? [
                 entry.usedByTeachers > 0 &&
-                  `${entry.usedByTeachers} ${t(firstLabel, {
-                    count: entry.usedByTeachers,
-                  })}`,
+                  `${entry.usedByTeachers} ${t(firstLabel, { count: entry.usedByTeachers })}`,
                 entry.usedByExams > 0 &&
-                  `${entry.usedByExams} ${t('catalogue.usedByExams', {
-                    count: entry.usedByExams,
-                  })}`,
+                  `${entry.usedByExams} ${t('catalogue.usedByExams', { count: entry.usedByExams })}`,
               ]
                 .filter(Boolean)
                 .join(' · ')
             : t('catalogue.unused')}
         </span>
       </span>
+
+      {/* nothing depends on it yet — for a subject, that also means no
+          specialist for its permanence */}
+      {!used && <Badge tone="warn">{t('catalogue.unusedShort')}</Badge>}
 
       {confirming ? (
         <span className="flex shrink-0 items-center gap-2">
@@ -184,7 +203,7 @@ function Row({
           >
             {t('app.delete')}
           </Button>
-          <Button size="sm" variant="ghost" onPress={() => setConfirming(false)}>
+          <Button size="sm" variant="quiet" onPress={() => setConfirming(false)}>
             {t('app.cancel')}
           </Button>
         </span>
@@ -192,29 +211,22 @@ function Row({
         <span className="flex shrink-0 items-center gap-1">
           <Button
             size="sm"
-            variant="ghost"
-            isIconOnly
+            variant="quiet"
+            isIcon
             aria-label={t('app.rename')}
             onPress={() => setEditing(true)}
           >
-            <Pencil
-              size={14}
-              className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
-              aria-hidden
-            />
+            <Pencil size={15} aria-hidden />
           </Button>
           <Button
             size="sm"
-            variant="ghost"
-            isIconOnly
+            variant="quiet"
+            isIcon
             aria-label={t('app.delete')}
             onPress={() => setConfirming(true)}
+            className="hover:text-[var(--color-alarm)]"
           >
-            <Trash2
-              size={14}
-              className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-alarm)]"
-              aria-hidden
-            />
+            <Trash2 size={15} aria-hidden />
           </Button>
         </span>
       )}

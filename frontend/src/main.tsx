@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from 'react-aria'
-import { Toast } from '@heroui/react'
+import { Toaster } from './ui'
 import App from './App.tsx'
 import { WorkspaceProvider } from './context/Workspace'
 import './index.css'
@@ -46,8 +46,7 @@ function Root() {
           about the session and belongs on the session's own screen, where it
           stays until it is fixed rather than fading after five seconds.
         */}
-        {/* "end", not "right": it settles on the side the page reads towards */}
-        <Toast.Provider placement="bottom end" />
+        <Toaster />
       </QueryClientProvider>
     </I18nProvider>
   )

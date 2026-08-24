@@ -1,18 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { FileUp, Pencil, Plus, Trash2, Upload } from 'lucide-react'
-import {
-  Button,
-  Input,
-  Label,
-  Modal,
-  TextField,
-} from '@heroui/react'
+import { FileUp, Layers, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
-import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
+import { Page } from '../components/Page'
+import {
+  Badge,
+  Button,
+  Card,
+  CardHead,
+  CardRule,
+  Dialog,
+  Empty,
+  Failed,
+  SearchField,
+  SegmentedTabs,
+  Skeleton,
+  Table,
+  Td,
+  TextField,
+  Th,
+  Tr,
+} from '../ui'
 
 type Teacher = {
   matricule: string
@@ -94,64 +105,48 @@ function TeacherForm({
   })
 
   return (
-    <Modal isOpen={open} onOpenChange={(next) => !next && onClose()}>
-      <Modal.Backdrop>
-        <Modal.Container>
-          <Modal.Dialog>
-            <Modal.Header>
-              <Modal.Heading>
-                {existing ? t('teachers.edit') : t('teachers.add')}
-              </Modal.Heading>
-            </Modal.Header>
-
-            <Modal.Body>
-              <form
-                id="teacher-form"
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  save.mutate(undefined)
-                }}
-              >
-                <TextField
-                  value={matricule}
-                  onChange={setMatricule}
-                  isDisabled={existing !== undefined}
-                  fullWidth
-                >
-                  <Label>{t('teachers.matricule')}</Label>
-                  <Input placeholder="D100001" />
-                </TextField>
-
-                <TextField value={name} onChange={setName} fullWidth autoFocus>
-                  <Label>{t('teachers.name')}</Label>
-                  <Input />
-                </TextField>
-
-                <TextField value={subject} onChange={setSubject} fullWidth>
-                  <Label>{t('teachers.subject')}</Label>
-                  <Input />
-                </TextField>
-
-                <TextField value={establishment} onChange={setEstablishment} fullWidth>
-                  <Label>{t('teachers.establishment')}</Label>
-                  <Input />
-                </TextField>
-              </form>
-            </Modal.Body>
-
-            <Modal.Footer>
-              <Button variant="ghost" onPress={onClose}>
-                {t('app.cancel')}
-              </Button>
-              <Button type="submit" form="teacher-form" isPending={save.isPending}>
-                {t('app.save')}
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      title={existing ? t('teachers.edit') : t('teachers.add')}
+      subtitle={existing ? existing.matricule : undefined}
+      footer={
+        <>
+          <Button variant="secondary" onPress={onClose}>
+            {t('app.cancel')}
+          </Button>
+          <Button type="submit" form="teacher-form" isPending={save.isPending}>
+            {t('app.save')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="teacher-form"
+        className="space-y-4 pb-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          save.mutate(undefined)
+        }}
+      >
+        <TextField
+          label={t('teachers.matricule')}
+          value={matricule}
+          onChange={setMatricule}
+          isDisabled={existing !== undefined}
+          placeholder="D100001"
+          inputClassName="numeric"
+          hint={existing ? t('teachers.matriculeFixed') : undefined}
+        />
+        <TextField label={t('teachers.name')} value={name} onChange={setName} autoFocus />
+        <TextField label={t('teachers.subject')} value={subject} onChange={setSubject} />
+        <TextField
+          label={t('teachers.establishment')}
+          value={establishment}
+          onChange={setEstablishment}
+        />
+      </form>
+    </Dialog>
   )
 }
 
@@ -163,46 +158,35 @@ function Outcome({
 }: {
   label: string
   teachers: Teacher[]
-  tone: 'add' | 'change' | 'same'
+  tone: 'good' | 'warn' | 'plain'
 }) {
   if (teachers.length === 0) return null
-  const dot =
-    tone === 'add'
-      ? 'bg-[var(--color-brand)]'
-      : tone === 'change'
-        ? 'bg-amber-500'
-        : 'bg-[var(--color-hairline)]'
 
   return (
     <div>
-      <div className="mb-1.5 flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
-        <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--color-quiet)]">
-          {label}
-        </span>
-        <span className="numeric text-[11px] text-[var(--color-quiet)]/70">
-          {teachers.length}
-        </span>
+      <div className="mb-2 flex items-center gap-2">
+        <Badge tone={tone}>{label}</Badge>
+        <span className="numeric text-[11.5px] text-[var(--color-faint)]">{teachers.length}</span>
       </div>
-      <ul className="max-h-48 overflow-y-auto rounded-md border border-[var(--color-hairline)]">
+      <ul className="max-h-48 overflow-y-auto rounded-[var(--radius-field)] bg-[var(--color-sunken)]">
         {teachers.map((teacher) => (
           <li
             key={teacher.matricule}
-            className="flex items-baseline gap-3 border-b border-[var(--color-hairline)] px-3 py-2 last:border-b-0"
+            className="flex items-baseline gap-3 border-b border-[var(--color-hairline)] px-3.5 py-2.5 last:border-b-0"
           >
-            <span className="numeric w-20 shrink-0 text-[11px] text-[var(--color-quiet)]">
+            <span className="numeric w-20 shrink-0 text-[11.5px] text-[var(--color-quiet)]">
               {teacher.matricule}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px]">{teacher.name}</span>
               {/* what it is replacing, so a change is legible as a change */}
               {teacher.was && (
-                <span className="mt-0.5 block truncate text-[11px] text-[var(--color-quiet)] line-through">
+                <span className="mt-0.5 block truncate text-[11.5px] text-[var(--color-faint)] line-through">
                   {teacher.was}
                 </span>
               )}
             </span>
-            <span className="shrink-0 text-[11px] text-[var(--color-quiet)]">
+            <span className="shrink-0 text-[11.5px] text-[var(--color-quiet)]">
               {teacher.subject}
             </span>
           </li>
@@ -218,7 +202,13 @@ function Outcome({
  * <p>Nothing is written by the first step, which is the point — a bad row is
  * something to look at before it becomes a bad record.
  */
-function ImportTeachers({ centerId }: { centerId: number }) {
+function ImportTeachers({
+  centerId,
+  variant = 'secondary',
+}: {
+  centerId: number
+  variant?: 'primary' | 'secondary'
+}) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [csv, setCsv] = useState<string | null>(null)
@@ -234,7 +224,8 @@ function ImportTeachers({ centerId }: { centerId: number }) {
   }
 
   const read = useApiMutation({
-    run: (text: string) => api.post<Preview>(`/centers/${centerId}/teachers/preview`, { csv: text }),
+    run: (text: string) =>
+      api.post<Preview>(`/centers/${centerId}/teachers/preview`, { csv: text }),
     onDone: (result) => {
       setPreview(result)
     },
@@ -245,9 +236,7 @@ function ImportTeachers({ centerId }: { centerId: number }) {
     invalidate: ['teachers', centerId],
     onDone: (result) => {
       close()
-      return t('teachers.imported', {
-        count: result.created.length + result.updated.length,
-      })
+      return t('teachers.imported', { count: result.created.length + result.updated.length })
     },
   })
 
@@ -265,123 +254,105 @@ function ImportTeachers({ centerId }: { centerId: number }) {
 
   return (
     <>
-      <Button size="sm" variant="secondary" onPress={() => setOpen(true)}>
-        <Upload size={15} aria-hidden />
+      <Button variant={variant} onPress={() => setOpen(true)}>
+        <Upload size={16} aria-hidden />
         {t('teachers.import')}
       </Button>
 
-      <Modal isOpen={open} onOpenChange={(next) => !next && close()}>
-        <Modal.Backdrop>
-          <Modal.Container>
-            <Modal.Dialog>
-              <Modal.Header>
-                <Modal.Heading>{t('teachers.import')}</Modal.Heading>
-              </Modal.Header>
+      <Dialog
+        isOpen={open}
+        onClose={close}
+        width="lg"
+        title={t('teachers.import')}
+        subtitle={t('teachers.columns')}
+        footer={
+          <>
+            <Button variant="secondary" onPress={close}>
+              {t('app.cancel')}
+            </Button>
+            <Button
+              isDisabled={preview === null || nothingToDo}
+              isPending={apply.isPending}
+              onPress={() => apply.mutate(undefined)}
+            >
+              {t('teachers.confirmImport')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-5 pb-4">
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv,text/csv,text/plain"
+            className="sr-only"
+            onChange={(event) => void choose(event.target.files?.[0])}
+          />
 
-              <Modal.Body>
-                <div className="space-y-4">
-                  <input
-                    ref={fileInput}
-                    type="file"
-                    accept=".csv,text/csv,text/plain"
-                    className="sr-only"
-                    onChange={(event) => void choose(event.target.files?.[0])}
-                  />
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-sunken)] px-6 py-9
+              ring-1 ring-dashed ring-[var(--color-hairline)] transition-colors
+              hover:bg-[var(--color-accent-tint)] hover:ring-[var(--color-accent)]/40"
+          >
+            <FileUp size={22} className="text-[var(--color-accent)]" aria-hidden />
+            <span className="text-[13.5px] font-medium">
+              {fileName || t('teachers.chooseFile')}
+            </span>
+          </button>
 
-                  <button
-                    type="button"
-                    onClick={() => fileInput.current?.click()}
-                    className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-[var(--color-hairline)] px-6 py-8 transition-colors hover:border-[var(--color-brand)] hover:bg-[var(--color-ground)]"
-                  >
-                    <FileUp size={20} className="text-[var(--color-quiet)]" aria-hidden />
-                    <span className="text-[13px] font-medium">
-                      {fileName || t('teachers.chooseFile')}
+          {read.isPending && <Skeleton rows={3} />}
+
+          {preview && (
+            <div className="space-y-5">
+              <Outcome label={t('teachers.willAdd')} teachers={preview.created} tone="good" />
+              <Outcome label={t('teachers.willChange')} teachers={preview.updated} tone="warn" />
+              <Outcome
+                label={t('teachers.alreadyCorrect')}
+                teachers={preview.unchanged}
+                tone="plain"
+              />
+
+              {preview.errors.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <Badge tone="alarm">{t('teachers.unreadable')}</Badge>
+                    <span className="numeric text-[11.5px] text-[var(--color-faint)]">
+                      {preview.errors.length}
                     </span>
-                    <span className="text-[11px] text-[var(--color-quiet)]">
-                      {t('teachers.columns')}
-                    </span>
-                  </button>
-
-                  {read.isPending && <Loading rows={2} />}
-
-                  {preview && (
-                    <div className="space-y-4">
-                      <Outcome label={t('teachers.willAdd')} teachers={preview.created} tone="add" />
-                      <Outcome
-                        label={t('teachers.willChange')}
-                        teachers={preview.updated}
-                        tone="change"
-                      />
-                      <Outcome
-                        label={t('teachers.alreadyCorrect')}
-                        teachers={preview.unchanged}
-                        tone="same"
-                      />
-
-                      {preview.errors.length > 0 && (
-                        <div>
-                          <div className="mb-1.5 flex items-center gap-2">
-                            <span
-                              className="h-1.5 w-1.5 rounded-full bg-[var(--color-alarm)]"
-                              aria-hidden
-                            />
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--color-alarm)]">
-                              {t('teachers.unreadable')}
-                            </span>
-                            <span className="numeric text-[11px] text-[var(--color-quiet)]/70">
-                              {preview.errors.length}
-                            </span>
-                          </div>
-                          <ul className="max-h-40 overflow-y-auto rounded-md border border-[var(--color-alarm)]/25">
-                            {preview.errors.map((row, index) => (
-                              <li
-                                key={`${row.line}-${index}`}
-                                className="flex items-baseline gap-3 border-b border-[var(--color-alarm)]/15 px-3 py-2 text-[12px] last:border-b-0"
-                              >
-                                <span className="numeric shrink-0 text-[var(--color-quiet)]">
-                                  {t('teachers.line', { line: row.line })}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  {t(`teachers.rowError.${row.reason}`, {
-                                    detail: row.detail ?? '',
-                                    defaultValue: row.reason,
-                                  })}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                          <p className="mt-1.5 text-[11px] text-[var(--color-quiet)]">
-                            {t('teachers.badRowsSkipped')}
-                          </p>
-                        </div>
-                      )}
-
-                      {nothingToDo && preview.errors.length === 0 && (
-                        <p className="text-[13px] text-[var(--color-quiet)]">
-                          {t('teachers.nothingToDo')}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  </div>
+                  <ul className="max-h-40 overflow-y-auto rounded-[var(--radius-field)] bg-[var(--color-alarm-tint)]">
+                    {preview.errors.map((row, index) => (
+                      <li
+                        key={`${row.line}-${index}`}
+                        className="flex items-baseline gap-3 px-3.5 py-2.5 text-[12.5px]"
+                      >
+                        <span className="numeric shrink-0 text-[var(--color-quiet)]">
+                          {t('teachers.line', { line: row.line })}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          {t(`teachers.rowError.${row.reason}`, {
+                            detail: row.detail ?? '',
+                            defaultValue: row.reason,
+                          })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11.5px] text-[var(--color-faint)]">
+                    {t('teachers.badRowsSkipped')}
+                  </p>
                 </div>
-              </Modal.Body>
+              )}
 
-              <Modal.Footer>
-                <Button variant="ghost" onPress={close}>
-                  {t('app.cancel')}
-                </Button>
-                <Button
-                  isDisabled={preview === null || nothingToDo}
-                  isPending={apply.isPending}
-                  onPress={() => apply.mutate(undefined)}
-                >
-                  {t('teachers.confirmImport')}
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+              {nothingToDo && preview.errors.length === 0 && (
+                <p className="text-[13px] text-[var(--color-quiet)]">{t('teachers.nothingToDo')}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </Dialog>
     </>
   )
 }
@@ -408,18 +379,16 @@ function TeacherRow({
   })
 
   return (
-    <tr className="border-b border-[var(--color-hairline)] last:border-b-0 hover:bg-[var(--color-ground)]">
-      <td className="px-4 py-2.5">
-        <span className="numeric text-[11px] font-medium text-[var(--color-quiet)]">
-          {teacher.matricule}
-        </span>
-      </td>
-      <td className="px-4 py-2.5 text-[13px] font-medium">{teacher.name}</td>
-      <td className="px-4 py-2.5 text-[13px]">{teacher.subject}</td>
-      <td className="px-4 py-2.5 text-[12px] text-[var(--color-quiet)]">
-        {teacher.establishment ?? '—'}
-      </td>
-      <td className="px-4 py-2.5 text-end">
+    <Tr>
+      <Td className="numeric text-[12.5px] font-medium text-[var(--color-quiet)]">
+        {teacher.matricule}
+      </Td>
+      <Td className="font-medium">{teacher.name}</Td>
+      <Td>{teacher.subject}</Td>
+      <Td className="text-[12.5px] text-[var(--color-quiet)]">{teacher.establishment ?? '—'}</Td>
+      <Td className="no-print text-end">
+        {/* the confirmation stays in the row: what you are about to lose is
+            still on the screen while you decide */}
         {confirming ? (
           <div className="flex items-center justify-end gap-2">
             <Button
@@ -430,48 +399,53 @@ function TeacherRow({
             >
               {t('app.delete')}
             </Button>
-            <Button size="sm" variant="ghost" onPress={() => setConfirming(false)}>
+            <Button size="sm" variant="quiet" onPress={() => setConfirming(false)}>
               {t('app.cancel')}
             </Button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-1">
-            <Button size="sm" variant="ghost" isIconOnly aria-label={t('teachers.edit')} onPress={onEdit}>
-              <Pencil
-                size={14}
-                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
-                aria-hidden
-              />
+            <Button
+              size="sm"
+              variant="quiet"
+              isIcon
+              aria-label={t('teachers.edit')}
+              onPress={onEdit}
+            >
+              <Pencil size={15} aria-hidden />
             </Button>
             <Button
               size="sm"
-              variant="ghost"
-              isIconOnly
+              variant="quiet"
+              isIcon
               aria-label={t('app.delete')}
               onPress={() => setConfirming(true)}
+              className="hover:text-[var(--color-alarm)]"
             >
-              <Trash2
-                size={14}
-                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-alarm)]"
-                aria-hidden
-              />
+              <Trash2 size={15} aria-hidden />
             </Button>
           </div>
         )}
-      </td>
-    </tr>
+      </Td>
+    </Tr>
   )
 }
 
+/**
+ * The pool the surveillance is shared out of.
+ *
+ * <p>Two views of the same people: the list, and the count per subject. The
+ * second is not decoration — one specialist per subject is on permanence for a
+ * séance, so a subject with a single teacher in it is a session waiting to go
+ * wrong, and that is worth seeing without counting rows by hand.
+ */
 export function TeachersPage() {
   const { t } = useTranslation()
-  const { centerId, center: current, hasCenter, isLoading } = useWorkspace()
+  const { centerId, hasCenter, isLoading } = useWorkspace()
+  const [view, setView] = useState('pool')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Teacher | undefined>()
   const [formOpen, setFormOpen] = useState(false)
-
-
-
 
   const teachers = useQuery({
     queryKey: ['teachers', centerId],
@@ -500,110 +474,144 @@ export function TeachersPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [teachers.data])
 
+  const thin = subjects.filter(([, count]) => count < 2).length
+
   if (!isLoading && !hasCenter) {
     return (
       <Page title={t('teachers.title')}>
-        <div className="rounded-md border border-[var(--color-hairline)] bg-white">
-          <Empty>{t('teachers.noCenter')}</Empty>
-        </div>
+        <Card>
+          <Empty icon={<Users size={22} aria-hidden />}>{t('teachers.noCenter')}</Empty>
+        </Card>
       </Page>
     )
   }
-
 
   return (
     <Page
       title={t('teachers.title')}
       subtitle={t('teachers.subtitle')}
+      tabs={
+        <SegmentedTabs
+          value={view}
+          onChange={setView}
+          tabs={[
+            {
+              id: 'pool',
+              label: t('teachers.pool'),
+              icon: <Users size={15} aria-hidden />,
+              count: teachers.data?.length,
+            },
+            {
+              id: 'subjects',
+              label: t('teachers.subjects'),
+              icon: <Layers size={15} aria-hidden />,
+              count: subjects.length,
+              flag: thin > 0,
+            },
+          ]}
+        />
+      }
       actions={
         centerId !== null && (
           <>
             <ImportTeachers centerId={centerId} />
             <Button
-              size="sm"
               onPress={() => {
                 setEditing(undefined)
                 setFormOpen(true)
               }}
             >
-              <Plus size={15} aria-hidden />
+              <Plus size={16} aria-hidden />
               {t('teachers.add')}
             </Button>
           </>
         )
       }
     >
-      <div className="mb-5 flex flex-wrap items-end gap-3">
-        {(teachers.data?.length ?? 0) > 0 && (
-          <TextField value={search} onChange={setSearch} className="w-72">
-            <Label>{t('teachers.search')}</Label>
-            <Input placeholder={t('teachers.searchHint')} />
-          </TextField>
-        )}
-      </div>
+      {view === 'pool' ? (
+        <Card>
+          <CardHead
+            title={t('teachers.pool')}
+            actions={
+              (teachers.data?.length ?? 0) > 0 && (
+                <SearchField
+                  className="w-64"
+                  label={t('teachers.search')}
+                  placeholder={t('teachers.searchHint')}
+                  value={search}
+                  onChange={setSearch}
+                />
+              )
+            }
+          />
+          <CardRule />
 
-      <Panel
-        title={t('teachers.pool')}
-        count={teachers.data?.length}
-        hint={current ? undefined : t('teachers.pickCenter')}
-      >
-        {teachers.isPending && centerId !== null && <Loading rows={5} />}
-        {teachers.isError && (
-          <div className="p-4">
+          {teachers.isPending && centerId !== null && <Skeleton rows={6} />}
+          {teachers.isError && (
             <Failed error={teachers.error as Error} onRetry={() => void teachers.refetch()} />
-          </div>
-        )}
+          )}
 
-        {teachers.isSuccess &&
-          (teachers.data.length === 0 ? (
-            <Empty action={centerId !== null && <ImportTeachers centerId={centerId} />}>
-              {t('teachers.empty')}
-            </Empty>
-          ) : shown.length === 0 ? (
-            <Empty>{t('teachers.noMatch', { search })}</Empty>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[var(--color-hairline)]">
-                  {['matricule', 'name', 'subject', 'establishment'].map((column) => (
-                    <th
-                      key={column}
-                      className="px-4 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]"
-                    >
-                      {t(`teachers.${column}`)}
-                    </th>
+          {teachers.isSuccess &&
+            (teachers.data.length === 0 ? (
+              <Empty
+                icon={<Users size={22} aria-hidden />}
+                title={t('teachers.title')}
+                action={centerId !== null && <ImportTeachers centerId={centerId} variant="primary" />}
+              >
+                {t('teachers.empty')}
+              </Empty>
+            ) : shown.length === 0 ? (
+              <Empty>{t('teachers.noMatch', { search })}</Empty>
+            ) : (
+              <Table>
+                <thead>
+                  <tr>
+                    <Th width="140px">{t('teachers.matricule')}</Th>
+                    <Th>{t('teachers.name')}</Th>
+                    <Th width="200px">{t('teachers.subject')}</Th>
+                    <Th width="200px">{t('teachers.establishment')}</Th>
+                    <Th width="120px" className="no-print" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((teacher) => (
+                    <TeacherRow
+                      key={teacher.matricule}
+                      centerId={centerId!}
+                      teacher={teacher}
+                      onEdit={() => {
+                        setEditing(teacher)
+                        setFormOpen(true)
+                      }}
+                    />
                   ))}
-                  <th className="w-28 px-4 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((teacher) => (
-                  <TeacherRow
-                    key={teacher.matricule}
-                    centerId={centerId!}
-                    teacher={teacher}
-                    onEdit={() => {
-                      setEditing(teacher)
-                      setFormOpen(true)
-                    }}
-                  />
-                ))}
-              </tbody>
-            </table>
-          ))}
-      </Panel>
-
-      {subjects.length > 0 && (
-        <Panel title={t('teachers.subjects')} count={subjects.length}>
-          <ul className="divide-y divide-[var(--color-hairline)]">
-            {subjects.map(([subject, count]) => (
-              <li key={subject} className="flex items-center justify-between px-4 py-2.5">
-                <span className="text-[13px]">{subject}</span>
-                <span className="numeric text-[13px] font-medium">{count}</span>
-              </li>
+                </tbody>
+              </Table>
             ))}
-          </ul>
-        </Panel>
+        </Card>
+      ) : (
+        <Card>
+          <CardHead title={t('teachers.subjects')} count={subjects.length} />
+          <CardRule />
+          {subjects.length === 0 ? (
+            <Empty icon={<Layers size={22} aria-hidden />}>{t('teachers.empty')}</Empty>
+          ) : (
+            <ul>
+              {subjects.map(([subject, count]) => (
+                <li
+                  key={subject}
+                  className="flex items-center gap-4 border-b border-[var(--color-hairline)] px-5 py-3.5 last:border-b-0"
+                >
+                  <span className="min-w-0 flex-1 text-[14px] font-medium">{subject}</span>
+                  {/* one specialist is on permanence per subject per séance:
+                      a subject held up by a single teacher is worth flagging */}
+                  {count < 2 && <Badge tone="warn">{t('teachers.thinSubject')}</Badge>}
+                  <span className="numeric w-10 text-end text-[15px] font-semibold">{count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       )}
 
       {centerId !== null && (

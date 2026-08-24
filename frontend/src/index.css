@@ -1,5 +1,4 @@
 @import 'tailwindcss';
-@import '@heroui/styles';
 
 /*
  * The faces are carried inside the application, not named and hoped for.
@@ -13,55 +12,60 @@
 @import '@fontsource/noto-naskh-arabic/arabic-400.css';
 @import '@fontsource/noto-naskh-arabic/arabic-600.css';
 
-/*
- * A tool an administration uses for days at a time: readable at forty-five
- * rows, calm enough to stare at, and printable. The Arabic face is listed
- * first for Arabic text so RTL pages never fall back to a stub font, and
- * Arabic gets slightly more size and line height — it reads small at the
- * size that suits Latin text.
- *
- * The fallbacks end at `sans-serif` rather than passing through `system-ui`:
- * the whole point is that a misconfigured machine cannot drag the interface
- * into a face nobody chose.
- */
 @theme {
   --font-sans: 'Inter Variable', 'Inter', sans-serif;
   --font-arabic: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Inter Variable', sans-serif;
 
   /*
-   * Ink and one blue. The rail and the text are near-black, the ground is a
-   * warm off-white rather than a grey, and the single saturated colour is
-   * spent only on things you can act on. Nothing else on a screen is allowed
-   * to be coloured, which is what keeps a page of forty-five rows quiet.
+   * Cards of paper on a cool grey table. The ground is never white, so a white
+   * surface reads as a raised object rather than as the page itself — that lift
+   * carries the layout, in place of the hairline boxes drawn before.
    */
-  --color-ground: #fafaf9;
+  --color-ground: #eef1f5;
   --color-surface: #ffffff;
-  --color-ink: #0c0a09;
-  --color-rail: #1c1917;
-  --color-brand: #2563eb;
-  --color-quiet: #78716c;
-  --color-hairline: #e7e5e4;
+  --color-sunken: #f7f9fb;
+
+  --color-ink: #0f172a;
+  --color-quiet: #64748b;
+  --color-faint: #94a3b8;
+  --color-hairline: #e9edf2;
+
+  /*
+   * One saturated colour, spent with confidence rather than sparingly: the
+   * active section, the primary action, the figure that matters. Its tint is a
+   * real surface — the nav pill sits on it — not a ten-percent wash.
+   */
+  --color-accent: #0891b2;
+  --color-accent-strong: #0e7490;
+  --color-accent-tint: #e1f5fa;
+  --color-accent-ink: #0b6a80;
+
+  /* State carries colour of its own: done, needs looking at, not started. The
+     interface says which without spending a sentence on it. */
+  --color-good: #0f9d76;
+  --color-good-tint: #e3f6f0;
+  --color-warn: #d97706;
+  --color-warn-tint: #fdf1de;
   --color-alarm: #dc2626;
+  --color-alarm-tint: #fdeaea;
+
+  --radius-card: 16px;
+  --radius-field: 10px;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 26px -14px rgb(15 23 42 / 0.16);
+  --shadow-raised: 0 2px 4px rgb(15 23 42 / 0.05), 0 16px 34px -14px rgb(15 23 42 / 0.22);
 }
 
-/*
- * HeroUI derives its hover, soft and secondary shades with color-mix from
- * these few, so setting the roots is enough — no component needs overriding
- * one at a time. Declared unlayered so they beat the packaged theme layer.
- */
 :root {
   --background: var(--color-ground);
   --foreground: var(--color-ink);
   --muted: var(--color-quiet);
-  --accent: var(--color-brand);
+  --accent: var(--color-accent);
   --danger: var(--color-alarm);
   --border: var(--color-hairline);
   --separator: var(--color-hairline);
-
-  /* crisp, not soft: 6px everywhere, and fields keep the same corner as
-     everything else instead of the library's 1.5× pill */
-  --radius: 0.375rem;
-  --field-radius: var(--radius);
+  --radius: 0.625rem;
+  --field-radius: var(--radius-field);
   --field-border: var(--color-hairline);
   --field-border-width: 1px;
   --field-background: var(--color-surface);
@@ -86,8 +90,8 @@ body {
 }
 
 /*
- * Paper is not a screen: the navigation, the buttons and the icons are
- * scaffolding for working, not for the sheet pinned to a door.
+ * Paper is not a screen: the shadows, the ground and the navigation are for
+ * working, not for the sheet pinned to a door.
  */
 @media print {
   .no-print {
@@ -99,6 +103,7 @@ body {
   }
   .print-clean {
     box-shadow: none !important;
-    border-color: #999 !important;
+    background: #fff !important;
+    border: 1px solid #999 !important;
   }
 }

@@ -11,7 +11,8 @@
     "error": "حدث خطأ.",
     "retry": "إعادة المحاولة",
     "add": "إضافة",
-    "rename": "تغيير الاسم"
+    "rename": "تغيير الاسم",
+    "notBuilt": "هذا الجزء لم يُبنَ بعد."
   },
   "nav": {
     "sessions": "الدورات",
@@ -99,7 +100,8 @@
       "REGIONAL_1BAC": "السنة الأولى — الجهوي",
       "NATIONAL_2BAC": "السنة الثانية — الوطني",
       "NATIONAL_2BAC_RATTRAPAGE": "السنة الثانية — الاستدراكية"
-    }
+    },
+    "current": "الجارية"
   },
   "teachers": {
     "title": "الأساتذة",
@@ -146,7 +148,9 @@
       "noName": "الاسم ناقص.",
       "noSubject": "المادة ناقصة.",
       "duplicateMatricule": "رقم التأجير {{detail}} يتكرر مرتين."
-    }
+    },
+    "matriculeFixed": "رقم التأجير لا يتغير: الدورات السابقة مرتبطة به.",
+    "thinSubject": "أستاذ واحد فقط"
   },
   "schedule": {
     "title": "الجدولة",
@@ -187,7 +191,8 @@
     "roomCount_few": "قاعات",
     "roomCount_many": "قاعة",
     "roomCount_other": "قاعة",
-    "unknownSubject": "لا يوجد بالمركز أستاذ لهذه المادة: لن يكون للحراسة الدائمة مختص."
+    "unknownSubject": "لا يوجد بالمركز أستاذ لهذه المادة: لن يكون للحراسة الدائمة مختص.",
+    "roomlessStreams": "{{names}}: بدون قاعة، فلا يمكن إجراء أي اختبار."
   },
   "catalogue": {
     "renamed": "تم تغيير الاسم، وتبعه الأساتذة والاختبارات المعنية.",
@@ -221,7 +226,8 @@
     "usedBySessions_two": "دورتان",
     "usedBySessions_few": "دورات",
     "usedBySessions_many": "دورة",
-    "usedBySessions_other": "دورة"
+    "usedBySessions_other": "دورة",
+    "unusedShort": "غير مستعملة"
   },
   "workspace": {
     "center": "المركز",
@@ -269,5 +275,23 @@
     "placeholder": "ثانوية ابن بطوطة",
     "start": "إنشاء المركز",
     "created": "تم إنشاء المركز."
+  },
+  "dashboard": {
+    "next": "ما ينبغي فعله الآن",
+    "allReady": "كل شيء جاهز: يمكن إطلاق التوزيع.",
+    "solve": "إطلاق التوزيع",
+    "steps": "المراحل",
+    "doneOf": "{{done}} من {{total}}",
+    "sessionExplains": "الدورة هي فترة امتحانات: السنة الأولى في يونيو، السنة الثانية في يونيو، والاستدراكية في يوليوز.",
+    "state": {
+      "READY": "تم",
+      "CHECK": "للتحقق",
+      "TODO": "لم يبدأ"
+    },
+    "stat": {
+      "teachers": "الأساتذة في اللائحة",
+      "rooms": "قاعات المركز",
+      "exams": "اختبارات الدورة"
+    }
   }
 }

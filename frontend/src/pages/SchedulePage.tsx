@@ -1,23 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Copy, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
-import {
-  Button,
-  Checkbox,
-  ComboBox,
-  Input,
-  Label,
-  ListBox,
-  Modal,
-  Select,
-  TimeField,
-} from '@heroui/react'
+import { CalendarDays, Copy, LayoutGrid, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import { Time, parseTime } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
-import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
+import { Page } from '../components/Page'
+import {
+  Button,
+  Card,
+  CardHead,
+  CardRule,
+  Checkbox,
+  ComboBox,
+  Dialog,
+  Empty,
+  Failed,
+  Notice,
+  Select,
+  Skeleton,
+  TimeField,
+} from '../ui'
 
 type RoomRef = { id: number; reference: string; label: string }
 type Stream = { id: number; name: string; rooms: RoomRef[] }
@@ -137,105 +141,75 @@ function StreamForm({
 
   const toggle = (roomId: number) =>
     setChosen((current) =>
-      current.includes(roomId)
-        ? current.filter((id) => id !== roomId)
-        : [...current, roomId],
+      current.includes(roomId) ? current.filter((id) => id !== roomId) : [...current, roomId],
     )
 
   return (
-    <Modal isOpen={open} onOpenChange={(next) => !next && onClose()}>
-      <Modal.Backdrop>
-        <Modal.Container>
-          <Modal.Dialog>
-            <Modal.Header>
-              <Modal.Heading>
-                {existing ? t('schedule.editStream') : t('schedule.addStream')}
-              </Modal.Heading>
-            </Modal.Header>
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      title={existing ? t('schedule.editStream') : t('schedule.addStream')}
+      footer={
+        <>
+          <Button variant="secondary" onPress={onClose}>
+            {t('app.cancel')}
+          </Button>
+          <Button type="submit" form="stream-form" isPending={save.isPending}>
+            {t('app.save')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="stream-form"
+        className="space-y-5 pb-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          save.mutate(undefined)
+        }}
+      >
+        <ComboBox
+          label={t('schedule.streamName')}
+          value={name}
+          onChange={setName}
+          placeholder={t('schedule.streamHint')}
+          autoFocus
+          suggestions={(known.data ?? []).map((option) => ({
+            id: option.name,
+            label: option.name,
+          }))}
+        />
 
-            <Modal.Body>
-              <form
-                id="stream-form"
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  save.mutate(undefined)
-                }}
-              >
-                <ComboBox
-                  allowsCustomValue
-                  menuTrigger="focus"
-                  inputValue={name}
-                  onInputChange={setName}
-                  onSelectionChange={(key) => key !== null && setName(String(key))}
-                  fullWidth
+        <div>
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-[12px] font-medium text-[var(--color-quiet)]">
+              {t('schedule.rooms')}
+            </span>
+            <span className="numeric text-[11.5px] text-[var(--color-faint)]">{chosen.length}</span>
+          </div>
+
+          {center.isPending && <Skeleton rows={2} />}
+          {center.isSuccess && center.data.rooms.length === 0 && (
+            <Notice tone="warn" icon={<TriangleAlert size={16} aria-hidden />}>
+              {t('schedule.noRooms')}
+            </Notice>
+          )}
+          {center.isSuccess && center.data.rooms.length > 0 && (
+            <div className="grid max-h-56 grid-cols-2 gap-x-3 overflow-y-auto rounded-[var(--radius-field)] bg-[var(--color-sunken)] p-2">
+              {center.data.rooms.map((room) => (
+                <Checkbox
+                  key={room.id}
+                  isSelected={chosen.includes(room.id)}
+                  onChange={() => toggle(room.id)}
                 >
-                  <Label>{t('schedule.streamName')}</Label>
-                  <ComboBox.InputGroup>
-                    <Input placeholder={t('schedule.streamHint')} autoFocus />
-                    <ComboBox.Trigger />
-                  </ComboBox.InputGroup>
-                  <ComboBox.Popover>
-                    <ListBox>
-                      {(known.data ?? [])
-                        .filter((option) =>
-                          option.name.toLowerCase().includes(name.trim().toLowerCase()),
-                        )
-                        .map((option) => (
-                          <ListBox.Item
-                            key={option.id}
-                            id={option.name}
-                            textValue={option.name}
-                          >
-                            {option.name}
-                          </ListBox.Item>
-                        ))}
-                    </ListBox>
-                  </ComboBox.Popover>
-                </ComboBox>
-
-                <div>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <span className="text-[13px] font-medium">{t('schedule.rooms')}</span>
-                    <span className="numeric text-xs text-[var(--color-quiet)]">
-                      {chosen.length}
-                    </span>
-                  </div>
-                  {center.isPending && <Loading rows={2} />}
-                  {center.isSuccess && center.data.rooms.length === 0 && (
-                    <p className="text-[13px] text-[var(--color-quiet)]">
-                      {t('schedule.noRooms')}
-                    </p>
-                  )}
-                  {center.isSuccess && center.data.rooms.length > 0 && (
-                    <div className="grid max-h-56 grid-cols-2 gap-x-4 gap-y-1 overflow-y-auto rounded-md border border-[var(--color-hairline)] p-3">
-                      {center.data.rooms.map((room) => (
-                        <Checkbox
-                          key={room.id}
-                          isSelected={chosen.includes(room.id)}
-                          onChange={() => toggle(room.id)}
-                        >
-                          <span className="text-[13px]">{room.label}</span>
-                        </Checkbox>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </form>
-            </Modal.Body>
-
-            <Modal.Footer>
-              <Button variant="ghost" onPress={onClose}>
-                {t('app.cancel')}
-              </Button>
-              <Button type="submit" form="stream-form" isPending={save.isPending}>
-                {t('app.save')}
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+                  {room.label}
+                </Checkbox>
+              ))}
+            </div>
+          )}
+        </div>
+      </form>
+    </Dialog>
   )
 }
 
@@ -273,10 +247,6 @@ function ExamForm({
     setEnd(existing ? readTime(existing.endTime) : to)
   }, [open, existing, half])
 
-  const suggestions = subjects.filter((option) =>
-    option.name.toLowerCase().includes(subject.trim().toLowerCase()),
-  )
-
   const save = useApiMutation({
     run: () =>
       api.post<Timetable>(`/sessions/${sessionId}/timetable/exams`, {
@@ -301,128 +271,78 @@ function ExamForm({
     },
   })
 
+  const nobodyTeaches =
+    subject.trim() !== '' &&
+    (subjects.find((one) => one.name === subject.trim())?.usedByTeachers ?? 0) === 0
+
   return (
-    <Modal isOpen={open} onOpenChange={(next) => !next && onClose()}>
-      <Modal.Backdrop>
-        <Modal.Container>
-          <Modal.Dialog>
-            <Modal.Header>
-              <Modal.Heading>{stream?.name ?? t('schedule.exam')}</Modal.Heading>
-              <p className="mt-0.5 text-[13px] text-[var(--color-quiet)]">
-                {t(`schedule.${half}`)}
-              </p>
-            </Modal.Header>
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      title={stream?.name ?? t('schedule.exam')}
+      subtitle={t(`schedule.${half}`)}
+      footer={
+        <>
+          {existing && (
+            <Button
+              variant="quiet"
+              isPending={remove.isPending}
+              onPress={() => remove.mutate(undefined)}
+              className="me-auto hover:text-[var(--color-alarm)]"
+            >
+              <Trash2 size={15} aria-hidden />
+              {t('app.delete')}
+            </Button>
+          )}
+          <Button variant="secondary" onPress={onClose}>
+            {t('app.cancel')}
+          </Button>
+          <Button type="submit" form="exam-form" isPending={save.isPending}>
+            {t('app.save')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="exam-form"
+        className="space-y-4 pb-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          save.mutate(undefined)
+        }}
+      >
+        {/*
+          Suggested from the centre's own list, because the solver matches a
+          teacher's subject to an épreuve's by exact string. "Maths" typed where
+          the list says "Mathématiques" does not fail loudly — it quietly stops a
+          maths teacher from being barred from the maths paper. Free text is
+          still allowed: a centre may examine a subject nobody there teaches.
+        */}
+        <ComboBox
+          label={t('schedule.subject')}
+          value={subject}
+          onChange={setSubject}
+          placeholder={t('schedule.subjectHint')}
+          autoFocus
+          suggestions={subjects.map((option) => ({
+            id: option.name,
+            label: option.name,
+            hint: option.usedByTeachers,
+          }))}
+        />
 
-            <Modal.Body>
-              <form
-                id="exam-form"
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  save.mutate(undefined)
-                }}
-              >
-                {/*
-                  Suggested from the teacher pool, because the solver matches a
-                  teacher's subject to an épreuve's by exact string. "Maths"
-                  typed where the list says "Mathématiques" does not fail
-                  loudly — it quietly stops a maths teacher from being barred
-                  from the maths paper. Free text is still allowed: a centre may
-                  examine a subject nobody there teaches.
-                */}
-                <ComboBox
-                  allowsCustomValue
-                  menuTrigger="focus"
-                  inputValue={subject}
-                  onInputChange={setSubject}
-                  onSelectionChange={(key) => key !== null && setSubject(String(key))}
-                  fullWidth
-                >
-                  <Label>{t('schedule.subject')}</Label>
-                  <ComboBox.InputGroup>
-                    <Input placeholder={t('schedule.subjectHint')} autoFocus />
-                    <ComboBox.Trigger />
-                  </ComboBox.InputGroup>
-                  <ComboBox.Popover>
-                    <ListBox>
-                      {suggestions.map((option) => (
-                        <ListBox.Item
-                          key={option.name}
-                          id={option.name}
-                          textValue={option.name}
-                        >
-                          <span className="flex w-full items-baseline justify-between gap-4">
-                            <span>{option.name}</span>
-                            <span className="numeric text-[11px] text-[var(--color-quiet)]">
-                              {option.usedByTeachers}
-                            </span>
-                          </span>
-                        </ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </ComboBox.Popover>
-                </ComboBox>
+        {nobodyTeaches && (
+          <Notice tone="warn" icon={<TriangleAlert size={16} aria-hidden />}>
+            {t('schedule.unknownSubject')}
+          </Notice>
+        )}
 
-                {subject.trim() !== '' &&
-                  (subjects.find((s) => s.name === subject.trim())?.usedByTeachers ?? 0) === 0 && (
-                  <p className="flex items-start gap-2 text-[12px] text-[var(--color-quiet)]">
-                    <TriangleAlert
-                      size={14}
-                      className="mt-0.5 shrink-0 text-amber-500"
-                      aria-hidden
-                    />
-                    {t('schedule.unknownSubject')}
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <TimeField value={start} onChange={setStart} hourCycle={24}>
-                    <Label>{t('schedule.from')}</Label>
-                    <TimeField.Group>
-                      <TimeField.InputContainer>
-                        <TimeField.Input>
-                          {(segment) => <TimeField.Segment segment={segment} />}
-                        </TimeField.Input>
-                      </TimeField.InputContainer>
-                    </TimeField.Group>
-                  </TimeField>
-
-                  <TimeField value={end} onChange={setEnd} hourCycle={24}>
-                    <Label>{t('schedule.to')}</Label>
-                    <TimeField.Group>
-                      <TimeField.InputContainer>
-                        <TimeField.Input>
-                          {(segment) => <TimeField.Segment segment={segment} />}
-                        </TimeField.Input>
-                      </TimeField.InputContainer>
-                    </TimeField.Group>
-                  </TimeField>
-                </div>
-              </form>
-            </Modal.Body>
-
-            <Modal.Footer>
-              {existing && (
-                <Button
-                  variant="ghost"
-                  isPending={remove.isPending}
-                  onPress={() => remove.mutate(undefined)}
-                >
-                  <Trash2 size={14} className="text-[var(--color-alarm)]" aria-hidden />
-                  {t('app.delete')}
-                </Button>
-              )}
-              <Button variant="ghost" onPress={onClose}>
-                {t('app.cancel')}
-              </Button>
-              <Button type="submit" form="exam-form" isPending={save.isPending}>
-                {t('app.save')}
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+        <div className="grid grid-cols-2 gap-3">
+          <TimeField label={t('schedule.from')} value={start} onChange={setStart} />
+          <TimeField label={t('schedule.to')} value={end} onChange={setEnd} />
+        </div>
+      </form>
+    </Dialog>
   )
 }
 
@@ -463,57 +383,51 @@ function CopyStream({
   const sources = streams.filter((stream) => stream.id !== target?.id)
 
   return (
-    <Modal isOpen={open} onOpenChange={(next) => !next && onClose()}>
-      <Modal.Backdrop>
-        <Modal.Container>
-          <Modal.Dialog>
-            <Modal.Header>
-              <Modal.Heading>{t('schedule.copyInto', { name: target?.name ?? '' })}</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
-              <p className="mb-4 text-[13px] text-[var(--color-quiet)]">
-                {t('schedule.copyExplain')}
-              </p>
-              <Select
-                selectedKey={from === null ? undefined : String(from)}
-                onSelectionChange={(key) => setFrom(Number(key))}
-                fullWidth
-              >
-                <Label>{t('schedule.copyFrom')}</Label>
-                <Select.Trigger>
-                  <Select.Value />
-                  <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover>
-                  <ListBox>
-                    {sources.map((stream) => (
-                      <ListBox.Item key={stream.id} id={String(stream.id)} textValue={stream.name}>
-                        {stream.name}
-                      </ListBox.Item>
-                    ))}
-                  </ListBox>
-                </Select.Popover>
-              </Select>
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="ghost" onPress={onClose}>
-                {t('app.cancel')}
-              </Button>
-              <Button
-                isDisabled={from === null}
-                isPending={copy.isPending}
-                onPress={() => copy.mutate(undefined)}
-              >
-                {t('schedule.copy')}
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      title={t('schedule.copyInto', { name: target?.name ?? '' })}
+      subtitle={t('schedule.copyExplain')}
+      footer={
+        <>
+          <Button variant="secondary" onPress={onClose}>
+            {t('app.cancel')}
+          </Button>
+          <Button
+            isDisabled={from === null}
+            isPending={copy.isPending}
+            onPress={() => copy.mutate(undefined)}
+          >
+            <Copy size={16} aria-hidden />
+            {t('schedule.copy')}
+          </Button>
+        </>
+      }
+    >
+      <div className="pb-4">
+        <Select
+          label={t('schedule.copyFrom')}
+          value={from}
+          onChange={(key) => setFrom(Number(key))}
+          choices={sources.map((stream) => ({
+            id: stream.id,
+            label: stream.name,
+            hint: t('schedule.roomCount', { count: stream.rooms.length }),
+          }))}
+        />
+      </div>
+    </Dialog>
   )
 }
 
+/**
+ * The timetable: which filière sits what, when.
+ *
+ * <p>One column per séance rather than per day. A filière can sit two papers on
+ * the same day — one in the morning, one in the afternoon — and an earlier
+ * version of this screen showed only the first, so an épreuve could sit
+ * perfectly well in the database and be invisible here.
+ */
 export function SchedulePage() {
   const { t, i18n } = useTranslation()
   const { sessionId, sessionsHere, isLoading } = useWorkspace()
@@ -526,9 +440,6 @@ export function SchedulePage() {
     exam?: Exam
   }>({ open: false, stream: null, day: null, half: 'morning' })
   const [copyFor, setCopyFor] = useState<Stream | null>(null)
-
-
-
 
   const grid = useQuery({
     queryKey: ['timetable', sessionId],
@@ -551,21 +462,22 @@ export function SchedulePage() {
 
   /** With nobody to teach it, a permanence for that subject has no specialist. */
   const untaught = useMemo(
-    () => new Set(subjects.filter((s) => s.usedByTeachers === 0).map((s) => s.name)),
+    () => new Set(subjects.filter((one) => one.usedByTeachers === 0).map((one) => one.name)),
     [subjects],
   )
-  const listed = useMemo(() => new Set(subjects.map((s) => s.name)), [subjects])
+  const listed = useMemo(() => new Set(subjects.map((one) => one.name)), [subjects])
 
   const dayNames = useMemo(
-    () => new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' }),
+    () =>
+      new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' }),
     [i18n.language],
   )
 
   /**
-   * Every épreuve a filière sits in one séance — not the first one found.
-   * A filière with a paper in the morning and another in the afternoon has
-   * two, and showing only one is how an épreuve goes missing from the screen
-   * while sitting perfectly well in the database.
+   * Every épreuve a filière sits in one séance — not the first one found. A
+   * filière with a paper in the morning and another in the afternoon has two,
+   * and showing only one is how an épreuve goes missing from the screen while
+   * sitting perfectly well in the database.
    */
   const cell = (streamId: number, day: string, half: Half) =>
     (grid.data?.exams ?? [])
@@ -576,47 +488,67 @@ export function SchedulePage() {
   if (!isLoading && sessionsHere.length === 0) {
     return (
       <Page title={t('schedule.title')}>
-        <div className="rounded-md border border-[var(--color-hairline)] bg-white">
-          <Empty>{t('schedule.noSession')}</Empty>
-        </div>
+        <Card>
+          <Empty icon={<CalendarDays size={22} aria-hidden />}>{t('schedule.noSession')}</Empty>
+        </Card>
       </Page>
     )
   }
 
   const data = grid.data
+  const roomless = (data?.streams ?? []).filter((stream) => stream.rooms.length === 0)
 
   return (
     <Page
       title={t('schedule.title')}
-      subtitle={data ? `${data.centerName}` : t('schedule.subtitle')}
+      subtitle={data ? data.centerName : t('schedule.subtitle')}
       actions={
         sessionId !== null &&
         data && (
-          <Button size="sm" onPress={() => setStreamForm({ open: true })}>
-            <Plus size={15} aria-hidden />
+          <Button onPress={() => setStreamForm({ open: true })}>
+            <Plus size={16} aria-hidden />
             {t('schedule.addStream')}
           </Button>
         )
       }
     >
-      <Panel
-        title={t('schedule.grid')}
-        count={data?.exams.length}
-        hint={data && data.streams.length > 0 ? t('schedule.hint') : undefined}
-      >
-        {grid.isPending && sessionId !== null && <Loading rows={4} />}
+      {/* a filière with no rooms can hold no épreuve at all, which is worth
+          saying once above the grid rather than only inside its own row */}
+      {roomless.length > 0 && (
+        <div className="mb-5">
+          <Notice
+            tone="warn"
+            icon={<TriangleAlert size={16} aria-hidden />}
+            action={
+              <Button size="sm" variant="secondary" onPress={() => setStreamForm({ open: true, stream: roomless[0] })}>
+                {t('schedule.editStream')}
+              </Button>
+            }
+          >
+            {t('schedule.roomlessStreams', {
+              count: roomless.length,
+              names: roomless.map((stream) => stream.name).join(', '),
+            })}
+          </Notice>
+        </div>
+      )}
+
+      <Card>
+        <CardHead title={t('schedule.grid')} count={data?.exams.length} />
+        <CardRule />
+
+        {grid.isPending && sessionId !== null && <Skeleton rows={4} />}
         {grid.isError && (
-          <div className="p-4">
-            <Failed error={grid.error as Error} onRetry={() => void grid.refetch()} />
-          </div>
+          <Failed error={grid.error as Error} onRetry={() => void grid.refetch()} />
         )}
 
         {data &&
           (data.streams.length === 0 ? (
             <Empty
+              icon={<LayoutGrid size={22} aria-hidden />}
               action={
-                <Button size="sm" onPress={() => setStreamForm({ open: true })}>
-                  <Plus size={15} aria-hidden />
+                <Button onPress={() => setStreamForm({ open: true })}>
+                  <Plus size={16} aria-hidden />
                   {t('schedule.addStream')}
                 </Button>
               }
@@ -625,13 +557,13 @@ export function SchedulePage() {
             </Empty>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] table-fixed border-collapse">
+              <table className="w-full min-w-[760px] table-fixed border-collapse">
                 <thead>
                   {/* two rows: the day, then the séance inside it */}
                   <tr>
                     <th
                       rowSpan={2}
-                      className="w-[230px] border-b border-[var(--color-hairline)] px-4 py-2 text-start align-bottom text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]"
+                      className="w-[240px] px-5 pb-2.5 pt-1 text-start align-bottom text-[11.5px] font-medium text-[var(--color-faint)]"
                     >
                       {t('schedule.stream')}
                     </th>
@@ -639,7 +571,7 @@ export function SchedulePage() {
                       <th
                         key={day}
                         colSpan={2}
-                        className="border-s border-[var(--color-hairline)] px-3 pb-1 pt-2 text-center text-[12px] font-semibold"
+                        className="border-s border-[var(--color-hairline)] px-3 pb-1 pt-1 text-center text-[13px] font-semibold"
                       >
                         {dayNames.format(new Date(`${day}T00:00:00`))}
                       </th>
@@ -650,8 +582,8 @@ export function SchedulePage() {
                       HALVES.map((half) => (
                         <th
                           key={`${day}-${half}`}
-                          className={`border-b border-[var(--color-hairline)] px-2 pb-1.5 text-start text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--color-quiet)] ${
-                            half === 'morning' ? 'border-s border-s-[var(--color-hairline)]' : ''
+                          className={`px-2 pb-2.5 text-start text-[10.5px] font-medium tracking-[0.04em] text-[var(--color-faint)] ${
+                            half === 'morning' ? 'border-s border-[var(--color-hairline)]' : ''
                           }`}
                         >
                           {t(`schedule.${half}`)}
@@ -664,21 +596,23 @@ export function SchedulePage() {
                   {data.streams.map((stream) => (
                     <tr
                       key={stream.id}
-                      className="group border-b border-[var(--color-hairline)] last:border-b-0"
+                      className="group border-t border-[var(--color-hairline)] align-top"
                     >
-                      <td className="px-4 py-2.5 align-top">
+                      <td className="px-5 py-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="text-[13px] font-medium leading-tight">{stream.name}</div>
+                            <div className="text-[14px] font-medium leading-tight">
+                              {stream.name}
+                            </div>
                             {/* the count, not the list: "Salle 2, Salle 3, Salle
                                 4, Salle 5" costs more width than the filière's
                                 own name. The full list is on hover. */}
                             <div
-                              className="mt-0.5 text-[11px] text-[var(--color-quiet)]"
+                              className="mt-1 text-[11.5px] text-[var(--color-quiet)]"
                               title={stream.rooms.map((room) => room.label).join(', ')}
                             >
                               {stream.rooms.length === 0 ? (
-                                <span className="text-[var(--color-alarm)]">
+                                <span className="font-medium text-[var(--color-warn)]">
                                   {t('schedule.noRoomsYet')}
                                 </span>
                               ) : (
@@ -689,32 +623,24 @@ export function SchedulePage() {
                               )}
                             </div>
                           </div>
-                          <div className="flex shrink-0 items-center gap-0.5">
+                          <div className="no-print flex shrink-0 items-center gap-0.5">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              isIconOnly
+                              variant="quiet"
+                              isIcon
                               aria-label={t('schedule.copyFrom')}
                               onPress={() => setCopyFor(stream)}
                             >
-                              <Copy
-                                size={13}
-                                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
-                                aria-hidden
-                              />
+                              <Copy size={14} aria-hidden />
                             </Button>
                             <Button
                               size="sm"
-                              variant="ghost"
-                              isIconOnly
+                              variant="quiet"
+                              isIcon
                               aria-label={t('schedule.editStream')}
                               onPress={() => setStreamForm({ open: true, stream })}
                             >
-                              <Pencil
-                                size={13}
-                                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
-                                aria-hidden
-                              />
+                              <Pencil size={14} aria-hidden />
                             </Button>
                           </div>
                         </div>
@@ -726,41 +652,53 @@ export function SchedulePage() {
                           return (
                             <td
                               key={`${day}-${half}`}
-                              className={`space-y-1 px-1.5 py-1.5 align-top ${
-                                half === 'morning'
-                                  ? 'border-s border-[var(--color-hairline)]'
-                                  : ''
+                              className={`space-y-1.5 p-2 ${
+                                half === 'morning' ? 'border-s border-[var(--color-hairline)]' : ''
                               }`}
                             >
-                              {exams.map((exam) => (
-                                <button
-                                  key={exam.id}
-                                  type="button"
-                                  onClick={() =>
-                                    setExamForm({ open: true, stream, day, half, exam })
-                                  }
-                                  className="w-full rounded-md border-s-2 border-s-[var(--color-brand)] bg-[var(--color-ground)] px-2 py-1.5 text-start transition-colors hover:bg-[var(--color-hairline)]/60"
-                                >
-                                  <span className="flex items-start gap-1 text-[13px] font-medium leading-tight">
-                                    {/* nobody teaches it: the permanence has no
-                                        specialist and the own-subject rule
-                                        cannot bite */}
-                                    {catalogue.isSuccess &&
-                                      (!listed.has(exam.subject) ||
-                                        untaught.has(exam.subject)) && (
+                              {exams.map((exam) => {
+                                const unstaffable =
+                                  catalogue.isSuccess &&
+                                  (!listed.has(exam.subject) || untaught.has(exam.subject))
+                                return (
+                                  <button
+                                    key={exam.id}
+                                    type="button"
+                                    onClick={() =>
+                                      setExamForm({ open: true, stream, day, half, exam })
+                                    }
+                                    className={`w-full rounded-[10px] border-s-[3px] px-2.5 py-2 text-start transition-colors ${
+                                      unstaffable
+                                        ? 'border-s-[var(--color-warn)] bg-[var(--color-warn-tint)] hover:brightness-[0.98]'
+                                        : 'border-s-[var(--color-accent)] bg-[var(--color-accent-tint)]/70 hover:bg-[var(--color-accent-tint)]'
+                                    }`}
+                                  >
+                                    <span className="flex items-start gap-1.5 text-[13px] font-semibold leading-tight">
+                                      {/* nobody teaches it: the permanence has no
+                                          specialist and the own-subject rule
+                                          cannot bite */}
+                                      {unstaffable && (
                                         <TriangleAlert
-                                          size={12}
-                                          className="mt-0.5 shrink-0 text-amber-500"
+                                          size={13}
+                                          className="mt-px shrink-0 text-[var(--color-warn)]"
                                           aria-label={t('schedule.unknownSubject')}
                                         />
                                       )}
-                                    <span>{exam.subject}</span>
-                                  </span>
-                                  <span className="numeric mt-0.5 block text-[11px] text-[var(--color-quiet)]">
-                                    {shortTime(exam.startTime)} — {shortTime(exam.endTime)}
-                                  </span>
-                                </button>
-                              ))}
+                                      <span className="min-w-0">{exam.subject}</span>
+                                    </span>
+                                    {/* a range is read left to right in both
+                                        languages: left to the page's own
+                                        direction, "08:00 — 10:00" comes out
+                                        reversed on an Arabic page */}
+                                    <bdi
+                                      dir="ltr"
+                                      className="numeric mt-1 block text-[11.5px] text-[var(--color-quiet)]"
+                                    >
+                                      {shortTime(exam.startTime)} — {shortTime(exam.endTime)}
+                                    </bdi>
+                                  </button>
+                                )
+                              })}
 
                               {/* an empty séance stays reachable, and a filled
                                   one can still take a second paper */}
@@ -769,13 +707,13 @@ export function SchedulePage() {
                                 onClick={() =>
                                   setExamForm({ open: true, stream, day, half, exam: undefined })
                                 }
-                                className={`w-full items-center gap-1.5 rounded-md px-2 text-[11px] text-[var(--color-quiet)] transition-colors hover:text-[var(--color-brand)] ${
+                                className={`no-print w-full items-center gap-1.5 rounded-[10px] px-2 text-[11.5px] text-[var(--color-faint)] transition-colors hover:text-[var(--color-accent)] ${
                                   exams.length === 0
-                                    ? 'flex justify-center border border-dashed border-[var(--color-hairline)] py-2.5 hover:border-[var(--color-brand)]'
-                                    : 'hidden py-1 group-hover:flex group-focus-within:flex'
+                                    ? 'flex justify-center py-3 ring-1 ring-dashed ring-[var(--color-hairline)] hover:bg-[var(--color-sunken)] hover:ring-[var(--color-accent)]/40'
+                                    : 'hidden py-1 group-focus-within:flex group-hover:flex'
                                 }`}
                               >
-                                <Plus size={12} aria-hidden />
+                                <Plus size={13} aria-hidden />
                                 {exams.length === 0 ? t('schedule.addExam') : t('schedule.addMore')}
                               </button>
                             </td>
@@ -788,7 +726,13 @@ export function SchedulePage() {
               </table>
             </div>
           ))}
-      </Panel>
+
+        {data && data.streams.length > 0 && (
+          <div className="rounded-b-[var(--radius-card)] border-t border-[var(--color-hairline)] bg-[var(--color-sunken)] px-5 py-3">
+            <p className="text-[11.5px] text-[var(--color-faint)]">{t('schedule.hint')}</p>
+          </div>
+        )}
+      </Card>
 
       {sessionId !== null && data && (
         <>

@@ -8,7 +8,7 @@
  */
 
 import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query'
-import { toast } from '@heroui/react'
+import { toast } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from './api'
 
@@ -29,10 +29,10 @@ export function useApiMutation<TResult, TInput>(options: {
         void queryClient.invalidateQueries({ queryKey: options.invalidate })
       }
       const said = options.onDone?.(result, input)
-      if (said) toast.success(said)
+      if (said) toast.ok(said)
     },
     onError: (error) => {
-      toast.danger(
+      toast.bad(
         error instanceof ApiError && error.message ? error.message : t('app.error'),
       )
     },

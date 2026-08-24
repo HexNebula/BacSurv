@@ -1,25 +1,32 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
-import {
-  Button,
-  DateField,
-  Input,
-  Label,
-  ListBox,
-  Modal,
-  NumberField,
-  Select,
-  TextField,
-} from '@heroui/react'
+import { CalendarPlus, Check, DoorOpen, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { CalendarDate, parseDate } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
 import { useWorkspace } from '../context/Workspace'
-import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
+import { Page } from '../components/Page'
 import { CatalogueList } from '../components/CatalogueList'
+import {
+  Badge,
+  Button,
+  Card,
+  CardHead,
+  CardRule,
+  DateField,
+  Dialog,
+  Empty,
+  Failed,
+  NumberField,
+  Select,
+  Skeleton,
+  Table,
+  Td,
+  TextField,
+  Th,
+  Tr,
+} from '../ui'
 
 type Room = {
   id: number
@@ -68,21 +75,21 @@ function CenterName({ center }: { center: CenterDetail }) {
 
   if (!editing) {
     return (
-      <div className="flex items-center gap-2">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.01em]">{center.name}</h1>
+      <span className="flex items-center gap-2">
+        {center.name}
         <Button
-          variant="ghost"
+          variant="quiet"
           size="sm"
-          isIconOnly
+          isIcon
           aria-label={t('center.rename')}
           onPress={() => {
             setDraft(center.name)
             setEditing(true)
           }}
         >
-          <Pencil size={14} aria-hidden />
+          <Pencil size={15} aria-hidden />
         </Button>
-      </div>
+      </span>
     )
   }
 
@@ -94,14 +101,18 @@ function CenterName({ center }: { center: CenterDetail }) {
         rename.mutate(draft)
       }}
     >
-      <TextField value={draft} onChange={setDraft} aria-label={t('centers.name')} autoFocus>
-        <Input />
-      </TextField>
-      <Button type="submit" size="sm" isPending={rename.isPending}>
-        <Check size={14} aria-hidden />
+      <TextField
+        aria-label={t('centers.name')}
+        value={draft}
+        onChange={setDraft}
+        className="w-80"
+        autoFocus
+      />
+      <Button type="submit" isPending={rename.isPending}>
+        <Check size={16} aria-hidden />
         {t('app.save')}
       </Button>
-      <Button type="button" variant="ghost" size="sm" onPress={() => setEditing(false)}>
+      <Button type="button" variant="quiet" onPress={() => setEditing(false)}>
         {t('app.cancel')}
       </Button>
     </form>
@@ -137,35 +148,34 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
 
   if (editing) {
     return (
-      <tr className="border-b border-[var(--color-hairline)] bg-[var(--color-ground)] last:border-b-0">
-        <td className="px-4 py-2 align-middle">
-          <TextField value={label} onChange={setLabel} aria-label={t('rooms.label')} autoFocus>
-            <Input />
-          </TextField>
-        </td>
-        <td className="px-4 py-2 align-middle">
+      <tr className="border-b border-[var(--color-hairline)] bg-[var(--color-accent-tint)]/40 last:border-b-0">
+        <Td>
+          <TextField
+            aria-label={t('rooms.label')}
+            value={label}
+            onChange={setLabel}
+            className="max-w-xs"
+            autoFocus
+          />
+        </Td>
+        <Td>
           <NumberField
+            aria-label={t('rooms.surveillants.label')}
             value={surveillants ?? undefined}
             minValue={2}
             onChange={(value) => setSurveillants(Number.isNaN(value) ? null : value)}
-            aria-label={t('rooms.surveillants.label')}
-          >
-            <NumberField.Group>
-              <NumberField.DecrementButton />
-              <NumberField.Input />
-              <NumberField.IncrementButton />
-            </NumberField.Group>
-          </NumberField>
-        </td>
-        <td className="px-4 py-2 text-end align-middle">
-          <div className="flex items-center justify-end gap-1">
+            className="w-36"
+          />
+        </Td>
+        <Td className="text-end">
+          <div className="flex items-center justify-end gap-2">
             <Button size="sm" isPending={save.isPending} onPress={() => save.mutate(undefined)}>
               {t('app.save')}
             </Button>
             <Button
               size="sm"
-              variant="ghost"
-              isIconOnly
+              variant="quiet"
+              isIcon
               aria-label={t('app.cancel')}
               onPress={() => {
                 setLabel(room.label)
@@ -173,46 +183,44 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
                 setEditing(false)
               }}
             >
-              <X size={14} aria-hidden />
+              <X size={15} aria-hidden />
             </Button>
           </div>
-        </td>
+        </Td>
       </tr>
     )
   }
 
   return (
-    <tr className="group border-b border-[var(--color-hairline)] last:border-b-0 hover:bg-[var(--color-ground)]">
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-2.5">
+    <Tr>
+      <Td>
+        <div className="flex items-center gap-3">
           {/* the reference is what the order and the printed sheets go by, so
               it is on the row rather than hidden behind the label */}
-          <span className="numeric w-9 shrink-0 text-[11px] font-medium text-[var(--color-quiet)]">
+          <span className="numeric w-10 shrink-0 text-[12px] font-medium text-[var(--color-faint)]">
             {room.reference}
           </span>
-          <span className="text-[13px] font-medium">{room.label}</span>
+          <span className="font-medium">{room.label}</span>
         </div>
-      </td>
-      <td className="px-4 py-2.5">
+      </Td>
+      <Td>
         {room.surveillants === null ? (
-          <span className="text-xs text-[var(--color-quiet)]">
+          <span className="text-[12.5px] text-[var(--color-quiet)]">
             {t('rooms.surveillants.default')}
           </span>
         ) : (
-          <span className="numeric text-[13px] font-medium tabular-nums">
-            {room.surveillants}
-          </span>
+          <span className="numeric font-medium">{room.surveillants}</span>
         )}
-      </td>
-      <td className="px-4 py-2.5 text-end">
+      </Td>
+      <Td className="no-print text-end">
         {/*
-          Deleting asks first, in the row itself. A single stray click on a
-          bin should not cost a room, and a question that appears where the
-          hand already is beats a dialog in the middle of the screen.
+          Deleting asks first, in the row itself. A single stray click on a bin
+          should not cost a room, and a question that appears where the hand
+          already is beats a dialog in the middle of the screen.
         */}
         {confirming ? (
           <div className="flex items-center justify-end gap-2">
-            <span className="text-xs text-[var(--color-quiet)]">
+            <span className="text-[12px] text-[var(--color-quiet)]">
               {t('rooms.delete.confirm', { room: room.label })}
             </span>
             <Button
@@ -223,7 +231,7 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
             >
               {t('app.delete')}
             </Button>
-            <Button size="sm" variant="ghost" onPress={() => setConfirming(false)}>
+            <Button size="sm" variant="quiet" onPress={() => setConfirming(false)}>
               {t('app.cancel')}
             </Button>
           </div>
@@ -231,36 +239,29 @@ function RoomRow({ centerId, room }: { centerId: number; room: Room }) {
           <div className="flex items-center justify-end gap-1">
             <Button
               size="sm"
-              variant="ghost"
-              isIconOnly
+              variant="quiet"
+              isIcon
               aria-label={t('rooms.edit')}
               onPress={() => setEditing(true)}
             >
-              <Pencil
-                size={14}
-                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
-                aria-hidden
-              />
+              <Pencil size={15} aria-hidden />
             </Button>
             {/* quiet until reached for: a red bin repeated down thirteen rows
                 reads as thirteen warnings rather than one available action */}
             <Button
               size="sm"
-              variant="ghost"
-              isIconOnly
+              variant="quiet"
+              isIcon
               aria-label={t('app.delete')}
               onPress={() => setConfirming(true)}
+              className="hover:text-[var(--color-alarm)]"
             >
-              <Trash2
-                size={14}
-                className="text-[var(--color-quiet)] transition-colors hover:text-[var(--color-alarm)]"
-                aria-hidden
-              />
+              <Trash2 size={15} aria-hidden />
             </Button>
           </div>
         )}
-      </td>
-    </tr>
+      </Td>
+    </Tr>
   )
 }
 
@@ -285,38 +286,36 @@ function AddRooms({ centerId }: { centerId: number }) {
   })
 
   return (
-    <form
-      className="flex flex-wrap items-end gap-3"
-      onSubmit={(event) => {
-        event.preventDefault()
-        add.mutate(undefined)
-      }}
-    >
-      <NumberField
-        value={count}
-        minValue={1}
-        maxValue={200}
-        onChange={setCount}
-        className="w-40"
+    <div className="rounded-b-[var(--radius-card)] border-t border-[var(--color-hairline)] bg-[var(--color-sunken)] px-5 py-4">
+      <form
+        className="flex flex-wrap items-end gap-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          add.mutate(undefined)
+        }}
       >
-        <Label>{t('rooms.add.count')}</Label>
-        <NumberField.Group>
-          <NumberField.DecrementButton />
-          <NumberField.Input />
-          <NumberField.IncrementButton />
-        </NumberField.Group>
-      </NumberField>
-
-      <TextField value={prefix} onChange={setPrefix} className="w-56">
-        <Label>{t('rooms.add.prefix')}</Label>
-        <Input placeholder={t('rooms.add.placeholder')} />
-      </TextField>
-
-      <Button type="submit" isPending={add.isPending}>
-        <Plus size={15} aria-hidden />
-        {t('rooms.add.button')}
-      </Button>
-    </form>
+        <NumberField
+          label={t('rooms.add.count')}
+          value={count}
+          minValue={1}
+          maxValue={200}
+          onChange={setCount}
+          className="w-40"
+        />
+        <TextField
+          label={t('rooms.add.prefix')}
+          value={prefix}
+          onChange={setPrefix}
+          placeholder={t('rooms.add.placeholder')}
+          className="w-56"
+        />
+        <Button type="submit" isPending={add.isPending}>
+          <Plus size={16} aria-hidden />
+          {t('rooms.add.button')}
+        </Button>
+      </form>
+      <p className="mt-2.5 text-[11.5px] text-[var(--color-faint)]">{t('rooms.add.hint')}</p>
+    </div>
   )
 }
 
@@ -350,92 +349,58 @@ function NewSession({ centerId }: { centerId: number }) {
 
   return (
     <>
-      <Button size="sm" onPress={() => setOpen(true)}>
-        <Plus size={15} aria-hidden />
+      <Button onPress={() => setOpen(true)}>
+        <CalendarPlus size={16} aria-hidden />
         {t('sessions.create')}
       </Button>
 
-      <Modal isOpen={open} onOpenChange={setOpen}>
-        <Modal.Backdrop>
-          <Modal.Container>
-            <Modal.Dialog>
-              <Modal.Header>
-                <Modal.Heading>{t('sessions.create')}</Modal.Heading>
-              </Modal.Header>
+      <Dialog
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        title={t('sessions.create')}
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setOpen(false)}>
+              {t('app.cancel')}
+            </Button>
+            <Button type="submit" form="new-session" isPending={create.isPending}>
+              {t('app.save')}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="new-session"
+          className="space-y-4 pb-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            create.mutate(undefined)
+          }}
+        >
+          <TextField
+            label={t('sessions.reference.label')}
+            value={reference}
+            onChange={setReference}
+            placeholder={t('sessions.reference.hint')}
+            autoFocus
+          />
 
-              <Modal.Body>
-                <form
-                  id="new-session"
-                  className="space-y-4"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    create.mutate(undefined)
-                  }}
-                >
-                  <TextField value={reference} onChange={setReference} fullWidth>
-                    <Label>{t('sessions.reference.label')}</Label>
-                    <Input placeholder={t('sessions.reference.hint')} />
-                  </TextField>
+          <Select
+            label={t('sessions.type.label')}
+            value={type}
+            onChange={(key) => setType(String(key))}
+            choices={SESSION_TYPES.map((value) => ({
+              id: value,
+              label: t(`sessions.type.${value}`),
+            }))}
+          />
 
-                  <Select
-                    selectedKey={type}
-                    onSelectionChange={(key) => setType(String(key))}
-                    fullWidth
-                  >
-                    <Label>{t('sessions.type.label')}</Label>
-                    <Select.Trigger>
-                      <Select.Value />
-                      <Select.Indicator />
-                    </Select.Trigger>
-                    <Select.Popover>
-                      <ListBox>
-                        {SESSION_TYPES.map((value) => (
-                          <ListBox.Item key={value} id={value} textValue={t(`sessions.type.${value}`)}>
-                            {t(`sessions.type.${value}`)}
-                          </ListBox.Item>
-                        ))}
-                      </ListBox>
-                    </Select.Popover>
-                  </Select>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <DateField value={startsOn} onChange={setStartsOn}>
-                      <Label>{t('sessions.startsOn')}</Label>
-                      <DateField.Group>
-                        <DateField.InputContainer>
-                          <DateField.Input>
-                            {(segment) => <DateField.Segment segment={segment} />}
-                          </DateField.Input>
-                        </DateField.InputContainer>
-                      </DateField.Group>
-                    </DateField>
-
-                    <DateField value={endsOn} onChange={setEndsOn}>
-                      <Label>{t('sessions.endsOn')}</Label>
-                      <DateField.Group>
-                        <DateField.InputContainer>
-                          <DateField.Input>
-                            {(segment) => <DateField.Segment segment={segment} />}
-                          </DateField.Input>
-                        </DateField.InputContainer>
-                      </DateField.Group>
-                    </DateField>
-                  </div>
-                </form>
-              </Modal.Body>
-
-              <Modal.Footer>
-                <Button variant="ghost" onPress={() => setOpen(false)}>
-                  {t('app.cancel')}
-                </Button>
-                <Button type="submit" form="new-session" isPending={create.isPending}>
-                  {t('app.save')}
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+          <div className="grid grid-cols-2 gap-3">
+            <DateField label={t('sessions.startsOn')} value={startsOn} onChange={setStartsOn} />
+            <DateField label={t('sessions.endsOn')} value={endsOn} onChange={setEndsOn} />
+          </div>
+        </form>
+      </Dialog>
     </>
   )
 }
@@ -450,9 +415,16 @@ function readDate(value: string | null): CalendarDate | null {
   }
 }
 
+/**
+ * The establishment itself: its rooms, its own lists, its sessions.
+ *
+ * <p>Everything here outlives a single session. The rooms are the centre's for
+ * the year, the subjects and filières are the vocabulary its paperwork uses,
+ * and a session is a period the timetable then hangs off.
+ */
 export function CenterPage() {
   const { t, i18n } = useTranslation()
-  const { centerId } = useWorkspace()
+  const { centerId, sessionId, chooseSession } = useWorkspace()
 
   const center = useQuery({
     queryKey: ['center', centerId],
@@ -468,11 +440,22 @@ export function CenterPage() {
     return `${dates.format(from.toDate('UTC'))} — ${dates.format(to.toDate('UTC'))}`
   }
 
-  if (center.isPending) return <Page title={t('centers.title')}><Loading /></Page>
+  if (center.isPending) {
+    return (
+      <Page title={t('nav.center')}>
+        <Card>
+          <Skeleton rows={5} />
+        </Card>
+      </Page>
+    )
+  }
+
   if (center.isError) {
     return (
-      <Page title={t('centers.title')}>
-        <Failed error={center.error as Error} onRetry={() => void center.refetch()} />
+      <Page title={t('nav.center')}>
+        <Card>
+          <Failed error={center.error as Error} onRetry={() => void center.refetch()} />
+        </Card>
       </Page>
     )
   }
@@ -480,93 +463,108 @@ export function CenterPage() {
   const detail = center.data
 
   return (
-    <div className="mx-auto max-w-5xl px-10 py-9">
-      <header className="mb-8">
-        <CenterName center={detail} />
-        {/* the noun agrees with the number: "1 session", not "1 sessions" */}
-        <p className="mt-2 flex items-center gap-2 text-[13px] text-[var(--color-quiet)]">
-          {(
-            [
-              ['teacherCount', detail.teacherCount],
-              ['roomCount', detail.rooms.length],
-              ['sessionCount', detail.sessions.length],
-            ] as const
-          ).map(([key, value], index) => (
-            <span key={key} className="flex items-center gap-2">
-              {index > 0 && <span className="text-[var(--color-hairline)]">/</span>}
-              <span>
-                <span className="numeric font-medium text-[var(--color-ink)]">{value}</span>{' '}
-                {t(`centers.${key}`, { count: value })}
-              </span>
-            </span>
-          ))}
-        </p>
-      </header>
+    <Page
+      title={<CenterName center={detail} />}
+      subtitle={
+        /* the noun agrees with the number: "1 session", not "1 sessions" */
+        (
+          [
+            ['teacherCount', detail.teacherCount],
+            ['roomCount', detail.rooms.length],
+            ['sessionCount', detail.sessions.length],
+          ] as const
+        )
+          .map(([key, value]) => `${value} ${t(`centers.${key}`, { count: value })}`)
+          .join(' · ')
+      }
+    >
+      <div className="space-y-6">
+        <Card>
+          <CardHead title={t('rooms.title')} count={detail.rooms.length} />
+          <CardRule />
+          {detail.rooms.length === 0 ? (
+            <Empty icon={<DoorOpen size={22} aria-hidden />}>{t('rooms.empty')}</Empty>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>{t('rooms.label')}</Th>
+                  <Th width="200px">{t('rooms.surveillants.label')}</Th>
+                  <Th width="240px" className="no-print" />
+                </tr>
+              </thead>
+              <tbody>
+                {detail.rooms.map((room) => (
+                  <RoomRow key={room.id} centerId={detail.id} room={room} />
+                ))}
+              </tbody>
+            </Table>
+          )}
+          <AddRooms centerId={detail.id} />
+        </Card>
 
-      <Panel
-        title={t('rooms.title')}
-        count={detail.rooms.length}
-        hint={t('rooms.add.hint')}
-        footer={<AddRooms centerId={detail.id} />}
-      >
-        {detail.rooms.length === 0 ? (
-          <Empty>{t('rooms.empty')}</Empty>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--color-hairline)]">
-                <th className="px-4 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]">
-                  {t('rooms.label')}
-                </th>
-                <th className="w-40 px-4 py-2 text-start text-[11px] font-medium uppercase tracking-wide text-[var(--color-quiet)]">
-                  {t('rooms.surveillants.label')}
-                </th>
-                <th className="w-28 px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {detail.rooms.map((room) => (
-                <RoomRow key={room.id} centerId={detail.id} room={room} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Panel>
+        {/* items-start: a short list must not stretch into a slab of white
+            just because the list beside it is long */}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <CatalogueList centerId={detail.id} kind="subjects" />
+          <CatalogueList centerId={detail.id} kind="streams" />
+        </div>
 
-      <CatalogueList centerId={detail.id} kind="subjects" />
-      <CatalogueList centerId={detail.id} kind="streams" />
-
-      <Panel
-        title={t('sessions.title')}
-        count={detail.sessions.length}
-        footer={<NewSession centerId={detail.id} />}
-      >
-        {detail.sessions.length === 0 ? (
-          <Empty>{t('sessions.empty')}</Empty>
-        ) : (
-          <ul className="divide-y divide-[var(--color-hairline)]">
-            {detail.sessions.map((session) => (
-              <li
-                key={session.id}
-                className="flex items-center justify-between gap-4 px-4 py-3.5"
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-[13px] font-medium">{session.reference}</div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-[var(--color-quiet)]">
-                    <span className="rounded border border-[var(--color-hairline)] px-1.5 py-0.5 text-[11px] font-medium">
-                      {t(`sessions.type.${session.type}`, { defaultValue: session.type })}
-                    </span>
-                    <span className="numeric">{span(session)}</span>
-                  </div>
-                </div>
-                <span className="numeric shrink-0 text-xs text-[var(--color-quiet)]">
-                  {session.slotCount} {t('sessions.slots')}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-    </div>
+        <Card>
+          <CardHead
+            title={t('sessions.title')}
+            count={detail.sessions.length}
+            actions={<NewSession centerId={detail.id} />}
+          />
+          <CardRule />
+          {detail.sessions.length === 0 ? (
+            <Empty icon={<CalendarPlus size={22} aria-hidden />}>{t('sessions.empty')}</Empty>
+          ) : (
+            <ul>
+              {detail.sessions.map((session) => {
+                const current = session.id === sessionId
+                return (
+                  <li key={session.id}>
+                    {/* choosing one here is the same act as choosing it in the
+                        header: there is one session in play at a time */}
+                    <button
+                      type="button"
+                      onClick={() => chooseSession(session.id)}
+                      className={`flex w-full items-center justify-between gap-4 border-b border-[var(--color-hairline)] px-5 py-4 text-start transition-colors last:border-b-0 ${
+                        current
+                          ? 'bg-[var(--color-accent-tint)]/50'
+                          : 'hover:bg-[var(--color-sunken)]'
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-[14px] font-medium">
+                            {session.reference}
+                          </span>
+                          {current && <Badge tone="accent">{t('sessions.current')}</Badge>}
+                        </span>
+                        <span className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-quiet)]">
+                          <span>
+                            {t(`sessions.type.${session.type}`, { defaultValue: session.type })}
+                          </span>
+                          <span className="text-[var(--color-hairline)]">·</span>
+                          {/* the two dates keep their order on an Arabic page */}
+                          <bdi dir="ltr" className="numeric">
+                            {span(session)}
+                          </bdi>
+                        </span>
+                      </span>
+                      <span className="numeric shrink-0 text-[12.5px] text-[var(--color-quiet)]">
+                        {session.slotCount} {t('sessions.slots')}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </Page>
   )
 }
