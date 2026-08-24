@@ -328,11 +328,11 @@
     "teacher": "Enseignant",
     "nobody": "Personne",
     "surveillanceCount": "Surveillances",
-    "privileges": "Réserve + permanence",
+    "privileges": "File des privilèges",
     "priorTotal": "Sessions passées",
     "total": "Total",
     "workload": "La charge",
-    "workloadHint": "Surveillance et privilèges se comptent séparément : réserve et permanence partagent une file, et le compte se poursuit d’une session à l’autre.",
+    "workloadHint": "Réserve et permanence sont deux tâches différentes, mais elles partagent une seule file : personne n'obtient un deuxième privilège tant qu'un collègue n'en a eu aucun, et le compte se poursuit d'une session à l'autre.",
     "duties": "tâches",
     "finishedAt": "Terminée à {{time}}",
     "showPartial": "La répartition est affichée telle qu’elle est : ce qui manque est marqué."

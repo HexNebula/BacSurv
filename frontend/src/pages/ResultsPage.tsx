@@ -381,10 +381,12 @@ export function ResultsPage() {
               <tr>
                 <Th width="140px">{t('teachers.matricule')}</Th>
                 <Th>{t('teachers.name')}</Th>
-                <Th width="150px">{t('results.surveillanceCount')}</Th>
-                <Th width="180px">{t('results.privileges')}</Th>
-                <Th width="150px">{t('results.priorTotal')}</Th>
-                <Th width="110px">{t('results.total')}</Th>
+                <Th width="130px">{t('results.surveillanceCount')}</Th>
+                <Th width="110px">{t('results.roleRESERVE')}</Th>
+                <Th width="130px">{t('results.rolePERMANENCE')}</Th>
+                <Th width="140px">{t('results.privileges')}</Th>
+                <Th width="140px">{t('results.priorTotal')}</Th>
+                <Th width="100px">{t('results.total')}</Th>
               </tr>
             </thead>
             <tbody>
@@ -396,11 +398,18 @@ export function ResultsPage() {
                   <Td className="font-medium">{row.name}</Td>
                   <Td className="numeric">{row.surveillance}</Td>
                   {/*
-                    réserve and permanence share one queue — nobody gets a second
-                    privilege while a colleague has had none — so they are one
-                    figure here rather than two columns to add up by eye
+                    each duty on its own, because they are different jobs: réserve
+                    is standby, permanence is being the subject's specialist on
+                    call. Their sum still has a column of its own, because that
+                    is the figure the fairness rule goes by — the two share one
+                    queue, and nobody gets a second privilege while a colleague
+                    has had none.
                   */}
-                  <Td className="numeric">{row.reserve + row.permanence}</Td>
+                  <Td className="numeric">{row.reserve}</Td>
+                  <Td className="numeric">{row.permanence}</Td>
+                  <Td className="numeric text-[var(--color-accent-ink)]">
+                    {row.reserve + row.permanence}
+                  </Td>
                   <Td className="numeric text-[var(--color-quiet)]">{row.priorTotal}</Td>
                   <Td className="numeric font-semibold">{row.total}</Td>
                 </Tr>
