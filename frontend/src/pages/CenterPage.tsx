@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import {
   Button,
   DateField,
@@ -17,6 +17,7 @@ import {
 import { CalendarDate, parseDate } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
+import { useWorkspace } from '../context/Workspace'
 import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
 import { CatalogueList } from '../components/CatalogueList'
 
@@ -451,13 +452,12 @@ function readDate(value: string | null): CalendarDate | null {
 
 export function CenterPage() {
   const { t, i18n } = useTranslation()
-  const { id } = useParams()
-  const centerId = Number(id)
+  const { centerId } = useWorkspace()
 
   const center = useQuery({
     queryKey: ['center', centerId],
     queryFn: () => api.get<CenterDetail>(`/centers/${centerId}`),
-    enabled: Number.isFinite(centerId),
+    enabled: centerId !== null,
   })
 
   const dates = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' })
@@ -481,14 +481,6 @@ export function CenterPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-10 py-9">
-      <Link
-        to="/centers"
-        className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-quiet)] transition-colors hover:text-[var(--color-ink)]"
-      >
-        <ArrowLeft size={13} className="rtl:rotate-180" aria-hidden />
-        {t('centers.title')}
-      </Link>
-
       <header className="mb-8">
         <CenterName center={detail} />
         {/* the noun agrees with the number: "1 session", not "1 sessions" */}

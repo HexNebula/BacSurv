@@ -14,12 +14,12 @@
     "rename": "Renommer"
   },
   "nav": {
-    "centers": "Centres",
     "sessions": "Sessions",
     "teachers": "Enseignants",
     "schedule": "Planning",
     "results": "Résultats",
-    "statistics": "Statistiques"
+    "statistics": "Statistiques",
+    "center": "Le centre"
   },
   "centers": {
     "title": "Centres d'examen",
@@ -226,5 +226,12 @@
       "distribution.broken": "{{one}} contrainte(s) non respectée(s), {{two}} tâche(s) non pourvue(s).",
       "distribution.ok": "Répartition complète et sans conflit."
     }
+  },
+  "setup": {
+    "title": "Bienvenue",
+    "explain": "BacSurv organise la surveillance des examens d'un centre. Commencez par lui donner son nom.",
+    "placeholder": "Lycée Ibn Batouta",
+    "start": "Créer le centre",
+    "created": "Centre créé."
   }
 }

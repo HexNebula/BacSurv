@@ -91,7 +91,7 @@ export function Readiness() {
             {data.next === step.key && (
               <Link
                 to={
-                  step.screen === 'center' ? `/centers/${data.centerId}` : `/${step.screen}`
+                  `/${step.screen}`
                 }
                 className="flex shrink-0 items-center gap-1.5 rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
               >

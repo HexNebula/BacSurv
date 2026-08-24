@@ -14,12 +14,12 @@
     "rename": "تغيير الاسم"
   },
   "nav": {
-    "centers": "المراكز",
     "sessions": "الدورات",
     "teachers": "الأساتذة",
     "schedule": "الجدولة",
     "results": "النتائج",
-    "statistics": "الإحصائيات"
+    "statistics": "الإحصائيات",
+    "center": "المركز"
   },
   "centers": {
     "title": "مراكز الامتحان",
@@ -262,5 +262,12 @@
       "distribution.broken": "{{one}} قيدًا غير محترم، و{{two}} مهمة غير مسندة.",
       "distribution.ok": "توزيع كامل وبدون تعارض."
     }
+  },
+  "setup": {
+    "title": "مرحبًا",
+    "explain": "يدبّر BacSurv حراسة الامتحانات بمركز واحد. ابدأ بتسميته.",
+    "placeholder": "ثانوية ابن بطوطة",
+    "start": "إنشاء المركز",
+    "created": "تم إنشاء المركز."
   }
 }

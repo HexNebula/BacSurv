@@ -465,7 +465,7 @@ function TeacherRow({
 
 export function TeachersPage() {
   const { t } = useTranslation()
-  const { centerId, center: current, centers, isLoading } = useWorkspace()
+  const { centerId, center: current, hasCenter, isLoading } = useWorkspace()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Teacher | undefined>()
   const [formOpen, setFormOpen] = useState(false)
@@ -500,7 +500,7 @@ export function TeachersPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [teachers.data])
 
-  if (!isLoading && centers.length === 0) {
+  if (!isLoading && !hasCenter) {
     return (
       <Page title={t('teachers.title')}>
         <div className="rounded-md border border-[var(--color-hairline)] bg-white">

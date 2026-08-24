@@ -5,7 +5,7 @@ import { LANGUAGES, applyLanguage, useLanguage, type Language } from '../i18n'
 import { WorkspaceBar } from './WorkspaceBar'
 
 const SECTIONS = [
-  { to: '/centers', key: 'nav.centers', Icon: Building2 },
+  { to: '/center', key: 'nav.center', Icon: Building2 },
   { to: '/sessions', key: 'nav.sessions', Icon: CalendarDays },
   { to: '/teachers', key: 'nav.teachers', Icon: Users },
   { to: '/schedule', key: 'nav.schedule', Icon: LayoutGrid },

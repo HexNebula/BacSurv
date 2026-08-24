@@ -6,39 +6,21 @@ import { useWorkspace } from '../context/Workspace'
 /**
  * The centre and the session every screen underneath is about.
  *
- * <p>One bar rather than a picker on each page: the choice is the same choice
- * wherever you are, and seeing it stated is what stops an administrator
- * reading one centre's teachers next to another centre's timetable.
+ * <p>The centre is stated, not chosen — an administrator runs one
+ * establishment. The session is the thing that changes: 1BAC, 2BAC, the
+ * rattrapage.
  */
 export function WorkspaceBar() {
   const { t } = useTranslation()
-  const { centers, sessionsHere, centerId, sessionId, chooseCenter, chooseSession } =
-    useWorkspace()
+  const { center, sessionsHere, sessionId, chooseSession } = useWorkspace()
 
-  if (centers.length === 0) return null
+  if (!center) return null
 
   return (
     <div className="no-print flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[var(--color-hairline)] bg-white px-10 py-2.5">
       <Building2 size={14} className="shrink-0 text-[var(--color-quiet)]" aria-hidden />
-      <Select
-        selectedKey={centerId === null ? undefined : String(centerId)}
-        onSelectionChange={(key) => chooseCenter(Number(key))}
-        aria-label={t('workspace.center')}
-      >
-        <Select.Trigger>
-          <Select.Value />
-          <Select.Indicator />
-        </Select.Trigger>
-        <Select.Popover>
-          <ListBox>
-            {centers.map((center) => (
-              <ListBox.Item key={center.id} id={String(center.id)} textValue={center.name}>
-                {center.name}
-              </ListBox.Item>
-            ))}
-          </ListBox>
-        </Select.Popover>
-      </Select>
+      {/* one account, one centre: stating it is useful, choosing it is not */}
+      <span className="text-[13px] font-medium">{center.name}</span>
 
       <span className="px-1 text-[var(--color-hairline)]" aria-hidden>
         /

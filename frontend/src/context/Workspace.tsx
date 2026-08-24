@@ -21,25 +21,26 @@ export type Session = {
  * beside another centre's timetable with no hint that they did not belong
  * together.
  *
- * <p>A session belongs to a centre, so the two move together: picking a session
- * moves the centre to its own, and picking a centre drops a session that
- * belongs elsewhere.
+ * <p>There is only ever one centre. An administrator runs their own
+ * establishment and nobody else's, so the centre is a fact about the
+ * installation rather than a choice to be offered — later it will come from the
+ * account. Sessions are the thing there are several of: 1BAC in June, 2BAC in
+ * June, the rattrapage in July.
  */
 type Workspace = {
   centerId: number | null
   sessionId: number | null
-  centers: Center[]
+  /** False only before the centre has been set up for the first time. */
+  hasCenter: boolean
   sessions: Session[]
-  /** Sessions of the chosen centre — what a session picker should offer. */
+  /** Sessions of this centre — what the session picker offers. */
   sessionsHere: Session[]
   center: Center | undefined
   session: Session | undefined
   isLoading: boolean
-  chooseCenter: (id: number | null) => void
   chooseSession: (id: number | null) => void
 }
 
-const CENTER_KEY = 'bacsurv-center'
 const SESSION_KEY = 'bacsurv-session'
 
 const WorkspaceContext = createContext<Workspace | null>(null)
@@ -55,7 +56,6 @@ function remember(key: string, value: number | null) {
 }
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [centerId, setCenterId] = useState<number | null>(() => stored(CENTER_KEY))
   const [sessionId, setSessionId] = useState<number | null>(() => stored(SESSION_KEY))
 
   const centers = useQuery({
@@ -71,45 +71,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const centerList = useMemo(() => centers.data ?? [], [centers.data])
   const sessionList = useMemo(() => sessions.data ?? [], [sessions.data])
 
-  const chooseCenter = useCallback(
-    (id: number | null) => {
-      setCenterId(id)
-      remember(CENTER_KEY, id)
-      // a session of another centre would now be showing beside it
-      setSessionId((current) => {
-        const kept = sessionList.find((session) => session.id === current)
-        const valid = kept !== undefined && kept.centerId === id
-        if (!valid) remember(SESSION_KEY, null)
-        return valid ? current : null
-      })
-    },
-    [sessionList],
-  )
+  // the one centre this installation is for
+  const center = centerList[0]
+  const centerId = center?.id ?? null
 
   const chooseSession = useCallback(
     (id: number | null) => {
       setSessionId(id)
       remember(SESSION_KEY, id)
-      const session = sessionList.find((candidate) => candidate.id === id)
-      if (session) {
-        setCenterId(session.centerId)
-        remember(CENTER_KEY, session.centerId)
-      }
     },
-    [sessionList],
+    [],
   )
-
-  // land on something rather than on an empty chooser, and drop a remembered
-  // choice that no longer exists
-  useEffect(() => {
-    if (!centers.isSuccess) return
-    const known = centerList.some((center) => center.id === centerId)
-    if (!known) {
-      const first = centerList[0]?.id ?? null
-      setCenterId(first)
-      remember(CENTER_KEY, first)
-    }
-  }, [centers.isSuccess, centerList, centerId])
 
   useEffect(() => {
     if (!sessions.isSuccess || centerId === null) return
@@ -127,25 +99,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return {
       centerId,
       sessionId,
-      centers: centerList,
+      hasCenter: center !== undefined,
       sessions: sessionList,
       sessionsHere,
-      center: centerList.find((center) => center.id === centerId),
+      center,
       session: sessionsHere.find((session) => session.id === sessionId),
       isLoading: centers.isPending || sessions.isPending,
-      chooseCenter,
       chooseSession,
     }
-  }, [
-    centerId,
-    sessionId,
-    centerList,
-    sessionList,
-    centers.isPending,
-    sessions.isPending,
-    chooseCenter,
-    chooseSession,
-  ])
+  }, [centerId, sessionId, center, sessionList, centers.isPending, sessions.isPending, chooseSession])
 
   return <WorkspaceContext value={value}>{children}</WorkspaceContext>
 }
