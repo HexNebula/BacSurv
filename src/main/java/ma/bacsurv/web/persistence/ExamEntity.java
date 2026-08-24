@@ -67,6 +67,11 @@ public class ExamEntity {
         this.stream = stream;
     }
 
+    /** Follows a subject renamed in the centre's catalogue. */
+    public void renameSubject(String subject) {
+        this.subject = subject;
+    }
+
     /** Rooms are set from the filière, which holds them for the whole session. */
     public void occupy(List<RoomEntity> replacements) {
         rooms.clear();

@@ -11,7 +11,6 @@ import {
   ListBox,
   Modal,
   Select,
-  TextField,
   TimeField,
 } from '@heroui/react'
 import { Time, parseTime } from '@internationalized/date'
@@ -41,10 +40,8 @@ type Timetable = {
   exams: Exam[]
 }
 type CenterDetail = { id: number; rooms: RoomRef[] }
-type Teacher = { matricule: string; subject: string }
-
-/** A subject taught at the centre, and how many people teach it. */
-type SubjectOption = { name: string; teachers: number }
+/** An entry of the centre's subject list, with what already depends on it. */
+type SubjectOption = { id: number; name: string; usedByTeachers: number; usedByExams: number }
 
 const CHOSEN_SESSION = 'bacsurv-session'
 
@@ -113,6 +110,13 @@ function StreamForm({
     enabled: open,
   })
 
+  /** The centre's filières: picked from, not retyped for every session. */
+  const known = useQuery({
+    queryKey: ['streams', centerId],
+    queryFn: () => api.get<{ id: number; name: string }[]>(`/centers/${centerId}/streams`),
+    enabled: open,
+  })
+
   useEffect(() => {
     if (!open) return
     setName(existing?.name ?? '')
@@ -160,10 +164,37 @@ function StreamForm({
                   save.mutate(undefined)
                 }}
               >
-                <TextField value={name} onChange={setName} fullWidth autoFocus>
+                <ComboBox
+                  allowsCustomValue
+                  menuTrigger="focus"
+                  inputValue={name}
+                  onInputChange={setName}
+                  onSelectionChange={(key) => key !== null && setName(String(key))}
+                  fullWidth
+                >
                   <Label>{t('schedule.streamName')}</Label>
-                  <Input placeholder={t('schedule.streamHint')} />
-                </TextField>
+                  <ComboBox.InputGroup>
+                    <Input placeholder={t('schedule.streamHint')} autoFocus />
+                    <ComboBox.Trigger />
+                  </ComboBox.InputGroup>
+                  <ComboBox.Popover>
+                    <ListBox>
+                      {(known.data ?? [])
+                        .filter((option) =>
+                          option.name.toLowerCase().includes(name.trim().toLowerCase()),
+                        )
+                        .map((option) => (
+                          <ListBox.Item
+                            key={option.id}
+                            id={option.name}
+                            textValue={option.name}
+                          >
+                            {option.name}
+                          </ListBox.Item>
+                        ))}
+                    </ListBox>
+                  </ComboBox.Popover>
+                </ComboBox>
 
                 <div>
                   <div className="mb-2 flex items-baseline justify-between">
@@ -325,7 +356,7 @@ function ExamForm({
                           <span className="flex w-full items-baseline justify-between gap-4">
                             <span>{option.name}</span>
                             <span className="numeric text-[11px] text-[var(--color-quiet)]">
-                              {option.teachers}
+                              {option.usedByTeachers}
                             </span>
                           </span>
                         </ListBox.Item>
@@ -334,7 +365,8 @@ function ExamForm({
                   </ComboBox.Popover>
                 </ComboBox>
 
-                {subject.trim() !== '' && !subjects.some((s) => s.name === subject.trim()) && (
+                {subject.trim() !== '' &&
+                  (subjects.find((s) => s.name === subject.trim())?.usedByTeachers ?? 0) === 0 && (
                   <p className="flex items-start gap-2 text-[12px] text-[var(--color-quiet)]">
                     <TriangleAlert
                       size={14}
@@ -519,25 +551,25 @@ export function SchedulePage() {
     enabled: sessionId !== null,
   })
 
-  const pool = useQuery({
-    queryKey: ['teachers', grid.data?.centerId],
-    queryFn: () => api.get<Teacher[]>(`/centers/${grid.data?.centerId}/teachers`),
+  /**
+   * The centre's own list of subjects — not the teacher pool. A centre may
+   * examine a paper nobody there teaches, so the two are different lists, and
+   * only this one is the catalogue.
+   */
+  const catalogue = useQuery({
+    queryKey: ['subjects', grid.data?.centerId],
+    queryFn: () => api.get<SubjectOption[]>(`/centers/${grid.data?.centerId}/subjects`),
     enabled: grid.data?.centerId !== undefined,
   })
 
-  /** The subjects actually taught at the centre — the list the solver matches
-      an épreuve against, so it is also the list worth suggesting. */
-  const subjects = useMemo<SubjectOption[]>(() => {
-    const counts = new Map<string, number>()
-    for (const teacher of pool.data ?? []) {
-      counts.set(teacher.subject, (counts.get(teacher.subject) ?? 0) + 1)
-    }
-    return [...counts.entries()]
-      .map(([name, teachers]) => ({ name, teachers }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [pool.data])
+  const subjects = catalogue.data ?? []
 
-  const taught = useMemo(() => new Set(subjects.map((s) => s.name)), [subjects])
+  /** With nobody to teach it, a permanence for that subject has no specialist. */
+  const untaught = useMemo(
+    () => new Set(subjects.filter((s) => s.usedByTeachers === 0).map((s) => s.name)),
+    [subjects],
+  )
+  const listed = useMemo(() => new Set(subjects.map((s) => s.name)), [subjects])
 
   const dayNames = useMemo(
     () => new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' }),
@@ -763,13 +795,15 @@ export function SchedulePage() {
                                     {/* nobody teaches it: the permanence has no
                                         specialist and the own-subject rule
                                         cannot bite */}
-                                    {pool.isSuccess && !taught.has(exam.subject) && (
-                                      <TriangleAlert
-                                        size={12}
-                                        className="mt-0.5 shrink-0 text-amber-500"
-                                        aria-label={t('schedule.unknownSubject')}
-                                      />
-                                    )}
+                                    {catalogue.isSuccess &&
+                                      (!listed.has(exam.subject) ||
+                                        untaught.has(exam.subject)) && (
+                                        <TriangleAlert
+                                          size={12}
+                                          className="mt-0.5 shrink-0 text-amber-500"
+                                          aria-label={t('schedule.unknownSubject')}
+                                        />
+                                      )}
                                     <span>{exam.subject}</span>
                                   </span>
                                   <span className="numeric mt-0.5 block text-[11px] text-[var(--color-quiet)]">

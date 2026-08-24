@@ -9,7 +9,9 @@
     "delete": "Supprimer",
     "loading": "Chargement…",
     "error": "Une erreur est survenue.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "add": "Ajouter",
+    "rename": "Renommer"
   },
   "nav": {
     "centers": "Centres",
@@ -161,6 +163,28 @@
     "addMore": "Ajouter une autre",
     "roomCount_one": "salle",
     "roomCount_other": "salles",
-    "unknownSubject": "Aucun enseignant du centre n'enseigne cette matière : la permanence n'aura pas de spécialiste."
+    "unknownSubject": "Aucun enseignant de cette matière au centre : la permanence n'aura pas de spécialiste."
+  },
+  "catalogue": {
+    "renamed": "Renommé. Les enseignants et les épreuves concernés ont suivi.",
+    "unused": "Pas encore utilisée",
+    "usedByTeachers_one": "enseignant",
+    "usedByTeachers_other": "enseignants",
+    "usedByExams_one": "épreuve",
+    "usedByExams_other": "épreuves",
+    "subjects": {
+      "title": "Les matières",
+      "hint": "Les matières que ce centre examine. Elles alimentent la liste des enseignants et celle des épreuves.",
+      "empty": "Aucune matière. Ajoutez-les ici, ou importez la liste des enseignants.",
+      "placeholder": "Mathématiques"
+    },
+    "streams": {
+      "title": "Les filières",
+      "hint": "Les filières que ce centre accueille. Chaque session choisit les siennes et leur attribue des salles.",
+      "empty": "Aucune filière. Ajoutez celles que ce centre accueille.",
+      "placeholder": "Sciences physiques"
+    },
+    "usedBySessions_one": "session",
+    "usedBySessions_other": "sessions"
   }
 }

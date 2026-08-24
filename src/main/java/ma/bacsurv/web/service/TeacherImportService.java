@@ -40,10 +40,13 @@ public class TeacherImportService {
 
     private final CenterRepository centers;
     private final TeacherRepository teachers;
+    private final CatalogueService catalogue;
 
-    public TeacherImportService(CenterRepository centers, TeacherRepository teachers) {
+    public TeacherImportService(CenterRepository centers, TeacherRepository teachers,
+                                CatalogueService catalogue) {
         this.centers = centers;
         this.teachers = teachers;
+        this.catalogue = catalogue;
     }
 
     @Transactional(readOnly = true)
@@ -79,6 +82,9 @@ public class TeacherImportService {
         Preview preview = preview(centerId, csv);
 
         for (TeacherCsv.Row row : new TeacherCsv().parse(csv).rows()) {
+            // a spreadsheet may name a subject the centre has not listed yet;
+            // recording it keeps the import from failing over a missing entry
+            catalogue.rememberSubject(centerId, row.subject());
             teachers.findByCenterIdAndMatricule(centerId, row.matricule())
                     .ifPresentOrElse(
                             existing -> existing.update(existing.getReference(), row.name(),

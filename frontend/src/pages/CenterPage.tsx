@@ -18,6 +18,7 @@ import { CalendarDate, parseDate } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
 import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
+import { CatalogueList } from '../components/CatalogueList'
 
 type Room = {
   id: number
@@ -539,6 +540,9 @@ export function CenterPage() {
           </table>
         )}
       </Panel>
+
+      <CatalogueList centerId={detail.id} kind="subjects" />
+      <CatalogueList centerId={detail.id} kind="streams" />
 
       <Panel
         title={t('sessions.title')}

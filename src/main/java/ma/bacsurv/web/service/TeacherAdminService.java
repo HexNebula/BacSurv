@@ -30,12 +30,14 @@ public class TeacherAdminService {
     private final CenterRepository centers;
     private final TeacherRepository teachers;
     private final AssignmentRepository assignments;
+    private final CatalogueService catalogue;
 
     public TeacherAdminService(CenterRepository centers, TeacherRepository teachers,
-                               AssignmentRepository assignments) {
+                               AssignmentRepository assignments, CatalogueService catalogue) {
         this.centers = centers;
         this.teachers = teachers;
         this.assignments = assignments;
+        this.catalogue = catalogue;
     }
 
     /** What an administrator can state about a teacher. */
@@ -55,6 +57,7 @@ public class TeacherAdminService {
 
         // reference mirrors the matricule, as the import does: one identity,
         // not two to keep in step
+        catalogue.rememberSubject(centerId, subject);
         teachers.save(new TeacherEntity(center, matricule, matricule, name, subject,
                 blankToNull(details.establishment()), blankToNull(details.gender())));
     }
@@ -63,6 +66,7 @@ public class TeacherAdminService {
     @Transactional
     public void edit(long centerId, String matricule, Details details) {
         TeacherEntity teacher = teacher(centerId, matricule);
+        catalogue.rememberSubject(centerId, details.subject());
         teacher.update(teacher.getReference(),
                 required(details.name(), "teacher.name"),
                 required(details.subject(), "teacher.subject"),

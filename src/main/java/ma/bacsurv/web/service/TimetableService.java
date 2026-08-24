@@ -42,12 +42,14 @@ public class TimetableService {
     private final OperationRepository operations;
     private final StreamRepository streams;
     private final RoomRepository rooms;
+    private final CatalogueService catalogue;
 
     public TimetableService(OperationRepository operations, StreamRepository streams,
-                            RoomRepository rooms) {
+                            RoomRepository rooms, CatalogueService catalogue) {
         this.operations = operations;
         this.streams = streams;
         this.rooms = rooms;
+        this.catalogue = catalogue;
     }
 
     public record RoomRef(Long id, String reference, String label) {}
@@ -106,6 +108,7 @@ public class TimetableService {
         });
 
         int ordinal = streams.ofOperation(operationId).size();
+        catalogue.rememberStream(operation.getCenter().getId(), cleaned);
         return streams.save(new StreamEntity(operation, cleaned, ordinal, roomsOf(roomIds)))
                 .getId();
     }
@@ -174,6 +177,7 @@ public class TimetableService {
                 .filter(exam -> exam.getSlot().getStartTime().equals(startTime))
                 .forEach(exam -> exam.getSlot().getExams().remove(exam));
 
+        catalogue.rememberSubject(operation.getCenter().getId(), cleaned);
         ExamSlotEntity slot = slotAt(operation, date, startTime, endTime);
         ExamEntity exam = new ExamEntity(slot, nextExamReference(operation), cleaned,
                 stream.getName(), 0, 1, stream.getRooms());
