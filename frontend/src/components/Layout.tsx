@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Building2, CalendarDays, Users, LayoutGrid, ListChecks, ChartNoAxesColumn } from 'lucide-react'
 import { LANGUAGES, applyLanguage, useLanguage, type Language } from '../i18n'
+import { WorkspaceBar } from './WorkspaceBar'
 
 const SECTIONS = [
   { to: '/centers', key: 'nav.centers', Icon: Building2 },
@@ -93,6 +94,7 @@ export function Layout() {
       </aside>
 
       <main className="min-w-0 flex-1">
+        <WorkspaceBar />
         <Outlet />
       </main>
     </div>

@@ -186,5 +186,10 @@
     },
     "usedBySessions_one": "session",
     "usedBySessions_other": "sessions"
+  },
+  "workspace": {
+    "center": "Centre",
+    "session": "Session",
+    "noSession": "Aucune session"
   }
 }

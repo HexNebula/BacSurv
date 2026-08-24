@@ -222,5 +222,10 @@
     "usedBySessions_few": "دورات",
     "usedBySessions_many": "دورة",
     "usedBySessions_other": "دورة"
+  },
+  "workspace": {
+    "center": "المركز",
+    "session": "الدورة",
+    "noSession": "لا توجد دورة"
   }
 }

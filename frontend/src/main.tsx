@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { I18nProvider } from 'react-aria'
 import { Toast } from '@heroui/react'
 import App from './App.tsx'
+import { WorkspaceProvider } from './context/Workspace'
 import './index.css'
 import { LANGUAGES, applyLanguage, storedLanguage, useLanguage } from './i18n'
 
@@ -33,9 +34,11 @@ function Root() {
        components: ar-MA gives 0123456789 where plain ar gives ٠١٢٣ */
     <I18nProvider locale={LANGUAGES[language].tag}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <WorkspaceProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </WorkspaceProvider>
         {/*
           Toasts carry one kind of problem only: something the administrator
           just pressed was refused, and retyping makes it go away. A schedule

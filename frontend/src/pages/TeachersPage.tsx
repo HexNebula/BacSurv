@@ -6,16 +6,13 @@ import {
   Button,
   Input,
   Label,
-  ListBox,
   Modal,
-  Select,
   TextField,
 } from '@heroui/react'
 import { api } from '../lib/api'
+import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
 import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
-
-type Center = { id: number; name: string; teacherCount: number }
 
 type Teacher = {
   matricule: string
@@ -37,8 +34,6 @@ type Preview = {
   unchanged: Teacher[]
   errors: RowError[]
 }
-
-const CHOSEN_CENTER = 'bacsurv-center'
 
 /** An empty field is sent as null, so the server clears it rather than storing "". */
 function trimmed(value: string): string | null {
@@ -470,27 +465,13 @@ function TeacherRow({
 
 export function TeachersPage() {
   const { t } = useTranslation()
-  const [centerId, setCenterId] = useState<number | null>(() => {
-    const saved = Number(localStorage.getItem(CHOSEN_CENTER))
-    return Number.isFinite(saved) && saved > 0 ? saved : null
-  })
+  const { centerId, center: current, centers, isLoading } = useWorkspace()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Teacher | undefined>()
   const [formOpen, setFormOpen] = useState(false)
 
-  const centers = useQuery({
-    queryKey: ['centers'],
-    queryFn: () => api.get<Center[]>('/centers'),
-  })
 
-  // land on a centre rather than an empty screen with a chooser
-  useEffect(() => {
-    if (centerId === null && centers.data?.length) setCenterId(centers.data[0].id)
-  }, [centers.data, centerId])
 
-  useEffect(() => {
-    if (centerId !== null) localStorage.setItem(CHOSEN_CENTER, String(centerId))
-  }, [centerId])
 
   const teachers = useQuery({
     queryKey: ['teachers', centerId],
@@ -519,15 +500,7 @@ export function TeachersPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [teachers.data])
 
-  if (centers.isError) {
-    return (
-      <Page title={t('teachers.title')}>
-        <Failed error={centers.error as Error} onRetry={() => void centers.refetch()} />
-      </Page>
-    )
-  }
-
-  if (centers.isSuccess && centers.data.length === 0) {
+  if (!isLoading && centers.length === 0) {
     return (
       <Page title={t('teachers.title')}>
         <div className="rounded-md border border-[var(--color-hairline)] bg-white">
@@ -537,7 +510,6 @@ export function TeachersPage() {
     )
   }
 
-  const current = centers.data?.find((center) => center.id === centerId)
 
   return (
     <Page
@@ -562,27 +534,6 @@ export function TeachersPage() {
       }
     >
       <div className="mb-5 flex flex-wrap items-end gap-3">
-        <Select
-          selectedKey={centerId === null ? undefined : String(centerId)}
-          onSelectionChange={(key) => setCenterId(Number(key))}
-          className="w-72"
-        >
-          <Label>{t('teachers.center')}</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {(centers.data ?? []).map((center) => (
-                <ListBox.Item key={center.id} id={String(center.id)} textValue={center.name}>
-                  {center.name}
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-
         {(teachers.data?.length ?? 0) > 0 && (
           <TextField value={search} onChange={setSearch} className="w-72">
             <Label>{t('teachers.search')}</Label>

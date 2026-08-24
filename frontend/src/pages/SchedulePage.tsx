@@ -15,10 +15,10 @@ import {
 } from '@heroui/react'
 import { Time, parseTime } from '@internationalized/date'
 import { api } from '../lib/api'
+import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
 import { Page, Panel, Failed, Loading, Empty } from '../components/Page'
 
-type Operation = { id: number; reference: string; centerName: string; type: string }
 type RoomRef = { id: number; reference: string; label: string }
 type Stream = { id: number; name: string; rooms: RoomRef[] }
 type Exam = {
@@ -42,8 +42,6 @@ type Timetable = {
 type CenterDetail = { id: number; rooms: RoomRef[] }
 /** An entry of the centre's subject list, with what already depends on it. */
 type SubjectOption = { id: number; name: string; usedByTeachers: number; usedByExams: number }
-
-const CHOSEN_SESSION = 'bacsurv-session'
 
 /**
  * Which half of the day an épreuve falls in.
@@ -518,10 +516,7 @@ function CopyStream({
 
 export function SchedulePage() {
   const { t, i18n } = useTranslation()
-  const [sessionId, setSessionId] = useState<number | null>(() => {
-    const saved = Number(localStorage.getItem(CHOSEN_SESSION))
-    return Number.isFinite(saved) && saved > 0 ? saved : null
-  })
+  const { sessionId, sessionsHere, isLoading } = useWorkspace()
   const [streamForm, setStreamForm] = useState<{ open: boolean; stream?: Stream }>({ open: false })
   const [examForm, setExamForm] = useState<{
     open: boolean
@@ -532,18 +527,8 @@ export function SchedulePage() {
   }>({ open: false, stream: null, day: null, half: 'morning' })
   const [copyFor, setCopyFor] = useState<Stream | null>(null)
 
-  const sessions = useQuery({
-    queryKey: ['operations'],
-    queryFn: () => api.get<Operation[]>('/operations'),
-  })
 
-  useEffect(() => {
-    if (sessionId === null && sessions.data?.length) setSessionId(sessions.data[0].id)
-  }, [sessions.data, sessionId])
 
-  useEffect(() => {
-    if (sessionId !== null) localStorage.setItem(CHOSEN_SESSION, String(sessionId))
-  }, [sessionId])
 
   const grid = useQuery({
     queryKey: ['timetable', sessionId],
@@ -588,15 +573,7 @@ export function SchedulePage() {
       .filter((exam) => halfOf(exam.startTime) === half)
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
-  if (sessions.isError) {
-    return (
-      <Page title={t('schedule.title')}>
-        <Failed error={sessions.error as Error} onRetry={() => void sessions.refetch()} />
-      </Page>
-    )
-  }
-
-  if (sessions.isSuccess && sessions.data.length === 0) {
+  if (!isLoading && sessionsHere.length === 0) {
     return (
       <Page title={t('schedule.title')}>
         <div className="rounded-md border border-[var(--color-hairline)] bg-white">
@@ -622,33 +599,6 @@ export function SchedulePage() {
         )
       }
     >
-      <div className="mb-5">
-        <Select
-          selectedKey={sessionId === null ? undefined : String(sessionId)}
-          onSelectionChange={(key) => setSessionId(Number(key))}
-          className="w-80"
-        >
-          <Label>{t('schedule.session')}</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {(sessions.data ?? []).map((session) => (
-                <ListBox.Item
-                  key={session.id}
-                  id={String(session.id)}
-                  textValue={session.reference}
-                >
-                  {session.reference}
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </div>
-
       <Panel
         title={t('schedule.grid')}
         count={data?.exams.length}
