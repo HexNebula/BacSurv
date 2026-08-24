@@ -4,6 +4,7 @@ import { Hammer } from 'lucide-react'
 import { AppShell } from './components/AppShell'
 import { CenterPage } from './pages/CenterPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { ResultsPage } from './pages/ResultsPage'
 import { RoomsPage } from './pages/RoomsPage'
 import { SetupPage } from './pages/SetupPage'
 import { StreamsPage } from './pages/StreamsPage'
@@ -49,7 +50,7 @@ export default function App() {
         <Route path="/streams" element={<StreamsPage />} />
         <Route path="/teachers" element={<TeachersPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
-        <Route path="/results" element={<NotBuilt title="Résultats" />} />
+        <Route path="/results" element={<ResultsPage />} />
         <Route path="/statistics" element={<NotBuilt title="Statistiques" />} />
       </Route>
     </Routes>
