@@ -67,6 +67,26 @@ public class TeacherApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(teachers.pool(id));
     }
 
+    /** The days a teacher is known to be away, told in advance. */
+    @GetMapping("/{matricule}/absences")
+    public List<TeacherAdminService.Absence> absences(@PathVariable long id,
+                                                      @PathVariable String matricule) {
+        return admin.absencesOf(id, matricule);
+    }
+
+    /**
+     * Replaces the whole list. The screen sends what it holds rather than
+     * additions and removals, so nothing depends on it having kept track of
+     * which row was which.
+     */
+    @PostMapping("/{matricule}/absences")
+    public List<TeacherAdminService.Absence> replaceAbsences(
+            @PathVariable long id, @PathVariable String matricule,
+            @RequestBody List<TeacherAdminService.Absence> body) {
+        admin.replaceAbsences(id, matricule, body);
+        return admin.absencesOf(id, matricule);
+    }
+
     @PostMapping(value = "/{matricule}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public List<TeacherImportService.Change> edit(@PathVariable long id,
                                                   @PathVariable String matricule,

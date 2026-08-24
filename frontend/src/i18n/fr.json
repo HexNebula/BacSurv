@@ -360,5 +360,23 @@
       "ownSubject": "{{one}} ne peut pas surveiller une épreuve de sa propre matière ({{two}})."
     },
     "edit": "Modifier"
+  },
+  "absences": {
+    "title": "Absences",
+    "of": "Absences de {{name}}",
+    "hint": "Les jours où cet enseignant ne peut pas être affecté. Prévenus à l’avance : une absence du matin même se répare dans la répartition.",
+    "none": "Aucune absence connue.",
+    "add": "Ajouter une absence",
+    "date": "Jour",
+    "wholeDay": "Toute la journée",
+    "from": "De",
+    "to": "À",
+    "remove": "Retirer",
+    "saved": "Absences enregistrées.",
+    "count_one": "{{count}} absence",
+    "count_other": "{{count}} absences",
+    "badge": "Absent",
+    "away": "Absents",
+    "dateMissing": "Indiquez le jour de chaque absence."
   }
 }

@@ -12,6 +12,8 @@ import ma.bacsurv.web.service.CenterAdminService;
 import ma.bacsurv.web.service.TeacherAdminService;
 import ma.bacsurv.web.service.TeacherAdminService.Details;
 import ma.bacsurv.web.service.TeacherImportService;
+import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,6 +44,64 @@ class TeacherAdminTest {
 
     private static Details details(String matricule, String name, String subject) {
         return new Details(matricule, name, subject, "Lycée Ibn Sina", "F");
+    }
+
+    /**
+     * A teacher who said in May that he is away on 5 June must not be given a
+     * duty that day. The solver has always honoured unavailabilities; until now
+     * nothing could record one, so the fact existed only in the administrator's
+     * head and the distribution was quietly wrong.
+     */
+    @Test
+    void absencesAreRecordedAndReadBack() {
+        long centre = centre();
+        admin.add(centre, details("D500100", "Youssef Berrada", "Physique et chimie"));
+
+        admin.replaceAbsences(centre, "D500100", List.of(
+                new TeacherAdminService.Absence(null, LocalDate.of(2026, 6, 5), null, null),
+                new TeacherAdminService.Absence(null, LocalDate.of(2026, 6, 4),
+                        LocalTime.of(14, 0), LocalTime.of(18, 0))));
+
+        var absences = admin.absencesOf(centre, "D500100");
+        assertEquals(2, absences.size());
+        // the earliest day first: a list of dates is read as a calendar
+        assertEquals(LocalDate.of(2026, 6, 4), absences.getFirst().date());
+        assertEquals(LocalTime.of(14, 0), absences.getFirst().startTime());
+        assertNull(absences.get(1).startTime(), "no hours means the whole day");
+
+        assertEquals(2, pool.pool(centre).getFirst().absences(),
+                "the pool has to show who cannot be given a duty");
+    }
+
+    /** Sending the whole list is what removes one: the screen states the truth. */
+    @Test
+    void replacingWithFewerRemovesTheRest() {
+        long centre = centre();
+        admin.add(centre, details("D500101", "Salma Idrissi", "Arabe"));
+        admin.replaceAbsences(centre, "D500101", List.of(
+                new TeacherAdminService.Absence(null, LocalDate.of(2026, 6, 5), null, null)));
+
+        admin.replaceAbsences(centre, "D500101", List.of());
+
+        assertTrue(admin.absencesOf(centre, "D500101").isEmpty());
+    }
+
+    /** Half a séance is not a séance: both hours, or neither. */
+    @Test
+    void halfStatedHoursAreRefused() {
+        long centre = centre();
+        admin.add(centre, details("D500102", "Karim Tazi", "SVT"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> admin.replaceAbsences(centre, "D500102", List.of(
+                        new TeacherAdminService.Absence(null, LocalDate.of(2026, 6, 5),
+                                LocalTime.of(8, 0), null))));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> admin.replaceAbsences(centre, "D500102", List.of(
+                        new TeacherAdminService.Absence(null, LocalDate.of(2026, 6, 5),
+                                LocalTime.of(11, 0), LocalTime.of(8, 0)))),
+                "an absence cannot end before it starts");
     }
 
     @Test

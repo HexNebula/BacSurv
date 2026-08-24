@@ -22,8 +22,14 @@ import java.util.List;
 public class TeacherImportService {
 
     /** What importing this file would do to one teacher. */
+    /**
+     * A teacher as a screen reads them. {@code absences} is how many days the
+     * teacher is known to be away — the pool has to show who cannot be given a
+     * duty, and a file being previewed states nothing about that, so a row that
+     * has not been saved yet reports none.
+     */
     public record Change(String matricule, String name, String subject,
-                         String establishment, String gender, String was) {}
+                         String establishment, String gender, String was, int absences) {}
 
     public record Preview(long centerId, String centerName,
                           List<Change> created, List<Change> updated, List<Change> unchanged,
@@ -61,7 +67,8 @@ public class TeacherImportService {
         for (TeacherCsv.Row row : parsed.rows()) {
             var existing = teachers.findByCenterIdAndMatricule(centerId, row.matricule());
             Change change = new Change(row.matricule(), row.name(), row.subject(),
-                    row.establishment(), row.gender(), existing.map(this::describe).orElse(null));
+                    row.establishment(), row.gender(), existing.map(this::describe).orElse(null),
+                    existing.map(t -> t.getUnavailabilities().size()).orElse(0));
             if (existing.isEmpty()) {
                 created.add(change);
             } else if (differs(existing.get(), row)) {
@@ -101,7 +108,8 @@ public class TeacherImportService {
     public List<Change> pool(long centerId) {
         return teachers.findPoolOfCenter(centerId).stream()
                 .map(t -> new Change(t.getMatricule(), t.getName(), t.getSubject(),
-                        t.getEstablishment(), t.getGender(), null))
+                        t.getEstablishment(), t.getGender(), null,
+                        t.getUnavailabilities().size()))
                 .toList();
     }
 

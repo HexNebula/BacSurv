@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /*
+ * React Aria states as Tailwind variants: selected:, pressed:, entering:, and
+ * the group- forms of each. Without this the variants parse but match nothing,
+ * so a ticked checkbox renders as an empty box — which is exactly what it did.
+ */
+@plugin 'tailwindcss-react-aria-components';
+
+/*
  * The faces are carried inside the application, not named and hoped for.
  * Naming a font the machine turns out not to have is how a page ends up in
  * whatever the system picked — on one Linux desktop `system-ui` resolves to a

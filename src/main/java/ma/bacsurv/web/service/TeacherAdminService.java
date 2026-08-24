@@ -5,9 +5,15 @@ import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.CenterEntity;
 import ma.bacsurv.web.persistence.CenterRepository;
 import ma.bacsurv.web.persistence.TeacherEntity;
+import ma.bacsurv.web.persistence.UnavailabilityEntity;
 import ma.bacsurv.web.persistence.TeacherRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Comparator;
+import java.util.ArrayList;
 
 /**
  * Changing the pool one person at a time.
@@ -73,6 +79,59 @@ public class TeacherAdminService {
                 required(details.subject(), "teacher.subject"),
                 blankToNull(details.establishment()),
                 gender(details.gender()));
+    }
+
+    /**
+     * A day, or a half of one, on which a teacher cannot be given a duty.
+     *
+     * <p>Null times mean the whole day. A séance is expressed as its hours
+     * rather than as "matin" or "après-midi", because a centre's morning is a
+     * convention and an épreuve's hours are a fact.
+     */
+    public record Absence(Long id, LocalDate date, LocalTime startTime, LocalTime endTime) {}
+
+    @Transactional(readOnly = true)
+    public List<Absence> absencesOf(long centerId, String matricule) {
+        return teacher(centerId, matricule).getUnavailabilities().stream()
+                .map(row -> new Absence(row.getId(), row.getDate(),
+                        row.getStartTime(), row.getEndTime()))
+                .sorted(Comparator.comparing(Absence::date)
+                        .thenComparing(absence -> absence.startTime() == null
+                                ? LocalTime.MIN : absence.startTime()))
+                .toList();
+    }
+
+    /**
+     * Replaces everything known about when a teacher is away.
+     *
+     * <p>The whole list is sent rather than one addition at a time: an
+     * administrator correcting a date thinks of it as "these are the days he is
+     * away", and a screen that has to remember which rows it removed is a screen
+     * that eventually removes the wrong one.
+     *
+     * <p>These are absences known in advance — a teacher who says in May that he
+     * is away on 5 June. Somebody who fails to turn up on the morning is not
+     * this: that is a distribution to repair on the spot, not a fact to record.
+     */
+    @Transactional
+    public void replaceAbsences(long centerId, String matricule, List<Absence> absences) {
+        TeacherEntity teacher = teacher(centerId, matricule);
+        List<UnavailabilityEntity> rows = new ArrayList<>();
+        for (Absence absence : absences == null ? List.<Absence>of() : absences) {
+            if (absence == null || absence.date() == null) {
+                throw new IllegalArgumentException("absence.date.required");
+            }
+            LocalTime start = absence.startTime();
+            LocalTime end = absence.endTime();
+            if ((start == null) != (end == null)) {
+                throw new IllegalArgumentException("absence.hours.incomplete");
+            }
+            if (start != null && !start.isBefore(end)) {
+                throw new IllegalArgumentException("absence.hours.backwards");
+            }
+            rows.add(new UnavailabilityEntity(teacher, absence.date(), start, end));
+        }
+        teacher.replaceUnavailabilities(rows);
     }
 
     /**

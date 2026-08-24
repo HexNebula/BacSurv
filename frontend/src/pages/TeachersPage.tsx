@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { FileUp, Layers, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { CalendarOff, FileUp, Layers, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
 import { Page } from '../components/Page'
+import { Absences } from '../components/Absences'
 import {
   Badge,
   Button,
@@ -33,6 +34,8 @@ type Teacher = {
   gender: string | null
   /** How the record read before an import would change it. */
   was: string | null
+  /** Days this teacher is known to be away, and so cannot be given a duty. */
+  absences: number
 }
 
 type RowError = { line: number; reason: string; detail: string | null; content: string }
@@ -361,10 +364,12 @@ function TeacherRow({
   centerId,
   teacher,
   onEdit,
+  onAbsences,
 }: {
   centerId: number
   teacher: Teacher
   onEdit: () => void
+  onAbsences: () => void
 }) {
   const { t } = useTranslation()
   const [confirming, setConfirming] = useState(false)
@@ -386,6 +391,17 @@ function TeacherRow({
       <Td className="font-medium">{teacher.name}</Td>
       <Td>{teacher.subject}</Td>
       <Td className="text-[12.5px] text-[var(--color-quiet)]">{teacher.establishment ?? '—'}</Td>
+      <Td>
+        {/* somebody away cannot be given a duty that day, and the solver already
+            knows it — the pool has to say so too */}
+        {teacher.absences > 0 ? (
+          <Badge tone="warn" icon={<CalendarOff size={12} aria-hidden />}>
+            {t('absences.count', { count: teacher.absences })}
+          </Badge>
+        ) : (
+          <span className="text-[12.5px] text-[var(--color-faint)]">—</span>
+        )}
+      </Td>
       <Td className="no-print text-end">
         {/* the confirmation stays in the row: what you are about to lose is
             still on the screen while you decide */}
@@ -405,6 +421,15 @@ function TeacherRow({
           </div>
         ) : (
           <div className="flex items-center justify-end gap-1">
+            <Button
+              size="sm"
+              variant="quiet"
+              isIcon
+              aria-label={t('absences.title')}
+              onPress={onAbsences}
+            >
+              <CalendarOff size={15} aria-hidden />
+            </Button>
             <Button
               size="sm"
               variant="quiet"
@@ -446,6 +471,7 @@ export function TeachersPage() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Teacher | undefined>()
   const [formOpen, setFormOpen] = useState(false)
+  const [absencesFor, setAbsencesFor] = useState<Teacher | null>(null)
 
   const teachers = useQuery({
     queryKey: ['teachers', centerId],
@@ -569,8 +595,9 @@ export function TeachersPage() {
                     <Th width="140px">{t('teachers.matricule')}</Th>
                     <Th>{t('teachers.name')}</Th>
                     <Th width="200px">{t('teachers.subject')}</Th>
-                    <Th width="200px">{t('teachers.establishment')}</Th>
-                    <Th width="120px" className="no-print" />
+                    <Th width="180px">{t('teachers.establishment')}</Th>
+                    <Th width="150px">{t('absences.title')}</Th>
+                    <Th width="150px" className="no-print" />
                   </tr>
                 </thead>
                 <tbody>
@@ -583,6 +610,7 @@ export function TeachersPage() {
                         setEditing(teacher)
                         setFormOpen(true)
                       }}
+                      onAbsences={() => setAbsencesFor(teacher)}
                     />
                   ))}
                 </tbody>
@@ -612,6 +640,16 @@ export function TeachersPage() {
             </ul>
           )}
         </Card>
+      )}
+
+      {centerId !== null && (
+        <Absences
+          centerId={centerId}
+          matricule={absencesFor?.matricule ?? null}
+          name={absencesFor?.name ?? ''}
+          open={absencesFor !== null}
+          onClose={() => setAbsencesFor(null)}
+        />
       )}
 
       {centerId !== null && (
