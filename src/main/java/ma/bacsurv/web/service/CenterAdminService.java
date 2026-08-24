@@ -46,8 +46,16 @@ public class CenterAdminService {
     public record SessionView(Long id, String reference, String type,
                               LocalDate startsOn, LocalDate endsOn, int slotCount) {}
 
+    /**
+     * How the establishment is identified on paper: the académie régionale, the
+     * direction provinciale, the commune and its ministerial reference. Nothing
+     * here reaches the solver — it is the head of a printed convocation.
+     */
+    public record CenterIdentity(String academy, String directorate, String commune,
+                                 String ministerialReference) {}
+
     /** A centre and everything set up under it. */
-    public record CenterDetail(Long id, String name, int teacherCount,
+    public record CenterDetail(Long id, String name, CenterIdentity identity, int teacherCount,
                                List<RoomView> rooms, List<SessionView> sessions) {}
 
     /**
@@ -101,7 +109,7 @@ public class CenterAdminService {
                         operation.getSlots().size()))
                 .toList();
 
-        return new CenterDetail(center.getId(), center.getName(),
+        return new CenterDetail(center.getId(), center.getName(), identityOf(center),
                 teachers.findPoolOfCenter(centerId).size(), roomViews, sessionViews);
     }
 
@@ -119,6 +127,38 @@ public class CenterAdminService {
         CenterEntity center = centers.findById(centerId).orElseThrow(
                 () -> new IllegalArgumentException("no center with id " + centerId));
         center.setName(required(name, "center.name"));
+    }
+
+    /**
+     * The centre's administrative identity, as the ministry writes it.
+     *
+     * <p>The name is required because a centre without one cannot be printed on
+     * anything. The four identifiers are not: an administrator setting up in
+     * June should not be stopped by a reference they have to go and look up, so
+     * a blank field is stored as nothing rather than as an empty string.
+     */
+    @Transactional
+    public void editCenter(long centerId, String name, CenterIdentity identity) {
+        CenterEntity center = centers.findById(centerId).orElseThrow(
+                () -> new IllegalArgumentException("no center with id " + centerId));
+        center.setName(required(name, "center.name"));
+        if (identity == null) return;
+        center.setAcademy(trimmed(identity.academy()));
+        center.setDirectorate(trimmed(identity.directorate()));
+        center.setCommune(trimmed(identity.commune()));
+        center.setMinisterialReference(trimmed(identity.ministerialReference()));
+    }
+
+    private static CenterIdentity identityOf(CenterEntity center) {
+        return new CenterIdentity(center.getAcademy(), center.getDirectorate(),
+                center.getCommune(), center.getMinisterialReference());
+    }
+
+    /** An untyped field is absent, not present and empty. */
+    private static String trimmed(String value) {
+        if (value == null) return null;
+        String cleaned = value.trim();
+        return cleaned.isEmpty() ? null : cleaned;
     }
 
     /**

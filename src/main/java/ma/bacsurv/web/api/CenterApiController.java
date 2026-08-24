@@ -43,6 +43,14 @@ public class CenterApiController {
     }
 
     public record NewCenter(String name) {}
+
+    /**
+     * The centre's name together with how it is identified on paper. The four
+     * identifiers may all be absent: they are needed to print a convocation,
+     * not to set a centre up.
+     */
+    public record CenterEdit(String name, String academy, String directorate, String commune,
+                             String ministerialReference) {}
     public record NewRooms(int count, String prefix) {}
     public record RoomEdit(String label, Integer surveillants) {}
     public record NewSession(String reference, String type, LocalDate startsOn, LocalDate endsOn) {}
@@ -67,6 +75,15 @@ public class CenterApiController {
     public CenterAdminService.CenterDetail rename(@PathVariable long id,
                                                   @RequestBody NewCenter body) {
         admin.renameCenter(id, body.name());
+        return admin.detail(id);
+    }
+
+    /** The name and the administrative identity, saved as one form. */
+    @PostMapping("/{id}")
+    public CenterAdminService.CenterDetail edit(@PathVariable long id,
+                                                @RequestBody CenterEdit body) {
+        admin.editCenter(id, body.name(), new CenterAdminService.CenterIdentity(
+                body.academy(), body.directorate(), body.commune(), body.ministerialReference()));
         return admin.detail(id);
     }
 

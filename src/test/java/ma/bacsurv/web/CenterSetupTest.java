@@ -20,6 +20,36 @@ class CenterSetupTest {
 
     @Autowired CenterAdminService admin;
 
+    /**
+     * A centre is identified on paper by its académie, its direction
+     * provinciale, its commune and its ministerial reference. None of it
+     * reaches the solver, and none of it is required: an administrator who has
+     * not gone to look the reference up should still be able to set the centre
+     * up, so a blank arrives as nothing rather than as an empty string.
+     */
+    @Test
+    void aCentreCarriesItsAdministrativeIdentity() {
+        long centre = admin.createCenter("Lycée Tazenakht " + System.nanoTime());
+
+        admin.editCenter(centre, "Lycée Tazenakht", new CenterAdminService.CenterIdentity(
+                "AREF Drâa-Tafilalet", "Direction provinciale d'Ouarzazate", "Tazenakht", "   "));
+
+        var identity = admin.detail(centre).identity();
+        assertEquals("AREF Drâa-Tafilalet", identity.academy());
+        assertEquals("Direction provinciale d'Ouarzazate", identity.directorate());
+        assertEquals("Tazenakht", identity.commune());
+        assertNull(identity.ministerialReference());
+    }
+
+    /** The name is the one thing a centre cannot be left without. */
+    @Test
+    void aCentreCannotLoseItsName() {
+        long centre = admin.createCenter("Lycée Ibn Sina " + System.nanoTime());
+
+        assertThrows(IllegalArgumentException.class, () -> admin.editCenter(centre, "  ",
+                new CenterAdminService.CenterIdentity(null, null, null, null)));
+    }
+
     @Test
     void thirteenIdenticalRoomsAreOneEntry() {
         long centre = admin.createCenter("Lycée Ibn Batouta " + System.nanoTime());
