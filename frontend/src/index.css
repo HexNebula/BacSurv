@@ -15,13 +15,20 @@
  * also be offline, so nothing is fetched from a font service either: these
  * imports put the woff2 files in the build, and the build goes in the jar.
  */
-@import '@fontsource-variable/inter';
-@import '@fontsource/noto-naskh-arabic/arabic-400.css';
-@import '@fontsource/noto-naskh-arabic/arabic-600.css';
+@import '@fontsource-variable/ibm-plex-sans/wdth.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
 
 @theme {
-  --font-sans: 'Inter Variable', 'Inter', sans-serif;
-  --font-arabic: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Inter Variable', sans-serif;
+  /*
+   * One family drawn for both scripts, so a French label and its Arabic
+   * translation are the same voice at the same weight instead of two fonts
+   * meeting in a table cell. The latin is the width axis of the variable
+   * file: 100% for reading, narrowed only where a column has no room.
+   */
+  --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans Variable', sans-serif;
 
   /*
    * Cards of paper on a cool grey table. The ground is never white, so a white
@@ -61,6 +68,11 @@
 
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 26px -14px rgb(15 23 42 / 0.16);
   --shadow-raised: 0 2px 4px rgb(15 23 42 / 0.05), 0 16px 34px -14px rgb(15 23 42 / 0.22);
+
+  /* Movement is short and decelerating — a sheet settling, not a slide show. */
+  --ease-settle: cubic-bezier(0.16, 0.84, 0.44, 1);
+  --duration-quick: 120ms;
+  --duration-settle: 380ms;
 }
 
 :root {
@@ -79,14 +91,29 @@
   --field-shadow: none;
 }
 
+/*
+ * Plex Arabic is a UI face, not the Naskh that stood here: it needs less of a
+ * size bump and less air between lines than a book hand did.
+ */
 html[lang='ar'] body {
   font-family: var(--font-arabic), var(--font-sans);
-  font-size: 1.03rem;
-  line-height: 1.75;
+  font-size: 1.01rem;
+  line-height: 1.7;
 }
 
+/*
+ * The table the cards lie on is not a flat fill: two very wide, very weak
+ * washes — accent at the top corner where the session lives, a cool shadow at
+ * the far bottom — give the grey somewhere to go, so a white card lifts off it
+ * more at the head of the page than at the foot. Fixed, so scrolling moves the
+ * paper and not the light.
+ */
 body {
-  background: var(--color-ground);
+  background:
+    radial-gradient(120rem 60rem at 0% -10%, rgb(8 145 178 / 0.07), transparent 60%),
+    radial-gradient(90rem 50rem at 100% 110%, rgb(15 23 42 / 0.06), transparent 65%),
+    var(--color-ground);
+  background-attachment: fixed;
   color: var(--color-ink);
   @apply antialiased;
 }
@@ -94,6 +121,49 @@ body {
 /* Tabular figures keep matricules and counts aligned down a column. */
 .numeric {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The width axis, spent only where a column is genuinely short of room — a
+ * slot header carrying a date and two hours. Narrowing body text would be
+ * costume rather than typography.
+ */
+.narrow {
+  font-stretch: 88%;
+}
+
+/*
+ * One arrival per page rather than a dozen twitching parts: whatever carries
+ * .rise comes up as the screen resolves, each in turn via --i. The delay is
+ * capped by ordering, not by counting rows — a fortieth teacher must not wait
+ * four seconds to exist.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+.rise {
+  animation: rise var(--duration-settle) var(--ease-settle) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/*
+ * Some people are made ill by movement, and the browser is told which. It is
+ * not a preference to be weighed against a nice arrival.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /*
@@ -106,7 +176,12 @@ body {
   }
   body {
     @apply bg-white text-black;
+    /* the washes are light on a screen, toner on a sheet */
+    background-image: none;
     font-size: 11pt;
+  }
+  .rise {
+    animation: none;
   }
   .print-clean {
     box-shadow: none !important;

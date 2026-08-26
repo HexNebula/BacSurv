@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
@@ -427,7 +427,7 @@ export function SchedulePage() {
       {/* a filière with no rooms can hold no épreuve at all, which is worth
           saying once above the grid rather than only inside its own row */}
       {roomless.length > 0 && (
-        <div className="mb-5">
+        <div className="rise mb-5">
           <Notice
             tone="warn"
             icon={<TriangleAlert size={16} aria-hidden />}
@@ -445,7 +445,8 @@ export function SchedulePage() {
         </div>
       )}
 
-      <Card>
+      {/* the sheet arrives first, then the papers land on it — see .rise */}
+      <Card className="rise [--i:1]">
         <CardHead title={t('schedule.grid')} count={data?.exams.length} />
         <CardRule />
 
@@ -479,11 +480,13 @@ export function SchedulePage() {
                     >
                       {t('schedule.stream')}
                     </th>
+                    {/* narrowed: a long French date sits over two séance
+                        columns without widening the whole grid */}
                     {data.days.map((day) => (
                       <th
                         key={day}
                         colSpan={2}
-                        className="border-s border-[var(--color-hairline)] px-3 pb-1 pt-1 text-center text-[13px] font-semibold"
+                        className="narrow border-s border-[var(--color-hairline)] px-3 pb-1 pt-1 text-center text-[13px] font-semibold"
                       >
                         {dayNames.format(new Date(`${day}T00:00:00`))}
                       </th>
@@ -494,7 +497,7 @@ export function SchedulePage() {
                       HALVES.map((half) => (
                         <th
                           key={`${day}-${half}`}
-                          className={`px-2 pb-2.5 text-start text-[10.5px] font-medium tracking-[0.04em] text-[var(--color-faint)] ${
+                          className={`narrow px-2 pb-2.5 text-start text-[10.5px] font-medium uppercase tracking-[0.07em] text-[var(--color-faint)] ${
                             half === 'morning' ? 'border-s border-[var(--color-hairline)]' : ''
                           }`}
                         >
@@ -505,7 +508,7 @@ export function SchedulePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.streams.map((stream) => (
+                  {data.streams.map((stream, streamIndex) => (
                     <tr
                       key={stream.id}
                       className="group border-t border-[var(--color-hairline)] align-top"
@@ -558,7 +561,7 @@ export function SchedulePage() {
                         </div>
                       </td>
 
-                      {data.days.flatMap((day) =>
+                      {data.days.flatMap((day, dayIndex) =>
                         HALVES.map((half) => {
                           const exams = cell(stream.id, day, half)
                           return (
@@ -579,7 +582,20 @@ export function SchedulePage() {
                                     onClick={() =>
                                       setExamForm({ open: true, stream, day, half, exam })
                                     }
-                                    className={`w-full rounded-[10px] border-s-[3px] px-2.5 py-2 text-start transition-colors ${
+                                    /*
+                                     * The papers land in a wave down and across
+                                     * the week — the order the grid is read in,
+                                     * not the order React happens to map in.
+                                     * Capped at the eighth step so a centre with
+                                     * twelve filières over a fortnight is not
+                                     * still assembling itself a second later.
+                                     */
+                                    style={
+                                      {
+                                        '--i': Math.min(streamIndex + dayIndex, 8) + 2,
+                                      } as CSSProperties
+                                    }
+                                    className={`rise w-full rounded-[10px] border-s-[3px] px-2.5 py-2 text-start transition-[background-color,transform] duration-[var(--duration-quick)] hover:-translate-y-px active:translate-y-0 ${
                                       unstaffable
                                         ? 'border-s-[var(--color-warn)] bg-[var(--color-warn-tint)] hover:brightness-[0.98]'
                                         : 'border-s-[var(--color-accent)] bg-[var(--color-accent-tint)]/70 hover:bg-[var(--color-accent-tint)]'
