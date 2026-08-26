@@ -25,6 +25,7 @@ export function NumberField({
   minValue,
   maxValue,
   placeholder,
+  suffix,
   className = '',
   'aria-label': ariaLabel,
 }: {
@@ -36,6 +37,12 @@ export function NumberField({
   maxValue?: number
   /** Shown while empty — for a field whose blank state means "keep the default". */
   placeholder?: string
+  /**
+     The unit, kept inside the field beside the figure. A box holding "10"
+     under a label saying "Pourcentage" asks the reader to know that the two
+     belong together; "10 %" says it.
+   */
+  suffix?: string
   className?: string
   'aria-label'?: string
 }) {
@@ -61,11 +68,18 @@ export function NumberField({
         <Step slot="decrement">
           <Minus size={14} aria-hidden />
         </Step>
-        <Input
-          placeholder={placeholder}
-          className="numeric min-w-0 flex-1 bg-transparent px-1 text-center text-[13.5px] outline-none
-            placeholder:text-[var(--color-faint)]"
-        />
+        <div className="flex min-w-0 flex-1 items-baseline justify-center gap-1">
+          <Input
+            placeholder={placeholder}
+            className={`numeric min-w-0 flex-1 bg-transparent px-1 text-[13.5px] outline-none
+              placeholder:text-[var(--color-faint)] ${suffix ? 'text-end' : 'text-center'}`}
+          />
+          {suffix && (
+            <span aria-hidden className="shrink-0 text-[12.5px] text-[var(--color-quiet)]">
+              {suffix}
+            </span>
+          )}
+        </div>
         <Step slot="increment">
           <Plus size={14} aria-hidden />
         </Step>

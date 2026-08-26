@@ -47,6 +47,8 @@ type Job = {
   unfilled: number | null
   error: string | null
   finishedAt: string | null
+  /** The session moved after this was solved: what is shown is out of date. */
+  stale: boolean
 }
 
 type Assignment = {
@@ -295,6 +297,34 @@ export function ResultsPage() {
         <div className="mb-5">
           <Notice tone="alarm" icon={<TriangleAlert size={16} aria-hidden />}>
             {job.error || t('results.failed')}
+          </Notice>
+        </div>
+      )}
+
+      {/*
+        A distribution solved before the last change looks exactly like a fresh
+        one, which is how somebody hands out a répartition that no longer
+        accounts for an absence recorded yesterday. Said above everything else,
+        because it decides whether the tables below are worth reading at all.
+      */}
+      {job?.stale && !running && (
+        <div className="mb-5">
+          <Notice
+            tone="warn"
+            icon={<TriangleAlert size={16} aria-hidden />}
+            action={
+              <Button
+                size="sm"
+                variant="secondary"
+                isPending={solve.isPending}
+                onPress={() => solve.mutate(undefined)}
+              >
+                <RotateCw size={15} aria-hidden />
+                {t('results.relaunch')}
+              </Button>
+            }
+          >
+            {t('results.stale')}
           </Notice>
         </div>
       )}

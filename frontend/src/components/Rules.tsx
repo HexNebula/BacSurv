@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
 import {
@@ -14,6 +14,7 @@ import {
   NumberField,
   Select,
   Skeleton,
+  toast,
 } from '../ui'
 
 /**
@@ -49,6 +50,7 @@ type Settings = {
  */
 export function Rules({ sessionId }: { sessionId: number }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [draft, setDraft] = useState<Settings | null>(null)
 
   const settings = useQuery({
@@ -60,10 +62,31 @@ export function Rules({ sessionId }: { sessionId: number }) {
     if (settings.data) setDraft(settings.data)
   }, [settings.data])
 
+  /**
+   * Relaunching from here rather than making him go and find the button: the
+   * rules he just changed decide the distribution, and the shortest path
+   * between the two is the toast that says the rules were saved.
+   */
+  const solve = useApiMutation({
+    run: () => api.post<unknown>(`/operations/${sessionId}/solve`),
+    invalidate: ['jobs'],
+    onDone: () => {
+      void navigate('/results')
+    },
+  })
+
   const save = useApiMutation({
     run: () => api.post<Settings>(`/operations/${sessionId}/settings`, draft),
     invalidate: ['settings', sessionId],
-    onDone: () => t('rules.saved'),
+    onDone: () => {
+      // offered on the toast, not asked in a dialog: three rules changed in a
+      // row would be three interruptions, and a question always dismissed is
+      // a question nobody reads
+      toast.ok(t('rules.saved'), {
+        label: t('rules.relaunch'),
+        run: () => solve.mutate(undefined),
+      })
+    },
   })
 
   if (settings.isError) {
@@ -89,7 +112,9 @@ export function Rules({ sessionId }: { sessionId: number }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid items-start gap-5 lg:grid-cols-2">
+      {/* stretched, not sized to their contents: boxes of four different
+          heights read as four unrelated things rather than four rules */}
+      <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <CardHead title={t('rules.staffing')} />
           <CardRule />
@@ -137,6 +162,7 @@ export function Rules({ sessionId }: { sessionId: number }) {
                 minValue={0}
                 maxValue={100}
                 onChange={(value) => set({ reservePercentage: value / 100 })}
+                suffix="%"
                 className="w-44"
                 hint={t('rules.reservePercentHint')}
               />
@@ -186,6 +212,7 @@ export function Rules({ sessionId }: { sessionId: number }) {
               minValue={0}
               maxValue={600}
               onChange={(value) => set({ minGapMinutes: value })}
+              suffix={t('rules.minutes')}
               className="w-44"
               hint={t('rules.gapHint')}
             />

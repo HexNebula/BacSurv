@@ -251,7 +251,8 @@
       "staffing.ok": "Le pool suffit à couvrir chaque heure.",
       "distribution.none": "Pas encore de répartition.",
       "distribution.broken": "{{one}} contrainte(s) non respectée(s), {{two}} tâche(s) non pourvue(s).",
-      "distribution.ok": "Répartition complète et sans conflit."
+      "distribution.ok": "Répartition complète et sans conflit.",
+      "distribution.stale": "La répartition date d'avant vos derniers changements."
     }
   },
   "setup": {
@@ -295,7 +296,9 @@
     "create": "Créer une filière",
     "createdAt": "Elle sera ajoutée à la liste du centre en {{level}}.",
     "noneAtLevel": "Aucune filière listée pour ce niveau. Créez-en une.",
-    "back": "Choisir dans la liste"
+    "back": "Choisir dans la liste",
+    "roomClash_one": "{{rooms}} est attribuée à deux filières. Une salle ne reçoit qu'une filière : corrigez avant de lancer la répartition.",
+    "roomClash_other": "{{rooms}} sont attribuées à deux filières. Une salle ne reçoit qu'une filière : corrigez avant de lancer la répartition."
   },
   "subjects": {
     "title": "Les matières",
@@ -336,7 +339,9 @@
     "workloadHint": "Les sessions passées comptent : la répartition tient compte de ce que chacun a déjà fait.",
     "duties": "tâches",
     "finishedAt": "Terminée à {{time}}",
-    "showPartial": "La répartition est affichée telle qu’elle est : ce qui manque est marqué."
+    "showPartial": "La répartition est affichée telle qu’elle est : ce qui manque est marqué.",
+    "stale": "Cette répartition a été calculée avant vos derniers changements.",
+    "relaunch": "Relancer"
   },
   "change": {
     "title": "Modifier une affectation",
@@ -394,7 +399,7 @@
     "reserveMode": "Comment la calculer",
     "reserveMode.percentage": "En pourcentage des surveillants",
     "reserveMode.fixed": "Un nombre fixe de personnes",
-    "reservePercent": "Pourcentage",
+    "reservePercent": "Pourcentage des surveillants",
     "reservePercentHint": "Part des surveillants gardée en réserve.",
     "reserveCount": "Nombre de réservistes",
     "reserveCountHint": "Le même nombre à chaque séance.",
@@ -403,11 +408,13 @@
     "strength": "Cette limite est",
     "strength.hard": "À respecter absolument",
     "strength.soft": "Respectée si possible",
-    "gap": "Minutes entre deux missions",
+    "gap": "Écart minimal entre deux missions",
     "gapHint": "0 : deux missions peuvent se suivre.",
     "ownSubject": "La matière de l'enseignant",
     "ownSubjectRule": "Ne pas le placer sur sa propre matière",
     "ownSubjectReserve": "Ni en réserve pendant sa matière",
-    "ownSubjectHint": "Un enseignant de réserve peut être appelé dans n'importe quelle salle."
+    "ownSubjectHint": "Un enseignant de réserve peut être appelé dans n'importe quelle salle.",
+    "relaunch": "Relancer la répartition",
+    "minutes": "min"
   }
 }
