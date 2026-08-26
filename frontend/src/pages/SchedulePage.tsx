@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays, Copy, LayoutGrid, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  CalendarDays,
+  Copy,
+  LayoutGrid,
+  Pencil,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react'
 import { Time, parseTime } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
 import { Page } from '../components/Page'
 import { StreamForm, type Stream } from '../components/StreamForm'
+import { Rules } from '../components/Rules'
 import {
   Button,
   Card,
@@ -18,6 +29,7 @@ import {
   Empty,
   Failed,
   Notice,
+  SegmentedTabs,
   Select,
   Skeleton,
   TimeField,
@@ -307,6 +319,11 @@ export function SchedulePage() {
   }>({ open: false, stream: null, day: null, half: 'morning' })
   const [copyFor, setCopyFor] = useState<Stream | null>(null)
 
+  // which tab is showing lives in the address, so Les salles can send somebody
+  // straight to the rule that decides its figure
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view = searchParams.get('tab') === 'rules' ? 'rules' : 'exams'
+
   const grid = useQuery({
     queryKey: ['timetable', sessionId],
     queryFn: () => api.get<Timetable>(`/sessions/${sessionId}/timetable`),
@@ -369,6 +386,7 @@ export function SchedulePage() {
       title={t('schedule.title')}
       subtitle={data ? data.centerName : t('schedule.subtitle')}
       actions={
+        view === 'exams' &&
         sessionId !== null &&
         data && (
           <Button onPress={() => setStreamForm({ open: true })}>
@@ -377,7 +395,35 @@ export function SchedulePage() {
           </Button>
         )
       }
+      tabs={
+        sessionId !== null && (
+          <SegmentedTabs
+            value={view}
+            onChange={(id) => setSearchParams(id === 'rules' ? { tab: 'rules' } : {})}
+            tabs={[
+              {
+                id: 'exams',
+                label: t('schedule.grid'),
+                icon: <LayoutGrid size={15} aria-hidden />,
+                count: data?.exams.length,
+              },
+              {
+                id: 'rules',
+                label: t('rules.title'),
+                icon: <SlidersHorizontal size={15} aria-hidden />,
+              },
+            ]}
+          />
+        )
+      }
     >
+      {/* the rules of this session live behind the second tab rather than in a
+          section of their own: they are set once while the session is being
+          built, on the screen where it is built */}
+      {view === 'rules' && sessionId !== null && <Rules sessionId={sessionId} />}
+
+      {view === 'exams' && (
+        <>
       {/* a filière with no rooms can hold no épreuve at all, which is worth
           saying once above the grid rather than only inside its own row */}
       {roomless.length > 0 && (
@@ -599,6 +645,8 @@ export function SchedulePage() {
           </div>
         )}
       </Card>
+        </>
+      )}
 
       {sessionId !== null && data && (
         <>

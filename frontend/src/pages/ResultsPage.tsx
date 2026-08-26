@@ -19,6 +19,7 @@ import { Page } from '../components/Page'
 import { ChangeDuty } from '../components/ChangeDuty'
 import {
   Badge,
+  LoadBar,
   Button,
   Card,
   CardHead,
@@ -27,6 +28,7 @@ import {
   Failed,
   Notice,
   SegmentedTabs,
+  SearchField,
   Skeleton,
   Table,
   Td,
@@ -126,6 +128,7 @@ export function ResultsPage() {
   const queryClient = useQueryClient()
   const { sessionId, sessionsHere, isLoading } = useWorkspace()
   const [view, setView] = useState('day')
+  const [search, setSearch] = useState('')
   // the duty being reassigned by hand, if any
   const [editing, setEditing] = useState<string | null>(null)
 
@@ -179,6 +182,53 @@ export function ResultsPage() {
   }, [rows])
 
   const unfilled = rows.filter((row) => row.teacherMatricule === null)
+
+  /**
+   * The workload read as a distribution rather than as a list.
+   *
+   * <p>Heaviest first, because the person worth looking at should be the first
+   * row and not the thirty-first. The comparison is on surveillances alone:
+   * that is the load a teacher feels, while réserve and permanence are hours
+   * spent waiting and are counted in their own columns.
+   *
+   * <p>Only the teachers at the two ends carry their distance from the average.
+   * Marking every row would be marking none of them, and the sentence above the
+   * table already says what the range is.
+   */
+  const load = useMemo(() => {
+    const all = schedule.data?.workload ?? []
+    if (all.length === 0) return { rows: [], heaviest: 0, spread: null }
+
+    const counts = all.map((row) => row.surveillance)
+    const least = Math.min(...counts)
+    const heaviest = Math.max(...counts)
+    const average = counts.reduce((sum, one) => sum + one, 0) / counts.length
+
+    const needle = search.trim().toLowerCase()
+    // the extremes only, and only when they are actually away from the middle:
+    // a "+0" badge is a mark that says nothing
+    const distance = (count: number) => {
+      if (heaviest === least) return null
+      if (count !== heaviest && count !== least) return null
+      const gap = Math.round(count - average)
+      return gap === 0 ? null : gap
+    }
+
+    const rows = all
+      .map((row) => ({ ...row, gap: distance(row.surveillance) }))
+      .filter((row) =>
+        needle === ''
+          ? true
+          : `${row.name} ${row.matricule} ${row.subject}`.toLowerCase().includes(needle),
+      )
+      .sort((a, b) => b.surveillance - a.surveillance || a.name.localeCompare(b.name))
+
+    return {
+      rows,
+      heaviest,
+      spread: { least, most: heaviest, average: average.toFixed(1).replace('.0', '') },
+    }
+  }, [schedule.data, search])
 
   const dayNames = useMemo(
     () => new Intl.DateTimeFormat(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' }),
@@ -389,14 +439,35 @@ export function ResultsPage() {
 
       {schedule.data && view === 'teacher' && (
         <Card>
-          <CardHead title={t('results.workload')} count={schedule.data.workload.length} />
+          <CardHead
+            title={t('results.workload')}
+            count={load.rows.length}
+            actions={
+              <SearchField
+                label={t('teachers.search')}
+                value={search}
+                onChange={setSearch}
+                placeholder={t('teachers.searchHint')}
+                className="w-64"
+              />
+            }
+          />
+
+          {/* the fairness answer in one sentence, so nobody has to derive it
+              from a column of 45 figures */}
+          {load.spread && (
+            <p className="border-t border-[var(--color-hairline)] px-5 py-3 text-[12.5px] text-[var(--color-quiet)]">
+              {t('results.spread', load.spread)}
+            </p>
+          )}
+
           <CardRule />
           <Table>
             <thead>
               <tr>
                 <Th width="140px">{t('teachers.matricule')}</Th>
                 <Th>{t('teachers.name')}</Th>
-                <Th width="130px">{t('results.surveillanceCount')}</Th>
+                <Th width="200px">{t('results.surveillanceCount')}</Th>
                 <Th width="110px">{t('results.roleRESERVE')}</Th>
                 <Th width="130px">{t('results.rolePERMANENCE')}</Th>
                 <Th width="140px">{t('results.priorTotal')}</Th>
@@ -404,13 +475,26 @@ export function ResultsPage() {
               </tr>
             </thead>
             <tbody>
-              {schedule.data.workload.map((row) => (
+              {load.rows.map((row) => (
                 <Tr key={row.matricule}>
                   <Td className="numeric text-[12.5px] text-[var(--color-quiet)]">
                     {row.matricule}
                   </Td>
-                  <Td className="font-medium">{row.name}</Td>
-                  <Td className="numeric">{row.surveillance}</Td>
+                  <Td>
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-medium">{row.name}</span>
+                      {/* only the ends of the range are marked: a badge on
+                          every row marks nothing */}
+                      {row.gap !== null && (
+                        <Badge tone={row.gap > 0 ? 'warn' : 'plain'}>
+                          {row.gap > 0 ? `+${row.gap}` : row.gap}
+                        </Badge>
+                      )}
+                    </div>
+                  </Td>
+                  <Td>
+                    <LoadBar value={row.surveillance} of={load.heaviest} />
+                  </Td>
                   {/*
                     Each duty on its own: réserve is standby, permanence is being
                     the subject's specialist on call, and the administrator reads
@@ -428,6 +512,15 @@ export function ResultsPage() {
               ))}
             </tbody>
           </Table>
+
+          {/* a search that matches nobody says so, rather than showing a table
+              with a head and no rows */}
+          {load.rows.length === 0 && (
+            <Empty icon={<Users size={22} aria-hidden />}>
+              {t('teachers.noMatch', { search: search.trim() })}
+            </Empty>
+          )}
+
           <div className="rounded-b-[var(--radius-card)] border-t border-[var(--color-hairline)] bg-[var(--color-sunken)] px-5 py-3">
             <p className="text-[11.5px] text-[var(--color-faint)]">{t('results.workloadHint')}</p>
           </div>

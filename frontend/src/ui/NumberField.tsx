@@ -24,6 +24,7 @@ export function NumberField({
   onChange,
   minValue,
   maxValue,
+  placeholder,
   className = '',
   'aria-label': ariaLabel,
 }: {
@@ -33,6 +34,8 @@ export function NumberField({
   onChange: (value: number) => void
   minValue?: number
   maxValue?: number
+  /** Shown while empty — for a field whose blank state means "keep the default". */
+  placeholder?: string
   className?: string
   'aria-label'?: string
 }) {
@@ -58,7 +61,11 @@ export function NumberField({
         <Step slot="decrement">
           <Minus size={14} aria-hidden />
         </Step>
-        <Input className="numeric min-w-0 flex-1 bg-transparent px-1 text-center text-[13.5px] outline-none" />
+        <Input
+          placeholder={placeholder}
+          className="numeric min-w-0 flex-1 bg-transparent px-1 text-center text-[13.5px] outline-none
+            placeholder:text-[var(--color-faint)]"
+        />
         <Step slot="increment">
           <Plus size={14} aria-hidden />
         </Step>

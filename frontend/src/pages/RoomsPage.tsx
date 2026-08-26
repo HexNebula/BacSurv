@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { DoorOpen, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { api } from '../lib/api'
@@ -34,6 +35,8 @@ type Room = {
 
 type CenterDetail = { id: number; name: string; rooms: Room[] }
 type Timetable = { streams: Stream[] }
+/** Only the one figure this screen needs out of the session's rules. */
+type Settings = { defaultSurveillantsPerRoom: number }
 
 /**
  * One row of the room table. The surveillants figure is left empty when the
@@ -44,11 +47,14 @@ function RoomRow({
   centerId,
   room,
   heldBy,
+  fallback,
 }: {
   centerId: number
   room: Room
   /** The filière holding it this session, if any. */
   heldBy: string | null
+  /** The session's own figure, shown in place of the rooms that follow it. */
+  fallback: number | null
 }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
@@ -87,10 +93,13 @@ function RoomRow({
           <span className="text-[12.5px] text-[var(--color-quiet)]">{heldBy ?? '—'}</span>
         </Td>
         <Td>
+          {/* emptying the field puts the room back on the session's figure, so
+              the field says which figure that is rather than going blank */}
           <NumberField
             aria-label={t('rooms.surveillants.label')}
             value={surveillants ?? undefined}
             minValue={2}
+            placeholder={fallback === null ? undefined : String(fallback)}
             onChange={(value) => setSurveillants(Number.isNaN(value) ? null : value)}
             className="w-36"
           />
@@ -140,10 +149,27 @@ function RoomRow({
         )}
       </Td>
       <Td>
+        {/*
+          A room that was never touched still has a number of surveillants —
+          the session's. Printing the word "Par défaut" in its place named
+          where the figure came from and never said what it was, so the column
+          could be read as "default teachers". The figure is shown either way;
+          grey with its origin beside it means nobody set it here, black means
+          somebody did.
+        */}
         {room.surveillants === null ? (
-          <span className="text-[12.5px] text-[var(--color-quiet)]">
-            {t('rooms.surveillants.default')}
-          </span>
+          fallback === null ? (
+            <span className="text-[12.5px] text-[var(--color-faint)]">{'—'}</span>
+          ) : (
+            /* and the figure leads to the rule that sets it: reading a number
+               you cannot reach is what made this column puzzling */
+            <Link
+              to="/schedule?tab=rules"
+              className="text-[12.5px] text-[var(--color-quiet)] hover:text-[var(--color-accent)] hover:underline"
+            >
+              <span className="numeric">{fallback}</span> {t('rooms.surveillants.default')}
+            </Link>
+          )
         ) : (
           <span className="numeric font-medium">{room.surveillants}</span>
         )}
@@ -281,6 +307,19 @@ export function RoomsPage() {
     enabled: sessionId !== null,
   })
 
+  /**
+   * The session's own surveillants figure — the one the rooms fall back on.
+   * Read here rather than assumed to be two: two is the official floor, not
+   * necessarily what this centre set.
+   */
+  const settings = useQuery({
+    queryKey: ['settings', sessionId],
+    queryFn: () => api.get<Settings>(`/operations/${sessionId}/settings`),
+    enabled: sessionId !== null,
+  })
+
+  const fallback = settings.data?.defaultSurveillantsPerRoom ?? null
+
   /** Which filière holds each room for the whole session, by room id. */
   const heldBy = new Map<number, string>()
   for (const stream of timetable.data?.streams ?? []) {
@@ -344,6 +383,7 @@ export function RoomsPage() {
                     centerId={center.data.id}
                     room={room}
                     heldBy={heldBy.get(room.id) ?? null}
+                    fallback={fallback}
                   />
                 ))}
               </tbody>

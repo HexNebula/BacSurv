@@ -56,7 +56,9 @@
     "ministerialReference": "Référence ministérielle",
     "empty": "Non renseignée",
     "edit": "Modifier",
-    "saved": "Centre enregistré."
+    "saved": "Centre enregistré.",
+    "export": "Exporter les données",
+    "exportHint": "Un fichier avec tout le centre : le pool, les salles, les sessions et leur historique. À garder ailleurs que sur cet ordinateur."
   },
   "rooms": {
     "title": "Les salles",
@@ -65,8 +67,8 @@
     "edit": "Modifier la salle",
     "deleted": "Salle supprimée.",
     "surveillants": {
-      "label": "Surveillants",
-      "default": "Par défaut"
+      "label": "Surveillants par salle",
+      "default": "par défaut"
     },
     "added_one": "{{count}} salle ajoutée.",
     "added_other": "{{count}} salles ajoutées.",
@@ -378,5 +380,34 @@
     "badge": "Absent",
     "away": "Absents",
     "dateMissing": "Indiquez le jour de chaque absence."
+  },
+  "rules": {
+    "title": "Les règles",
+    "subtitle": "Ce que le centre décide pour cette session.",
+    "saved": "Règles enregistrées.",
+    "afterSaving": "Relancez la répartition pour qu'elle en tienne compte.",
+    "staffing": "L'encadrement",
+    "surveillants": "Surveillants par salle",
+    "surveillantsHint": "Le minimum officiel est de {{count}}.",
+    "roomsElsewhere": "Une salle qui en demande davantage se règle sur",
+    "reserve": "La réserve",
+    "reserveMode": "Comment la calculer",
+    "reserveMode.percentage": "En pourcentage des surveillants",
+    "reserveMode.fixed": "Un nombre fixe de personnes",
+    "reservePercent": "Pourcentage",
+    "reservePercentHint": "Part des surveillants gardée en réserve.",
+    "reserveCount": "Nombre de réservistes",
+    "reserveCountHint": "Le même nombre à chaque séance.",
+    "rest": "Le repos",
+    "consecutive": "Jours de suite au maximum",
+    "strength": "Cette limite est",
+    "strength.hard": "À respecter absolument",
+    "strength.soft": "Respectée si possible",
+    "gap": "Minutes entre deux missions",
+    "gapHint": "0 : deux missions peuvent se suivre.",
+    "ownSubject": "La matière de l'enseignant",
+    "ownSubjectRule": "Ne pas le placer sur sa propre matière",
+    "ownSubjectReserve": "Ni en réserve pendant sa matière",
+    "ownSubjectHint": "Un enseignant de réserve peut être appelé dans n'importe quelle salle."
   }
 }
