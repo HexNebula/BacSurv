@@ -94,9 +94,13 @@ public class TimetableApiController {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> refused(IllegalArgumentException e) {
         String key = String.valueOf(e.getMessage());
+        // a refusal with particulars — which rooms, held by which filière —
+        // carries them, and the bundle writes them into the sentence
+        Object[] args = e instanceof ma.bacsurv.web.service.RefusedException refused
+                ? refused.args() : null;
         String sentence;
         try {
-            sentence = messages.getMessage("error." + key, null, LocaleContextHolder.getLocale());
+            sentence = messages.getMessage("error." + key, args, LocaleContextHolder.getLocale());
         } catch (RuntimeException untranslated) {
             sentence = key;
         }

@@ -58,6 +58,24 @@ export function StreamForm({
     enabled: open,
   })
 
+  /**
+   * What the other filières of this session already hold. A room seats one
+   * filière for the whole session, so those are not choices to be corrected
+   * after a refusal — they are shown as taken, with the name of whoever has
+   * them.
+   */
+  const timetable = useQuery({
+    queryKey: ['timetable', sessionId],
+    queryFn: () => api.get<Timetable>(`/sessions/${sessionId}/timetable`),
+    enabled: open,
+  })
+
+  const heldBy = new Map<number, string>()
+  for (const stream of timetable.data?.streams ?? []) {
+    if (existing && stream.id === existing.id) continue
+    for (const room of stream.rooms) heldBy.set(room.id, stream.name)
+  }
+
   /** The centre's filières: picked from, not retyped for every session. */
   const known = useQuery({
     queryKey: ['streams', centerId],
@@ -206,15 +224,19 @@ export function StreamForm({
           )}
           {center.isSuccess && center.data.rooms.length > 0 && (
             <div className="grid max-h-56 grid-cols-2 gap-x-3 overflow-y-auto rounded-[var(--radius-field)] bg-[var(--color-sunken)] p-2">
-              {center.data.rooms.map((room) => (
-                <Checkbox
-                  key={room.id}
-                  isSelected={chosen.includes(room.id)}
-                  onChange={() => toggle(room.id)}
-                >
-                  {room.label}
-                </Checkbox>
-              ))}
+              {center.data.rooms.map((room) => {
+                const taken = heldBy.get(room.id)
+                return (
+                  <Checkbox
+                    key={room.id}
+                    isSelected={chosen.includes(room.id)}
+                    isDisabled={taken !== undefined}
+                    onChange={() => toggle(room.id)}
+                  >
+                    {taken === undefined ? room.label : `${room.label} · ${taken}`}
+                  </Checkbox>
+                )
+              })}
             </div>
           )}
         </div>

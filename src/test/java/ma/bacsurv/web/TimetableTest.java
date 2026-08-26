@@ -1,6 +1,7 @@
 package ma.bacsurv.web;
 
 import ma.bacsurv.web.service.CenterAdminService;
+import ma.bacsurv.web.service.RefusedException;
 import ma.bacsurv.web.service.TimetableService;
 import ma.bacsurv.web.service.TimetableService.Timetable;
 import org.junit.jupiter.api.Test;
@@ -208,5 +209,60 @@ class TimetableTest {
 
         assertEquals(3, grid.days().size(), "4, 5 and 6 June: " + grid.days());
         assertTrue(grid.exams().isEmpty());
+    }
+
+    /**
+     * A room seats one filière for the whole session. Nothing refused a second
+     * claim on it, so a centre could give salles 1 to 3 to Sciences and salles
+     * 1 to 5 to Lettres: two épreuves behind one door, each asking for its own
+     * surveillants, discovered on the printed list.
+     */
+    @Test
+    void aRoomCannotBeGivenToTwoFilieres() {
+        Session session = session(8);
+        timetable.addStream(session.id(), "Sciences mathématiques", rooms(session, 1, 3));
+
+        var refused = assertThrows(RefusedException.class,
+                () -> timetable.addStream(session.id(), "Lettres", rooms(session, 1, 5)));
+
+        assertEquals("stream.rooms.taken", refused.getMessage());
+        assertEquals("Salle 1, Salle 2, Salle 3", refused.args()[0],
+                "the refusal names the rooms, not just the fact");
+        assertEquals("Sciences mathématiques", refused.args()[1],
+                "and who is holding them");
+
+        assertEquals(1, timetable.timetable(session.id()).streams().size(),
+                "the refused filière was not created");
+    }
+
+    /** The free ones are still free: the refusal is about the overlap alone. */
+    @Test
+    void filieresMayShareASessionWithoutSharingARoom() {
+        Session session = session(8);
+        timetable.addStream(session.id(), "Sciences mathématiques", rooms(session, 1, 3));
+        timetable.addStream(session.id(), "Lettres", rooms(session, 4, 8));
+
+        assertEquals(2, timetable.timetable(session.id()).streams().size());
+    }
+
+    /** Editing a filière may keep its own rooms; they are not "taken" by it. */
+    @Test
+    void aFiliereKeepsItsOwnRoomsWhenEdited() {
+        Session session = session(8);
+        long lettres = timetable.addStream(session.id(), "Lettres", rooms(session, 1, 3));
+
+        timetable.editStream(lettres, "Lettres", rooms(session, 1, 4));
+
+        assertEquals(4, timetable.timetable(session.id()).streams().getFirst().rooms().size());
+    }
+
+    @Test
+    void editingCannotTakeARoomFromAnotherFiliere() {
+        Session session = session(8);
+        timetable.addStream(session.id(), "Sciences mathématiques", rooms(session, 1, 3));
+        long lettres = timetable.addStream(session.id(), "Lettres", rooms(session, 4, 8));
+
+        assertThrows(RefusedException.class,
+                () -> timetable.editStream(lettres, "Lettres", rooms(session, 3, 8)));
     }
 }

@@ -55,6 +55,21 @@ export function StreamsPage() {
   const streams = timetable.data?.streams ?? []
   const roomless = streams.filter((stream) => stream.rooms.length === 0)
 
+  /**
+   * Rooms handed to more than one filière. Nothing refused this until now, so
+   * a session entered earlier can still hold the fault — and a double-booked
+   * room is two épreuves behind one door, each asking for its own surveillants.
+   */
+  const clashes = (() => {
+    const holders = new Map<string, string[]>()
+    for (const stream of streams) {
+      for (const room of stream.rooms) {
+        holders.set(room.label, [...(holders.get(room.label) ?? []), stream.name])
+      }
+    }
+    return [...holders.entries()].filter(([, names]) => names.length > 1)
+  })()
+
   /** How many épreuves each filière sits, so an idle one is visible here too. */
   const examCount = (streamId: number) =>
     (timetable.data?.exams ?? []).filter((exam) => exam.streamId === streamId).length
@@ -106,6 +121,17 @@ export function StreamsPage() {
     >
       {view === 'session' ? (
         <>
+          {clashes.length > 0 && (
+            <div className="mb-5">
+              <Notice tone="alarm" icon={<TriangleAlert size={16} aria-hidden />}>
+                {t('streams.roomClash', {
+                  count: clashes.length,
+                  rooms: clashes.map(([room]) => room).join(', '),
+                })}
+              </Notice>
+            </div>
+          )}
+
           {roomless.length > 0 && (
             <div className="mb-5">
               <Notice tone="warn" icon={<TriangleAlert size={16} aria-hidden />}>

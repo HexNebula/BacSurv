@@ -108,13 +108,16 @@ public class TimetableService {
             throw new IllegalArgumentException("stream.exists");
         });
 
+        List<RoomEntity> chosen = roomsOf(roomIds);
+        refuseRoomsHeldElsewhere(operationId, null, chosen);
+
         int ordinal = streams.ofOperation(operationId).size();
         // a filière declared in a 2BAC session belongs to the 2BAC list: the
         // session's type is what says which year sits it
         catalogue.rememberStream(operation.getCenter().getId(), cleaned,
                 CenterStreamEntity.levelOf(operation.getType()));
-        return streams.save(new StreamEntity(operation, cleaned, ordinal, roomsOf(roomIds)))
-                .getId();
+        operation.touch();
+        return streams.save(new StreamEntity(operation, cleaned, ordinal, chosen)).getId();
     }
 
     /**
@@ -135,6 +138,7 @@ public class TimetableService {
 
         String previous = stream.getName();
         List<RoomEntity> occupied = roomsOf(roomIds);
+        refuseRoomsHeldElsewhere(stream.getOperation().getId(), streamId, occupied);
         stream.rename(cleaned);
         stream.occupy(occupied);
 
@@ -142,6 +146,7 @@ public class TimetableService {
             exam.rename(cleaned);
             exam.occupy(occupied);
         }
+        stream.getOperation().touch();
     }
 
     @Transactional
@@ -152,6 +157,7 @@ public class TimetableService {
             exam.getSlot().getExams().remove(exam);
         }
         dropEmptySlots(operation);
+        operation.touch();
         streams.delete(stream);
     }
 
@@ -182,6 +188,7 @@ public class TimetableService {
                 .forEach(exam -> exam.getSlot().getExams().remove(exam));
 
         catalogue.rememberSubject(operation.getCenter().getId(), cleaned);
+        operation.touch();
         ExamSlotEntity slot = slotAt(operation, date, startTime, endTime);
         ExamEntity exam = new ExamEntity(slot, nextExamReference(operation), cleaned,
                 stream.getName(), 0, 1, stream.getRooms());
@@ -196,6 +203,7 @@ public class TimetableService {
         for (ExamSlotEntity slot : operation.getSlots()) {
             if (slot.getExams().removeIf(exam -> exam.getId().equals(examId))) {
                 dropEmptySlots(operation);
+                operation.touch();
                 return;
             }
         }
@@ -300,6 +308,38 @@ public class TimetableService {
             }
         }
         return top;
+    }
+
+    /**
+     * A room seats one filière for the whole session.
+     *
+     * <p>Candidates of two filières do not sit in the same room, and the
+     * application counted on it without ever saying so: a room given to both
+     * produces two épreuves at the same hour behind one door, each asking for
+     * its own surveillants. Nothing refused it, so a centre could enter it and
+     * only discover the double-booking on the printed list.
+     *
+     * <p>The refusal names the rooms and the filière already holding them,
+     * because "these rooms are taken" leaves the administrator comparing two
+     * screens to find out which.
+     */
+    private void refuseRoomsHeldElsewhere(long operationId, Long selfStreamId,
+                                          List<RoomEntity> chosen) {
+        if (chosen.isEmpty()) return;
+        Set<Long> wanted = chosen.stream().map(RoomEntity::getId)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        for (StreamEntity other : streams.ofOperation(operationId)) {
+            if (selfStreamId != null && other.getId().equals(selfStreamId)) continue;
+            List<String> clash = other.getRooms().stream()
+                    .filter(room -> wanted.contains(room.getId()))
+                    .map(RoomEntity::getLabel)
+                    .toList();
+            if (!clash.isEmpty()) {
+                throw new RefusedException("stream.rooms.taken",
+                        String.join(", ", clash), other.getName());
+            }
+        }
     }
 
     private List<RoomEntity> roomsOf(List<Long> roomIds) {
