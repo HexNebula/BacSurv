@@ -73,6 +73,8 @@ public class OperationConfigService {
                      String consecutiveDaysStrength, int minGapMinutes, String ownSubjectStrength,
                      boolean forbidOwnSubjectReserve, int solveSeconds) {
         operation(operationId); // fails fast when the operation does not exist
+        check(defaultSurveillantsPerRoom, reserveMode, reservePercentage, reserveFixedCount,
+                maxConsecutiveDays, minGapMinutes);
         OperationConfigEntity config = configs.findById(operationId)
                 .orElseGet(() -> new OperationConfigEntity(operationId));
         config.apply(defaultSurveillantsPerRoom, reserveMode, reservePercentage, reserveFixedCount,
@@ -81,19 +83,39 @@ public class OperationConfigService {
         configs.save(config);
     }
 
-    /** A room that needs more people than the default; null clears the override. */
-    @Transactional
-    public void setRoomStaffing(long roomId, Integer surveillants) {
-        if (surveillants != null
-                && surveillants < ma.bacsurv.rules.StaffingPolicy.MINIMUM_SURVEILLANTS_PER_ROOM) {
-            throw new IllegalArgumentException("a room needs at least "
-                    + ma.bacsurv.rules.StaffingPolicy.MINIMUM_SURVEILLANTS_PER_ROOM
-                    + " surveillants");
-        }
-        RoomEntity room = rooms.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("no room with id " + roomId));
-        room.setSurveillantsOverride(surveillants);
+    /**
+     * The same limits the rule records enforce, refused here first.
+     *
+     * <p>The records guard the domain and say so in English — right for a
+     * programming mistake, wrong for a number somebody typed into a form. What
+     * an administrator can actually reach from the screen is checked here, as
+     * message keys, so the answer arrives in their language; the records stay
+     * as the last line behind it.
+     */
+    private void check(int defaultSurveillantsPerRoom, String reserveMode,
+                       double reservePercentage, int reserveFixedCount,
+                       int maxConsecutiveDays, int minGapMinutes) {
+        if (defaultSurveillantsPerRoom < ma.bacsurv.rules.StaffingPolicy.MINIMUM_SURVEILLANTS_PER_ROOM)
+            throw new IllegalArgumentException("settings.surveillants.tooFew");
+        if ("PERCENTAGE".equals(reserveMode) && (reservePercentage < 0 || reservePercentage > 1))
+            throw new IllegalArgumentException("settings.reserve.percentage");
+        if ("FIXED_COUNT".equals(reserveMode) && reserveFixedCount < 0)
+            throw new IllegalArgumentException("settings.reserve.count");
+        if (maxConsecutiveDays < 1)
+            throw new IllegalArgumentException("settings.consecutive.tooFew");
+        if (minGapMinutes < 0)
+            throw new IllegalArgumentException("settings.gap.negative");
     }
+
+    /*
+     * A room's own number of surveillants used to be settable here too, under
+     * an operation's URL. It never belonged: the figure is stored on the room,
+     * which belongs to the centre, so setting it "for this session" quietly
+     * changed every session of that centre — the ones already distributed
+     * included. It also duplicated the floor check, in another language, and
+     * the two copies had already drifted apart. CenterAdminService.renameRoom
+     * is now the only thing that writes it.
+     */
 
     private OperationEntity operation(long operationId) {
         return operations.findWithCenter(operationId)

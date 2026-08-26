@@ -196,8 +196,12 @@ public class CenterAdminService {
         RoomEntity room = rooms.findById(roomId).orElseThrow(
                 () -> new IllegalArgumentException("no room with id " + roomId));
         room.setLabel(required(label, "room.label"));
-        // below the official floor is not a centre's decision to make
-        if (surveillants != null && surveillants < 2)
+        // below the official floor is not a centre's decision to make. The
+        // figure comes from the rules rather than a literal here: this is the
+        // only place a room's own number is written, and a floor spelled out
+        // twice is a floor that eventually differs from itself.
+        if (surveillants != null
+                && surveillants < ma.bacsurv.rules.StaffingPolicy.MINIMUM_SURVEILLANTS_PER_ROOM)
             throw new IllegalArgumentException("room.surveillants.tooFew");
         room.setSurveillantsOverride(surveillants);
     }

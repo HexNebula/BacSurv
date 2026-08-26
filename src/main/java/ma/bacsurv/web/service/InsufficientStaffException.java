@@ -53,6 +53,12 @@ public class InsufficientStaffException extends RuntimeException {
                 .orElseThrow();
     }
 
+    /**
+     * For the log, not for the screen. The administrator is answered from the
+     * message bundles in their own language, built by the web layer out of the
+     * two lists above; this sentence exists so a stack trace says what happened
+     * without anyone having to read the lists back.
+     */
     private static String summarise(List<StaffingCheck.Shortage> shortages,
                                     List<StaffingCheck.Unfillable> unfillable) {
         java.util.stream.Stream<String> reasons = java.util.stream.Stream.concat(

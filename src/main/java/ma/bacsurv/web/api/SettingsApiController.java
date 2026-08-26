@@ -1,6 +1,8 @@
 package ma.bacsurv.web.api;
 
 import ma.bacsurv.web.service.OperationConfigService;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,9 +25,11 @@ import java.util.Map;
 public class SettingsApiController {
 
     private final OperationConfigService configs;
+    private final MessageSource messages;
 
-    public SettingsApiController(OperationConfigService configs) {
+    public SettingsApiController(OperationConfigService configs, MessageSource messages) {
         this.configs = configs;
+        this.messages = messages;
     }
 
     public record SettingsEdit(
@@ -39,9 +43,6 @@ public class SettingsApiController {
             String ownSubjectStrength,
             boolean forbidOwnSubjectReserve,
             int solveSeconds) {}
-
-    /** Null clears the override, putting the room back on the session default. */
-    public record RoomStaffingEdit(Integer surveillants) {}
 
     @GetMapping
     public OperationConfigService.Settings settings(@PathVariable long id) {
@@ -58,15 +59,21 @@ public class SettingsApiController {
         return configs.settings(id);
     }
 
-    @PostMapping("/rooms/{roomId}")
-    public OperationConfigService.Settings room(@PathVariable long id, @PathVariable long roomId,
-                                                @RequestBody RoomStaffingEdit body) {
-        configs.setRoomStaffing(roomId, body.surveillants());
-        return configs.settings(id);
-    }
-
+    /**
+     * A refusal is answered as a sentence the administrator can read, the same
+     * way every other screen answers one. What arrives here is a message key;
+     * anything else is a fault in the code rather than in what was typed, and
+     * is passed through untranslated so it stays visible instead of silent.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> refused(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+        String key = String.valueOf(e.getMessage());
+        String sentence;
+        try {
+            sentence = messages.getMessage("error." + key, null, LocaleContextHolder.getLocale());
+        } catch (RuntimeException untranslated) {
+            sentence = key;
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", sentence, "code", key));
     }
 }

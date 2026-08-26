@@ -8,6 +8,8 @@ import ma.bacsurv.io.ScheduleWriter;
 import ma.bacsurv.web.service.JobView;
 import ma.bacsurv.web.service.OperationView;
 import ma.bacsurv.web.service.SolveService;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,10 +40,13 @@ public class ApiController {
 
     private final SolveService solveService;
     private final ScheduleEditor editor;
+    private final MessageSource messages;
 
-    public ApiController(SolveService solveService, ScheduleEditor editor) {
+    public ApiController(SolveService solveService, ScheduleEditor editor,
+                         MessageSource messages) {
         this.solveService = solveService;
         this.editor = editor;
+        this.messages = messages;
     }
 
     @GetMapping("/operations")
@@ -163,8 +168,67 @@ public class ApiController {
     @ExceptionHandler(InsufficientStaffException.class)
     public ResponseEntity<Map<String, Object>> insufficientStaff(InsufficientStaffException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", e.getMessage(),
+                "error", explain(e),
                 "shortages", e.shortages(),
                 "unfillable", e.unfillable()));
+    }
+
+    /**
+     * Why the pool cannot do the work, in the administrator's language.
+     *
+     * <p>The exception's own message is written in English inside the code,
+     * which is right for a log and wrong for the one person who has to act on
+     * it. One fault is named — the first that has to be fixed — and the rest
+     * are counted: a session missing a specialist is short at every hour that
+     * subject is examined, and listing eleven sentences saying the same thing
+     * hides the single decision behind them.
+     */
+    private String explain(InsufficientStaffException e) {
+        // a missing specialist comes first only when that is really the fault.
+        // A centre short of people also has duties nobody can take — everyone
+        // eligible is already in a room — and answering "nobody is available"
+        // there hides the figure that fixes it: the hour needs ten and there
+        // are two.
+        StaffingCheck.Unfillable specialist = e.unfillable().stream()
+                .filter(duty -> duty.needsSpecialist() && duty.subject() != null)
+                .findFirst().orElse(null);
+
+        if (specialist != null) {
+            return with(say("error.staff.specialist", specialist.subject(),
+                            day(specialist.date()), hour(specialist.at())),
+                    e.unfillable().size() - 1);
+        }
+        if (!e.shortages().isEmpty()) {
+            StaffingCheck.Shortage worst = e.worst();
+            return with(say("error.staff.shortage", day(worst.date()), hour(worst.at()),
+                            String.valueOf(worst.required()), String.valueOf(worst.available())),
+                    e.shortages().size() - 1);
+        }
+        StaffingCheck.Unfillable duty = e.firstUnfillable();
+        return with(say("error.staff.unfillable", day(duty.date()), hour(duty.at())),
+                e.unfillable().size() - 1);
+    }
+
+    /** The fault that was named, and how many more of its own kind there are. */
+    private String with(String sentence, int others) {
+        return others <= 0 ? sentence
+                : sentence + " " + say("error.staff.more", String.valueOf(others));
+    }
+
+    /**
+     * Counts and dates are passed as text on purpose: MessageFormat would
+     * render a number in the locale's own digits, and Arabic pages here are
+     * read with Latin ones.
+     */
+    private String say(String key, String... args) {
+        return messages.getMessage(key, args, LocaleContextHolder.getLocale());
+    }
+
+    private static String day(java.time.LocalDate date) {
+        return date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    private static String hour(java.time.LocalTime at) {
+        return at.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
     }
 }

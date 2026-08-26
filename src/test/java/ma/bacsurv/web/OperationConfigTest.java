@@ -28,6 +28,7 @@ class OperationConfigTest {
 
     @Autowired SolveService solveService;
     @Autowired OperationConfigService configs;
+    @Autowired ma.bacsurv.web.service.CenterAdminService centers;
     @Autowired OperationAssembler assembler;
     @Autowired OperationRepository operations;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
@@ -113,7 +114,9 @@ class OperationConfigTest {
 
         var room = configs.settings(operation.id()).rooms().stream()
                 .filter(r -> r.reference().equals("R1")).findFirst().orElseThrow();
-        configs.setRoomStaffing(room.id(), 4);
+        // a room's own figure belongs to the room, so it is written where the
+        // room is edited — there is no second door through the session's rules
+        centers.renameRoom(room.id(), room.label(), 4);
 
         // R1 is used in all four slots: two extra surveillants each time
         assertEquals(before + 8, count(operation.id(), DutyRole.SURVEILLANCE));
@@ -124,9 +127,15 @@ class OperationConfigTest {
         var operation = imported("Centre Cfg Minimum");
         var room = configs.settings(operation.id()).rooms().getFirst();
 
-        assertThrows(IllegalArgumentException.class, () -> configs.setRoomStaffing(room.id(), 1));
-        assertThrows(IllegalArgumentException.class, () -> configs.save(operation.id(), 1,
-                "PERCENTAGE", 0.10, 0, 3, "SOFT", 0, "HARD", false, 30));
+        assertEquals("room.surveillants.tooFew",
+                assertThrows(IllegalArgumentException.class,
+                        () -> centers.renameRoom(room.id(), room.label(), 1)).getMessage());
+        // and the session's own default is refused as a key too, so the screen
+        // answers in the administrator's language rather than the domain's
+        assertEquals("settings.surveillants.tooFew",
+                assertThrows(IllegalArgumentException.class,
+                        () -> configs.save(operation.id(), 1, "PERCENTAGE", 0.10, 0,
+                                3, "SOFT", 0, "HARD", false, 30)).getMessage());
     }
 
     @Test
