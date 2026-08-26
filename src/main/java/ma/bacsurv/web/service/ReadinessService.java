@@ -197,11 +197,24 @@ public class ReadinessService {
         if (latest == null) {
             return new Step("distribution", State.TODO, "distribution.none", List.of(), "results");
         }
+        // solved, but the session moved afterwards: the screen is showing an
+        // answer to a question that has since changed
+        if (latest.getFinishedAt() != null && changedSince(latest)) {
+            return new Step("distribution", State.CHECK, "distribution.stale", List.of(), "results");
+        }
         if (latest.getHardViolations() > 0 || latest.getUnfilled() > 0) {
             return new Step("distribution", State.CHECK, "distribution.broken",
                     List.of(String.valueOf(latest.getHardViolations()),
                             String.valueOf(latest.getUnfilled())), "results");
         }
         return new Step("distribution", State.READY, "distribution.ok", List.of(), "results");
+    }
+
+    /** The session's own inputs, or the centre's, moved after the job finished. */
+    private boolean changedSince(SolveJob job) {
+        java.time.Instant session = job.getOperation().getChangedAt();
+        java.time.Instant centre = job.getOperation().getCenter().getChangedAt();
+        return (session != null && session.isAfter(job.getFinishedAt()))
+                || (centre != null && centre.isAfter(job.getFinishedAt()));
     }
 }

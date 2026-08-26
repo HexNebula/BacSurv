@@ -119,6 +119,10 @@ public class CatalogueService {
         examsOf(centerId).stream()
                 .filter(exam -> previous.equals(exam.getSubject()))
                 .forEach(exam -> exam.renameSubject(cleaned));
+
+        // the épreuves and the teachers were rewritten, so what the solver
+        // matched on is no longer what a finished distribution matched on
+        subject.getCenter().touch();
     }
 
     @Transactional
@@ -202,6 +206,8 @@ public class CatalogueService {
         examsOf(centerId).stream()
                 .filter(exam -> previous.equals(exam.getStream()))
                 .forEach(exam -> exam.rename(cleaned));
+
+        stream.getCenter().touch();
     }
 
     @Transactional

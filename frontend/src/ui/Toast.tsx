@@ -16,7 +16,18 @@ import { CircleCheck, TriangleAlert, X } from 'lucide-react'
  */
 export type Tone = 'ok' | 'bad'
 
-type Note = { id: number; tone: Tone; text: string }
+/**
+ * An action carried by a toast: one press, offered rather than demanded.
+ *
+ * <p>Some changes leave the distribution out of date, and the administrator
+ * should be able to relaunch it from where they are instead of navigating to
+ * find the button. A modal would ask the same thing by taking the screen away
+ * — and after the second rule changed in a row it would be dismissed without
+ * being read.
+ */
+export type ToastAction = { label: string; run: () => void }
+
+type Note = { id: number; tone: Tone; text: string; action?: ToastAction }
 
 let queue: Note[] = []
 let nextId = 1
@@ -26,8 +37,8 @@ function publish() {
   listeners.forEach((listener) => listener())
 }
 
-function push(tone: Tone, text: string) {
-  queue = [...queue, { id: nextId++, tone, text }]
+function push(tone: Tone, text: string, action?: ToastAction) {
+  queue = [...queue, { id: nextId++, tone, text, action }]
   publish()
 }
 
@@ -38,7 +49,7 @@ function drop(id: number) {
 
 /** Called from anywhere, including outside React — `lib/mutation.ts` uses it. */
 export const toast = {
-  ok: (text: string) => push('ok', text),
+  ok: (text: string, action?: ToastAction) => push('ok', text, action),
   bad: (text: string) => push('bad', text),
 }
 
@@ -56,7 +67,8 @@ export function Toaster() {
   useEffect(() => {
     for (const note of notes) {
       if (timers.current.has(note.id)) continue
-      const life = note.tone === 'bad' ? 8000 : 4000
+      // one carrying an action is given time to be pressed
+      const life = note.tone === 'bad' ? 8000 : note.action ? 9000 : 4000
       timers.current.set(
         note.id,
         window.setTimeout(() => {
@@ -109,7 +121,22 @@ export function Toaster() {
                 bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-raised)] ring-1 ${ring}`}
             >
               <Icon size={17} className={`mt-px shrink-0 ${mark}`} aria-hidden />
-              <p className="min-w-0 flex-1 text-[13px] leading-relaxed">{note.text}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] leading-relaxed">{note.text}</p>
+                {note.action && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      note.action?.run()
+                      close(note.id)
+                    }}
+                    className="mt-2 rounded-[var(--radius-field)] bg-[var(--color-accent)] px-3 py-1.5
+                      text-[12.5px] font-medium text-white transition-opacity hover:opacity-90"
+                  >
+                    {note.action.label}
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => close(note.id)}

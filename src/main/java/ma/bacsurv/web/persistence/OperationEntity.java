@@ -51,6 +51,14 @@ public class OperationEntity {
     @Column(name = "ends_on")
     private LocalDate endsOn;
 
+    /**
+     * When this session's own inputs last moved — its timetable, its rules. The
+     * centre carries the rest; a distribution is stale when either has changed
+     * since it was solved.
+     */
+    @Column(name = "changed_at")
+    private Instant changedAt = Instant.now();
+
     @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true,
             fetch = FetchType.LAZY)
     @OrderBy("date asc, startTime asc")
@@ -77,6 +85,11 @@ public class OperationEntity {
     }
 
     public Long getId() { return id; }
+
+    public Instant getChangedAt() { return changedAt; }
+
+    /** Called by every service that alters what a distribution is built from. */
+    public void touch() { this.changedAt = Instant.now(); }
     public CenterEntity getCenter() { return center; }
     public String getReference() { return reference; }
     public String getType() { return type; }

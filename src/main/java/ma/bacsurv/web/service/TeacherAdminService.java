@@ -67,6 +67,7 @@ public class TeacherAdminService {
         catalogue.rememberSubject(centerId, subject);
         teachers.save(new TeacherEntity(center, matricule, matricule, name, subject,
                 blankToNull(details.establishment()), gender(details.gender())));
+        center.touch();
     }
 
     /** Everything but the matricule, which is the identity rather than a field. */
@@ -79,6 +80,7 @@ public class TeacherAdminService {
                 required(details.subject(), "teacher.subject"),
                 blankToNull(details.establishment()),
                 gender(details.gender()));
+        teacher.getCenter().touch();
     }
 
     /**
@@ -132,6 +134,9 @@ public class TeacherAdminService {
             rows.add(new UnavailabilityEntity(teacher, absence.date(), start, end));
         }
         teacher.replaceUnavailabilities(rows);
+        // a teacher who is away changes who can hold which duty, so every
+        // distribution of this centre solved before now is out of date
+        teacher.getCenter().touch();
     }
 
     /**
@@ -146,6 +151,7 @@ public class TeacherAdminService {
         if (assignments.countByTeacherId(teacher.getId()) > 0) {
             throw new IllegalArgumentException("teacher.hasHistory");
         }
+        teacher.getCenter().touch();
         teachers.delete(teacher);
     }
 

@@ -100,6 +100,7 @@ public class TeacherImportService {
                                     row.matricule(), row.name(), row.subject(),
                                     blankToNull(row.establishment()), row.gender())));
         }
+        if (preview.hasChanges()) center.touch();
         return preview;
     }
 

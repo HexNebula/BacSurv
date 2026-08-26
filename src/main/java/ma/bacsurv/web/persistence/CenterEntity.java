@@ -37,6 +37,14 @@ public class CenterEntity {
     @Column(name = "ministerial_reference")
     private String ministerialReference;
 
+    /**
+     * When anything the centre owns and a distribution depends on last moved:
+     * the pool, the absences, the rooms, the catalogue. Compared against a
+     * job's finish time to know whether what is on screen is still current.
+     */
+    @Column(name = "changed_at")
+    private java.time.Instant changedAt = java.time.Instant.now();
+
     protected CenterEntity() {}
 
     public CenterEntity(String name) {
@@ -44,6 +52,11 @@ public class CenterEntity {
     }
 
     public Long getId() { return id; }
+
+    public java.time.Instant getChangedAt() { return changedAt; }
+
+    /** Called by every service that alters what a distribution is built from. */
+    public void touch() { this.changedAt = java.time.Instant.now(); }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

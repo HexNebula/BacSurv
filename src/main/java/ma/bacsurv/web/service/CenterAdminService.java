@@ -188,6 +188,7 @@ public class CenterAdminService {
             int number = next + i;
             rooms.save(new RoomEntity(center, "R" + number, prefix + " " + number));
         }
+        center.touch();
         return count;
     }
 
@@ -204,10 +205,12 @@ public class CenterAdminService {
                 && surveillants < ma.bacsurv.rules.StaffingPolicy.MINIMUM_SURVEILLANTS_PER_ROOM)
             throw new IllegalArgumentException("room.surveillants.tooFew");
         room.setSurveillantsOverride(surveillants);
+        room.getCenter().touch();
     }
 
     @Transactional
     public void deleteRoom(long roomId) {
+        rooms.findById(roomId).map(RoomEntity::getCenter).ifPresent(CenterEntity::touch);
         rooms.deleteById(roomId);
     }
 

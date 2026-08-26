@@ -72,7 +72,7 @@ public class OperationConfigService {
                      double reservePercentage, int reserveFixedCount, int maxConsecutiveDays,
                      String consecutiveDaysStrength, int minGapMinutes, String ownSubjectStrength,
                      boolean forbidOwnSubjectReserve, int solveSeconds) {
-        operation(operationId); // fails fast when the operation does not exist
+        OperationEntity target = operation(operationId); // fails fast when unknown
         check(defaultSurveillantsPerRoom, reserveMode, reservePercentage, reserveFixedCount,
                 maxConsecutiveDays, minGapMinutes);
         OperationConfigEntity config = configs.findById(operationId)
@@ -81,6 +81,9 @@ public class OperationConfigService {
                 maxConsecutiveDays, consecutiveDaysStrength, minGapMinutes, ownSubjectStrength,
                 forbidOwnSubjectReserve, solveSeconds);
         configs.save(config);
+        // the rules decide how many people each hour takes: a distribution
+        // solved under the old ones is no longer the answer
+        target.touch();
     }
 
     /**
