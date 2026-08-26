@@ -1,10 +1,13 @@
 spring:
   datasource:
     # H2 in PostgreSQL mode: dev behaves like the production target.
-    # Switching to real PostgreSQL later = change this url + driver only.
-    url: jdbc:h2:file:./data/bacsurv;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
-    username: sa
-    password: ""
+    # Switching to real PostgreSQL later = point these three at it. They are
+    # read from the environment first so that move is a variable on the host
+    # rather than an edit and a rebuild; with nothing set, the file below is
+    # what a centre runs on its own machine.
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/bacsurv;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: none   # schema owned by Flyway, never by Hibernate

@@ -1,6 +1,7 @@
 package ma.bacsurv.web.api;
 
 import ma.bacsurv.web.service.CenterAdminService;
+import ma.bacsurv.web.service.CenterExportService;
 import ma.bacsurv.web.service.CenterView;
 import ma.bacsurv.web.service.TeacherImportService;
 import org.springframework.context.MessageSource;
@@ -33,13 +34,32 @@ public class CenterApiController {
 
     private final CenterAdminService admin;
     private final TeacherImportService teachers;
+    private final CenterExportService exports;
     private final MessageSource messages;
 
     public CenterApiController(CenterAdminService admin, TeacherImportService teachers,
-                               MessageSource messages) {
+                               CenterExportService exports, MessageSource messages) {
         this.admin = admin;
         this.teachers = teachers;
+        this.exports = exports;
         this.messages = messages;
+    }
+
+    /**
+     * The centre's whole record, as a file to keep somewhere else.
+     *
+     * <p>Served as an attachment rather than as an API answer: what is wanted
+     * here is a file on a disk, and the browser is the thing that puts it
+     * there. The name carries the centre and the day, because a folder of
+     * files called export.json is not a backup.
+     */
+    @GetMapping("/{id}/export")
+    public ResponseEntity<CenterExportService.Export> export(@PathVariable long id) {
+        CenterExportService.Export export = exports.of(id);
+        return ResponseEntity.ok()
+                .header("Content-Disposition",
+                        "attachment; filename=\"" + exports.fileNameFor(export) + "\"")
+                .body(export);
     }
 
     public record NewCenter(String name) {}

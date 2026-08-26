@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { CalendarPlus, Check, Pencil } from 'lucide-react'
+import { CalendarPlus, Check, Download, Pencil } from 'lucide-react'
 import { CalendarDate, parseDate } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
@@ -381,6 +381,23 @@ export function CenterPage() {
         )
           .map(([key, value]) => `${value} ${t(`centers.${key}`, { count: value })}`)
           .join(' · ')
+      }
+      actions={
+        /*
+          A plain link, not a fetch: what is wanted is a file on a disk, and
+          the browser is what puts it there. Nothing is sent anywhere — the
+          server writes the centre out and the download stays on this machine.
+        */
+        <a
+          href={`/api/centers/${detail.id}/export`}
+          title={t('center.exportHint')}
+          className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-field)] bg-[var(--color-surface)] px-4
+            text-[13.5px] font-medium ring-1 ring-[var(--color-hairline)] transition-shadow
+            hover:ring-[var(--color-faint)]/45"
+        >
+          <Download size={16} aria-hidden />
+          {t('center.export')}
+        </a>
       }
     >
       <div className="space-y-6">
