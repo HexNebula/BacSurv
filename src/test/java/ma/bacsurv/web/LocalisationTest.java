@@ -16,7 +16,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Properties;
+import org.springframework.core.io.ClassPathResource;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
@@ -41,6 +45,36 @@ class LocalisationTest {
     @Autowired TimetableService timetable;
 
     private static final LocalDate DAY = LocalDate.of(2026, 6, 4);
+
+    /**
+     * An apostrophe in a message that carries arguments must be doubled.
+     *
+     * <p>MessageFormat reads a lone {@code \'} as the start of a quoted run, so
+     * "L'année {0} existe déjà" reaches the screen as "Lannée {0} existe déjà":
+     * the apostrophe eaten and the argument never substituted. French is full
+     * of apostrophes, every one of these sentences is shown to somebody, and
+     * nothing else catches it — a unit test asserting on the key passes, and
+     * the fault only appears in a browser.
+     */
+    @Test
+    void frenchApostrophesSurviveArgumentSubstitution() throws Exception {
+        Properties fr = new Properties();
+        try (var in = new java.io.InputStreamReader(
+                new ClassPathResource("messages_fr.properties").getInputStream(),
+                StandardCharsets.UTF_8)) {
+            fr.load(in);
+        }
+
+        List<String> broken = fr.stringPropertyNames().stream()
+                .filter(key -> fr.getProperty(key).contains("{"))
+                .filter(key -> fr.getProperty(key).replace("\'\'", "").contains("\'"))
+                .sorted()
+                .toList();
+
+        assertTrue(broken.isEmpty(),
+                "apostrophes must be doubled in these keys, or the argument is swallowed: "
+                        + broken);
+    }
 
     /**
      * The interface is React now, so the server's share of the two languages

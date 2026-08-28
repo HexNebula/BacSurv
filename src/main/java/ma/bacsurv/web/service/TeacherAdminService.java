@@ -38,13 +38,16 @@ public class TeacherAdminService {
     private final TeacherRepository teachers;
     private final AssignmentRepository assignments;
     private final CatalogueService catalogue;
+    private final SchoolYearService schoolYears;
 
     public TeacherAdminService(CenterRepository centers, TeacherRepository teachers,
-                               AssignmentRepository assignments, CatalogueService catalogue) {
+                               AssignmentRepository assignments, CatalogueService catalogue,
+                               SchoolYearService schoolYears) {
         this.centers = centers;
         this.teachers = teachers;
         this.assignments = assignments;
         this.catalogue = catalogue;
+        this.schoolYears = schoolYears;
     }
 
     /** What an administrator can state about a teacher. */
@@ -65,8 +68,11 @@ public class TeacherAdminService {
         // reference mirrors the matricule, as the import does: one identity,
         // not two to keep in step
         catalogue.rememberSubject(centerId, subject);
-        teachers.save(new TeacherEntity(center, matricule, matricule, name, subject,
-                blankToNull(details.establishment()), gender(details.gender())));
+        TeacherEntity added = teachers.save(new TeacherEntity(center, matricule, matricule, name,
+                subject, blankToNull(details.establishment()), gender(details.gender())));
+        // somebody added by hand is somebody who has arrived: he joins the year
+        // the centre is working in, not every year it has ever had
+        added.joinYear(schoolYears.current(centerId));
         center.touch();
     }
 
@@ -141,9 +147,15 @@ public class TeacherAdminService {
 
     /**
      * Removing is refused once the teacher has served, because the record of
-     * who has already had a réserve or a permanence is what keeps the next
-     * session fair. Somebody who has left the establishment still has to be
-     * counted for the sessions they worked.
+     * who has already had a réserve or a permanence is what keeps the rest of
+     * the year fair.
+     *
+     * <p>This is deletion, and it is only ever right for a row entered by
+     * mistake — which has no duties, and so deletes without trouble. A teacher
+     * who has left the establishment is a different act entirely: nobody leaves
+     * between the régionale and the rattrapage, so he is taken out of the
+     * <em>following</em> year's pool by SchoolYearService#removeFromYear, and
+     * keeps everything he did in the year he was here.
      */
     @Transactional
     public void remove(long centerId, String matricule) {

@@ -47,12 +47,14 @@ public class TeacherImportService {
     private final CenterRepository centers;
     private final TeacherRepository teachers;
     private final CatalogueService catalogue;
+    private final SchoolYearService schoolYears;
 
     public TeacherImportService(CenterRepository centers, TeacherRepository teachers,
-                                CatalogueService catalogue) {
+                                CatalogueService catalogue, SchoolYearService schoolYears) {
         this.centers = centers;
         this.teachers = teachers;
         this.catalogue = catalogue;
+        this.schoolYears = schoolYears;
     }
 
     @Transactional(readOnly = true)
@@ -88,26 +90,39 @@ public class TeacherImportService {
         CenterEntity center = center(centerId);
         Preview preview = preview(centerId, csv);
 
+        // the file describes who is here this year, so its rows join this year
+        var year = schoolYears.current(centerId);
+
         for (TeacherCsv.Row row : new TeacherCsv().parse(csv).rows()) {
             // a spreadsheet may name a subject the centre has not listed yet;
             // recording it keeps the import from failing over a missing entry
             catalogue.rememberSubject(centerId, row.subject());
-            teachers.findByCenterIdAndMatricule(centerId, row.matricule())
-                    .ifPresentOrElse(
-                            existing -> existing.update(existing.getReference(), row.name(),
-                                    row.subject(), blankToNull(row.establishment()), row.gender()),
-                            () -> teachers.save(new TeacherEntity(center, row.matricule(),
-                                    row.matricule(), row.name(), row.subject(),
-                                    blankToNull(row.establishment()), row.gender())));
+            TeacherEntity teacher = teachers.findByCenterIdAndMatricule(centerId, row.matricule())
+                    .map(existing -> {
+                        existing.update(existing.getReference(), row.name(), row.subject(),
+                                blankToNull(row.establishment()), row.gender());
+                        return existing;
+                    })
+                    .orElseGet(() -> teachers.save(new TeacherEntity(center, row.matricule(),
+                            row.matricule(), row.name(), row.subject(),
+                            blankToNull(row.establishment()), row.gender())));
+            // a matricule already in the register is the same person coming
+            // back, not a new one: he rejoins, keeping everything he did before
+            teacher.joinYear(year);
         }
         if (preview.hasChanges()) center.touch();
         return preview;
     }
 
-    /** Existing pool of a center, for the page that lists it. */
+    /**
+     * Existing pool of a centre, for the page that lists it: the teachers of
+     * the year in progress. Somebody who left last summer is still in the
+     * centre's register and in every archive of the years he served, but he is
+     * not on the list of people to give work to.
+     */
     @Transactional(readOnly = true)
     public List<Change> pool(long centerId) {
-        return teachers.findPoolOfCenter(centerId).stream()
+        return teachers.findPoolOfYear(schoolYears.current(centerId).getId()).stream()
                 .map(t -> new Change(t.getMatricule(), t.getName(), t.getSubject(),
                         t.getEstablishment(), t.getGender(), null,
                         t.getUnavailabilities().size()))
@@ -118,7 +133,7 @@ public class TeacherImportService {
     public List<CenterView> centers() {
         return centers.findAllByOrderByNameAsc().stream()
                 .map(c -> new CenterView(c.getId(), c.getName(),
-                        teachers.findPoolOfCenter(c.getId()).size()))
+                        teachers.findPoolOfYear(schoolYears.current(c.getId()).getId()).size()))
                 .toList();
     }
 

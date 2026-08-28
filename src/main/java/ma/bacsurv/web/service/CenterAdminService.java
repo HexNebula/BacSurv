@@ -30,13 +30,16 @@ public class CenterAdminService {
     private final RoomRepository rooms;
     private final OperationRepository operations;
     private final TeacherRepository teachers;
+    private final SchoolYearService schoolYears;
 
     public CenterAdminService(CenterRepository centers, RoomRepository rooms,
-                              OperationRepository operations, TeacherRepository teachers) {
+                              OperationRepository operations, TeacherRepository teachers,
+                              SchoolYearService schoolYears) {
         this.centers = centers;
         this.rooms = rooms;
         this.operations = operations;
         this.teachers = teachers;
+        this.schoolYears = schoolYears;
     }
 
     /** A room as the administrator sees it. */
@@ -116,8 +119,11 @@ public class CenterAdminService {
                         operation.getSlots().size(), operation.getState().name()))
                 .toList();
 
+        // the pool of the year in progress, not everybody the centre has ever
+        // held: the screen is about who is here now
         return new CenterDetail(center.getId(), center.getName(), identityOf(center),
-                teachers.findPoolOfCenter(centerId).size(), roomViews, sessionViews);
+                teachers.findPoolOfYear(schoolYears.current(centerId).getId()).size(),
+                roomViews, sessionViews);
     }
 
     @Transactional
@@ -126,7 +132,11 @@ public class CenterAdminService {
         centers.findByName(cleaned).ifPresent(existing -> {
             throw new IllegalArgumentException("center.exists");
         });
-        return centers.save(new CenterEntity(cleaned)).getId();
+        CenterEntity created = centers.save(new CenterEntity(cleaned));
+        // a centre needs a year from the moment it exists: rooms and teachers
+        // entered on the first afternoon have to belong somewhere
+        schoolYears.forDate(created, LocalDate.now());
+        return created.getId();
     }
 
     @Transactional
@@ -237,7 +247,10 @@ public class CenterAdminService {
         if (startsOn == null || endsOn == null) throw new IllegalArgumentException("session.dates");
         if (endsOn.isBefore(startsOn)) throw new IllegalArgumentException("session.dates.reversed");
 
-        return operations.save(new OperationEntity(center, cleaned, parsed.name(),
+        // the year comes from the dates rather than being asked for: a session
+        // in June 2027 belongs to 2026-2027 and nobody should have to say so
+        var year = schoolYears.forDate(center, startsOn);
+        return operations.save(new OperationEntity(center, year, cleaned, parsed.name(),
                 startsOn, endsOn)).getId();
     }
 

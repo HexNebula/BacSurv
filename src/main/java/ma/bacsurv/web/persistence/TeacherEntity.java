@@ -8,12 +8,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A teacher of the center's pool. The matricule (رقم التأجير) is the real
@@ -52,6 +56,21 @@ public class TeacherEntity {
             fetch = FetchType.LAZY)
     private List<UnavailabilityEntity> unavailabilities = new ArrayList<>();
 
+    /**
+     * The school years this teacher was in the pool for.
+     *
+     * <p>Presence is all or nothing for a year: nobody leaves between the
+     * régionale and the rattrapage, so a teacher is either asked to work a
+     * whole year or not at all. Leaving the establishment is expressed by not
+     * being a member of the years that follow — the row itself stays, with the
+     * matricule that identifies him and everything he did still attached.
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "teacher_school_year",
+            joinColumns = @JoinColumn(name = "teacher_id"),
+            inverseJoinColumns = @JoinColumn(name = "school_year_id"))
+    private Set<SchoolYearEntity> schoolYears = new LinkedHashSet<>();
+
     protected TeacherEntity() {}
 
     public TeacherEntity(CenterEntity center, String reference, String matricule,
@@ -89,4 +108,17 @@ public class TeacherEntity {
     public String getEstablishment() { return establishment; }
     public String getGender() { return gender; }
     public List<UnavailabilityEntity> getUnavailabilities() { return unavailabilities; }
+
+    public Set<SchoolYearEntity> getSchoolYears() { return schoolYears; }
+
+    /** Puts this teacher in a year's pool. Joining a year twice is not an event. */
+    public void joinYear(SchoolYearEntity year) { schoolYears.add(year); }
+
+    /**
+     * Takes this teacher out of a year's pool. Nothing he did is touched: the
+     * duties of a year he did serve belong to that year and stay in it.
+     */
+    public void leaveYear(SchoolYearEntity year) { schoolYears.remove(year); }
+
+    public boolean isInYear(SchoolYearEntity year) { return schoolYears.contains(year); }
 }

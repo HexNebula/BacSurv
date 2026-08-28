@@ -33,6 +33,15 @@ public class OperationEntity {
     @JoinColumn(name = "center_id", nullable = false)
     private CenterEntity center;
 
+    /**
+     * The school year this session belongs to. What the pool is drawn from and
+     * what fairness is counted inside — the régionale, the nationale and the
+     * rattrapage of one year share a queue, and the next year starts a new one.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "school_year_id", nullable = false)
+    private SchoolYearEntity schoolYear;
+
     @Column(nullable = false)
     private String reference;
 
@@ -85,13 +94,15 @@ public class OperationEntity {
 
     protected OperationEntity() {}
 
-    public OperationEntity(CenterEntity center, String reference, String type) {
-        this(center, reference, type, null, null);
+    public OperationEntity(CenterEntity center, SchoolYearEntity schoolYear,
+                           String reference, String type) {
+        this(center, schoolYear, reference, type, null, null);
     }
 
-    public OperationEntity(CenterEntity center, String reference, String type,
-                           LocalDate startsOn, LocalDate endsOn) {
+    public OperationEntity(CenterEntity center, SchoolYearEntity schoolYear, String reference,
+                           String type, LocalDate startsOn, LocalDate endsOn) {
         this.center = center;
+        this.schoolYear = schoolYear;
         this.reference = reference;
         this.type = type;
         this.startsOn = startsOn;
@@ -110,6 +121,7 @@ public class OperationEntity {
     /** Called by every service that alters what a distribution is built from. */
     public void touch() { this.changedAt = Instant.now(); }
     public CenterEntity getCenter() { return center; }
+    public SchoolYearEntity getSchoolYear() { return schoolYear; }
     public String getReference() { return reference; }
     public String getType() { return type; }
     public Instant getCreatedAt() { return createdAt; }

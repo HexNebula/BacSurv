@@ -77,7 +77,7 @@ public class ReadinessService {
 
         List<Step> steps = new ArrayList<>();
         steps.add(rooms(centerId));
-        steps.add(pool(centerId));
+        steps.add(pool(operation));
         steps.add(filieres(sessionId));
         steps.add(timetable(operation));
 
@@ -109,8 +109,9 @@ public class ReadinessService {
                         "center");
     }
 
-    private Step pool(long centerId) {
-        List<TeacherEntity> pool = teachers.findPoolOfCenter(centerId);
+    /** The pool of this session's year — not the centre's whole register. */
+    private Step pool(OperationEntity operation) {
+        List<TeacherEntity> pool = teachers.findPoolOfYear(operation.getSchoolYear().getId());
         if (pool.isEmpty()) {
             return new Step("teachers", State.TODO, "teachers.none", List.of(), "teachers");
         }

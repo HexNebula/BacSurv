@@ -138,12 +138,20 @@ public class OperationAssembler {
                 exam.getPermanenceCount());
     }
 
-    /** The center's pool, seeded with the workload of its past operations. */
+    /**
+     * The pool of this session's school year, seeded with what the year's
+     * earlier sessions handed out.
+     *
+     * <p>The year is the boundary in both directions. Only its members are
+     * given duties, so a teacher who moved to another school in July is not
+     * asked to work in September; and only its own sessions count as history,
+     * so nobody is compensated in June 2028 for a duty done in June 2026.
+     */
     public Pool poolFor(OperationEntity operation) {
-        Long centerId = operation.getCenter().getId();
-        Map<Long, Map<DutyRole, Integer>> prior = priorWorkload(centerId, operation.getId());
-        List<TeacherEntity> entities = teachers.findPoolOfCenter(centerId);
-        Map<Long, Integer> carry = privilegeCarry(centerId, operation.getId(), entities);
+        Long yearId = operation.getSchoolYear().getId();
+        Map<Long, Map<DutyRole, Integer>> prior = priorWorkload(yearId, operation.getId());
+        List<TeacherEntity> entities = teachers.findPoolOfYear(yearId);
+        Map<Long, Integer> carry = privilegeCarry(yearId, operation.getId(), entities);
 
         List<Teacher> pool = new java.util.ArrayList<>();
         Map<String, Long> idByMatricule = new HashMap<>();
@@ -172,12 +180,13 @@ public class OperationAssembler {
      *
      * <p>The floor is taken over the whole current pool, so a teacher who
      * missed the earlier sessions counts as zero and goes to the front —
-     * which is right, they have not had their turn.
+     * which is right, they have not had their turn. Somebody who joined the
+     * establishment this year arrives at zero for the same reason.
      */
-    private Map<Long, Integer> privilegeCarry(Long centerId, Long operationId,
+    private Map<Long, Integer> privilegeCarry(Long schoolYearId, Long operationId,
                                               List<TeacherEntity> pool) {
         Map<Long, Integer> taken = new HashMap<>();
-        for (Object[] row : assignments.privilegeTurnsOfCenter(centerId, operationId)) {
+        for (Object[] row : assignments.privilegeTurnsOfYear(schoolYearId, operationId)) {
             taken.put((Long) row[0], ((Number) row[1]).intValue());
         }
         return carryFrom(taken, pool.stream().map(TeacherEntity::getId).toList());
@@ -197,9 +206,9 @@ public class OperationAssembler {
         return Map.copyOf(carry);
     }
 
-    private Map<Long, Map<DutyRole, Integer>> priorWorkload(Long centerId, Long operationId) {
+    private Map<Long, Map<DutyRole, Integer>> priorWorkload(Long schoolYearId, Long operationId) {
         Map<Long, Map<DutyRole, Integer>> prior = new HashMap<>();
-        for (Object[] row : assignments.priorWorkloadOfCenter(centerId, operationId)) {
+        for (Object[] row : assignments.priorWorkloadOfYear(schoolYearId, operationId)) {
             Long teacherId = (Long) row[0];
             DutyRole role = (DutyRole) row[1];
             int count = ((Number) row[2]).intValue();

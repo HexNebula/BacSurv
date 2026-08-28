@@ -185,9 +185,14 @@ class SessionLifecycleTest {
         long real = centers.createSession(centre, "Régionale", "REGIONAL_1BAC", DAY, DAY);
         finishedSolve(trial);
 
+        // both sit in June, so both are in the same school year: what keeps the
+        // trial out of the régionale's history is the state, not the year
+        Long year = operations.findWithYear(real).orElseThrow().getSchoolYear().getId();
+        assertEquals(year, operations.findWithYear(trial).orElseThrow().getSchoolYear().getId());
+
         // the query the assembler asks when it builds the pool for the régionale
-        assertTrue(assignments.priorWorkloadOfCenter(centre, real).isEmpty(),
+        assertTrue(assignments.priorWorkloadOfYear(year, real).isEmpty(),
                 "a session nobody settled is not work anybody did");
-        assertTrue(assignments.privilegeTurnsOfCenter(centre, real).isEmpty());
+        assertTrue(assignments.privilegeTurnsOfYear(year, real).isEmpty());
     }
 }

@@ -135,12 +135,12 @@ public class CenterExportService {
      */
     private java.util.Map<Long, int[]> priorWorkOf(long centerId) {
         java.util.Map<Long, int[]> counts = new java.util.HashMap<>();
-        // no operation is excluded here: -1 matches nothing, so the whole
-        // history of the centre is counted
-        for (Object[] row : assignments.priorWorkloadOfCenter(centerId, -1L)) {
+        // every year, not only the current one: fairness stops at September but
+        // a backup that forgot last year would be no backup at all
+        for (Object[] row : assignments.lifetimeWorkOfCenter(centerId)) {
             Long teacherId = (Long) row[0];
-            ma.bacsurv.domain.DutyRole role = (ma.bacsurv.domain.DutyRole) row[1];
-            int count = ((Number) row[2]).intValue();
+            ma.bacsurv.domain.DutyRole role = (ma.bacsurv.domain.DutyRole) row[2];
+            int count = ((Number) row[3]).intValue();
             int[] tally = counts.computeIfAbsent(teacherId, id -> new int[2]);
             if (role == ma.bacsurv.domain.DutyRole.SURVEILLANCE) tally[0] += count;
             else tally[1] += count;

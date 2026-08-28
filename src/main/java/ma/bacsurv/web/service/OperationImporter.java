@@ -13,11 +13,13 @@ import ma.bacsurv.web.persistence.OperationEntity;
 import ma.bacsurv.web.persistence.OperationRepository;
 import ma.bacsurv.web.persistence.RoomEntity;
 import ma.bacsurv.web.persistence.RoomRepository;
+import ma.bacsurv.web.persistence.SchoolYearEntity;
 import ma.bacsurv.web.persistence.TeacherEntity;
 import ma.bacsurv.web.persistence.TeacherRepository;
 import ma.bacsurv.web.persistence.UnavailabilityEntity;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,24 +39,33 @@ public class OperationImporter {
     private final RoomRepository rooms;
     private final TeacherRepository teachers;
     private final OperationRepository operations;
+    private final SchoolYearService schoolYears;
 
     public OperationImporter(CenterRepository centers, RoomRepository rooms,
-                             TeacherRepository teachers, OperationRepository operations) {
+                             TeacherRepository teachers, OperationRepository operations,
+                             SchoolYearService schoolYears) {
         this.centers = centers;
         this.rooms = rooms;
         this.teachers = teachers;
         this.operations = operations;
+        this.schoolYears = schoolYears;
     }
 
     public OperationEntity importOperation(InputMapper.ParsedOperation parsed) {
         CenterEntity center = centers.findByName(parsed.centerName())
                 .orElseGet(() -> centers.save(new CenterEntity(parsed.centerName())));
 
+        // a file carries no school year, so it is read off the épreuves: the
+        // first day anybody sits an exam is the year the session belongs to
+        LocalDate firstDay = parsed.operation().slots().stream()
+                .map(ExamSlot::date).min(LocalDate::compareTo).orElse(LocalDate.now());
+        SchoolYearEntity year = schoolYears.forDate(center, firstDay);
+
         Map<String, RoomEntity> roomsByReference = importRooms(center, parsed);
-        importTeachers(center, parsed.teachers());
+        importTeachers(center, parsed.teachers(), year);
 
         OperationEntity operation = operations.save(new OperationEntity(
-                center, parsed.operation().id(), parsed.operation().type().name()));
+                center, year, parsed.operation().id(), parsed.operation().type().name()));
 
         for (ExamSlot slot : parsed.operation().slots()) {
             ExamSlotEntity slotEntity = new ExamSlotEntity(operation, slot.id(), slot.date(),
@@ -94,7 +105,8 @@ public class OperationImporter {
         return existing;
     }
 
-    private void importTeachers(CenterEntity center, List<Teacher> pool) {
+    private void importTeachers(CenterEntity center, List<Teacher> pool,
+                                SchoolYearEntity year) {
         for (Teacher teacher : pool) {
             TeacherEntity entity = teachers
                     .findByCenterIdAndMatricule(center.getId(), teacher.matricule())
@@ -113,6 +125,8 @@ public class OperationImporter {
             teacher.unavailabilities().forEach(u -> unavailabilities.add(
                     new UnavailabilityEntity(entity, u.date(), u.start(), u.end())));
             entity.replaceUnavailabilities(unavailabilities);
+            // the file's pool is the pool of the year the file is for
+            entity.joinYear(year);
             teachers.save(entity);
         }
     }
