@@ -1,6 +1,4 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { Hammer } from 'lucide-react'
 import { AppShell } from './components/AppShell'
 import { CenterPage } from './pages/CenterPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -8,26 +6,11 @@ import { ResultsPage } from './pages/ResultsPage'
 import { RoomsPage } from './pages/RoomsPage'
 import { SetupPage } from './pages/SetupPage'
 import { StreamsPage } from './pages/StreamsPage'
+import { StatisticsPage } from './pages/StatisticsPage'
 import { SubjectsPage } from './pages/SubjectsPage'
 import { TeachersPage } from './pages/TeachersPage'
 import { SchedulePage } from './pages/SchedulePage'
-import { Page } from './components/Page'
-import { Card, Empty } from './ui'
 import { useWorkspace } from './context/Workspace'
-
-/** A section named in the rail but not built yet — honest rather than absent. */
-function NotBuilt({ title }: { title: string }) {
-  const { t } = useTranslation()
-  return (
-    <Page title={title}>
-      <Card>
-        <Empty icon={<Hammer size={22} aria-hidden />} title={title}>
-          {t('app.notBuilt')}
-        </Empty>
-      </Card>
-    </Page>
-  )
-}
 
 export default function App() {
   const { hasCenter, isLoading } = useWorkspace()
@@ -51,7 +34,7 @@ export default function App() {
         <Route path="/teachers" element={<TeachersPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/results" element={<ResultsPage />} />
-        <Route path="/statistics" element={<NotBuilt title="Statistiques" />} />
+        <Route path="/statistics" element={<StatisticsPage />} />
       </Route>
     </Routes>
   )
