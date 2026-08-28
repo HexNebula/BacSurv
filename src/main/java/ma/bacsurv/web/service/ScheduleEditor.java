@@ -9,6 +9,7 @@ import ma.bacsurv.rules.Eligibility;
 import ma.bacsurv.web.persistence.AssignmentEntity;
 import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.TeacherEntity;
+import ma.bacsurv.web.persistence.OperationEntity;
 import ma.bacsurv.web.persistence.SolveJob;
 import ma.bacsurv.web.persistence.SolveJobRepository;
 import ma.bacsurv.web.persistence.TeacherRepository;
@@ -76,13 +77,23 @@ public class ScheduleEditor {
     /** A teacher who could be put on a duty, as offered in the change form. */
     public record Candidate(Long id, String matricule, String name, String subject) {}
 
+    /**
+     * Read from the year's pool rather than from the schedule's.
+     *
+     * <p>The schedule's pool now carries anybody named on a stored row, so that
+     * a teacher who has left is still shown holding the duties he held. That is
+     * right for reading and wrong here: this list answers "who could take this
+     * duty instead", and offering somebody who has moved to another school
+     * would put his name on a convocation he will never receive.
+     */
     @Transactional(readOnly = true)
     public List<Candidate> candidates(long jobId) {
-        ScheduleService.Materialised schedule = schedules.materialise(jobId)
+        OperationEntity operation = jobs.findWithOperation(jobId)
+                .map(SolveJob::getOperation)
                 .orElseThrow(() -> new IllegalArgumentException("no schedule for job " + jobId));
-        return schedule.pool().teacherById().entrySet().stream()
-                .map(entry -> new Candidate(entry.getKey(), entry.getValue().matricule(),
-                        entry.getValue().name(), entry.getValue().subject().name()))
+        return teachers.findPoolOfYear(operation.getSchoolYear().getId()).stream()
+                .map(teacher -> new Candidate(teacher.getId(), teacher.getMatricule(),
+                        teacher.getName(), teacher.getSubject()))
                 .sorted(java.util.Comparator.comparing(Candidate::name))
                 .toList();
     }

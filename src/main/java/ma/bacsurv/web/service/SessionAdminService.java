@@ -142,18 +142,24 @@ public class SessionAdminService {
     }
 
     /**
-     * The session's own inputs, or the centre's, moved after the job finished.
+     * This session's own inputs moved after the job finished.
      *
-     * <p>Same reading as the readiness guide's "la répartition date d'avant vos
-     * derniers changements": a timetable or a set of rules edited after the
-     * solve means the paper on screen answers a question that has changed.
+     * <p>Its own, and not the centre's. Settling is a statement about the past
+     * — this is the répartition that went out — and the centre's clock moves
+     * every time a teacher is imported, an absence recorded or a room
+     * relabelled. Refusing to record what happened in June because somebody
+     * edited the pool in July is a category error, and it would leave a real
+     * distribution permanently unrecordable.
+     *
+     * <p>What is still refused is a genuine mismatch: an épreuve added after
+     * the solve means the distribution does not cover the timetable it would be
+     * locking. The readiness guide reports the wider staleness, centre included,
+     * because there it is advice rather than a verdict.
      */
     private static boolean changedSince(SolveJob job, OperationEntity session) {
         if (job.getFinishedAt() == null) return false;
         java.time.Instant own = session.getChangedAt();
-        java.time.Instant centre = session.getCenter().getChangedAt();
-        return (own != null && own.isAfter(job.getFinishedAt()))
-                || (centre != null && centre.isAfter(job.getFinishedAt()));
+        return own != null && own.isAfter(job.getFinishedAt());
     }
 
     /**
@@ -169,9 +175,12 @@ public class SessionAdminService {
         OperationEntity session = session(sessionId);
         if (!session.isSettled()) return;
         session.reopen();
-        // its inputs are editable again, and any distribution shown against it
-        // is now a draft's distribution
-        session.touch();
+        // deliberately no touch(): reopening changes nothing the distribution
+        // was computed from. Marking the inputs as moved would make the session
+        // permanently stale, and settling it again would require a re-solve —
+        // a different répartition from the one already handed out. Correcting a
+        // reference is meant to cost nothing; editing the timetable afterwards
+        // is what makes it stale, and that stamps changedAt itself.
     }
 
     /**

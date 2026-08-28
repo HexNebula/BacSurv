@@ -58,7 +58,11 @@ public class ScheduleService {
 
         OperationEntity operation = job.get().getOperation();
         ExamOperation domain = assembler.toDomain(operation);
-        OperationAssembler.Pool pool = assembler.poolFor(operation);
+        // the people named on the stored rows are carried whether or not they
+        // are still in the year's pool: somebody who has since left the
+        // establishment still held the duties he held
+        OperationAssembler.Pool pool = assembler.poolFor(operation,
+                rows.stream().map(AssignmentEntity::getTeacher).toList());
 
         Map<String, Long> teacherIdByDuty = new HashMap<>();
         rows.forEach(row -> {
@@ -77,14 +81,56 @@ public class ScheduleService {
                 assembler.schedulingOf(operation)));
     }
 
-    /** The schedule as clients read it: assignments, workload, validation summary. */
+    /**
+     * The schedule as clients read it: assignments, workload, validation summary.
+     *
+     * <p>The duties themselves are rebuilt from the session's live timetable —
+     * only who holds each one, and which room it was printed against, are
+     * stored. Where the row remembers a room, the row wins.
+     *
+     * <p>Today that changes nothing: the stored value is the room's reference,
+     * which no screen can edit, and a settled session's timetable is locked.
+     * It matters for a draft whose filière is given different rooms after a
+     * solve — the stored schedule then still shows what was actually solved —
+     * and it is what keeps this reading independent of the live centre if the
+     * reference ever stops being immutable. What protects a distributed
+     * répartition from a room disappearing under it is the refusal in
+     * CenterAdminService#deleteRoom, not this.
+     */
     @Transactional(readOnly = true)
     public Optional<ScheduleWriter.Result> result(long jobId) {
+        Map<String, String> printedRooms = new HashMap<>();
+        assignments.findOfJob(jobId).forEach(row -> {
+            if (row.getRoomRef() != null) printedRooms.put(row.getDutyId(), row.getRoomRef());
+        });
+
         return materialise(jobId).map(schedule -> {
             ValidationReport report = ScheduleValidator.forPolicy(schedule.policy())
                     .validate(schedule.duties());
-            return writer.build(schedule.operation().id(), schedule.duties(),
-                    schedule.pool().teachers(), report);
+            ScheduleWriter.Result built = writer.build(schedule.operation().id(),
+                    schedule.duties(), schedule.pool().teachers(), report);
+            return withPrintedRooms(built, printedRooms);
         });
+    }
+
+    /** Puts back the room label each duty actually went out under. */
+    private static ScheduleWriter.Result withPrintedRooms(ScheduleWriter.Result built,
+                                                          Map<String, String> printedRooms) {
+        if (printedRooms.isEmpty()) return built;
+
+        List<ScheduleWriter.AssignmentRow> rows = built.assignments().stream()
+                .map(row -> {
+                    String printed = printedRooms.get(row.dutyId());
+                    return printed == null || printed.equals(row.roomId()) ? row
+                            : new ScheduleWriter.AssignmentRow(row.dutyId(), row.slotId(),
+                                    row.date(), row.start(), row.end(), row.role(), row.examId(),
+                                    row.subject(), row.stream(), printed, row.teacherId(),
+                                    row.teacherMatricule(), row.teacherName());
+                })
+                .toList();
+
+        return new ScheduleWriter.Result(built.operationId(), built.feasible(),
+                built.hardViolations(), built.softViolations(), built.unfilled(),
+                built.hardViolationDetails(), rows, built.workload());
     }
 }

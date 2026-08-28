@@ -148,9 +148,32 @@ public class OperationAssembler {
      * so nobody is compensated in June 2028 for a duty done in June 2026.
      */
     public Pool poolFor(OperationEntity operation) {
+        return poolFor(operation, List.of());
+    }
+
+    /**
+     * The same pool, plus people who must be recognisable even though they are
+     * no longer in it.
+     *
+     * <p>Reading back a distribution is not the same act as solving one. A
+     * teacher who moved to another school in July must not be given work in
+     * September — so he is out of the pool — but the sessions he actually
+     * served still name him, and rendering those duties as unheld would erase
+     * him from his own week. The archive already counts him; the schedule has
+     * to show him too, or the two disagree about the same afternoon.
+     *
+     * <p>The extras are carried for identification only. They are appended
+     * after the pool, so nothing that reads the pool as "who can be given work"
+     * — the solver, the candidate list — is offered somebody who has left.
+     */
+    public Pool poolFor(OperationEntity operation, java.util.Collection<TeacherEntity> also) {
         Long yearId = operation.getSchoolYear().getId();
         Map<Long, Map<DutyRole, Integer>> prior = priorWorkload(yearId, operation.getId());
-        List<TeacherEntity> entities = teachers.findPoolOfYear(yearId);
+        List<TeacherEntity> entities = new java.util.ArrayList<>(teachers.findPoolOfYear(yearId));
+        java.util.Set<Long> known = entities.stream()
+                .map(TeacherEntity::getId).collect(java.util.stream.Collectors.toSet());
+        also.stream().filter(extra -> extra != null && known.add(extra.getId()))
+                .forEach(entities::add);
         Map<Long, Integer> carry = privilegeCarry(yearId, operation.getId(), entities);
 
         List<Teacher> pool = new java.util.ArrayList<>();

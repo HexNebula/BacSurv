@@ -3,6 +3,7 @@ package ma.bacsurv.web;
 import ma.bacsurv.domain.DutyRole;
 import ma.bacsurv.web.persistence.AssignmentEntity;
 import ma.bacsurv.web.persistence.AssignmentRepository;
+import ma.bacsurv.web.persistence.OperationEntity;
 import ma.bacsurv.web.persistence.OperationRepository;
 import ma.bacsurv.web.persistence.SolveJob;
 import ma.bacsurv.web.persistence.SolveJobRepository;
@@ -43,6 +44,7 @@ class ArchiveTest {
     @Autowired OperationRepository operations;
     @Autowired SolveJobRepository jobs;
     @Autowired AssignmentRepository assignments;
+    @Autowired ma.bacsurv.web.service.OperationAssembler assembler;
 
     private static final LocalDate JUNE = LocalDate.of(2027, 6, 4);
 
@@ -159,6 +161,46 @@ class ArchiveTest {
         assertTrue(pool.former().stream().anyMatch(m -> m.matricule().equals("A1")));
         assertFalse(pool.members().stream().anyMatch(m -> m.matricule().equals("A1")));
         assertEquals(2, pool.members().size(), "the two who stayed were untouched");
+    }
+
+    /**
+     * The tally and the session it came from must agree about the same
+     * afternoon.
+     *
+     * <p>A schedule is rebuilt from the live timetable, with only the holder of
+     * each duty read from storage. Resolve that holder against the year's pool
+     * alone and a teacher who has since left comes back as nobody — so the
+     * archive would say Ahmed did four surveillances while the session he did
+     * them in showed four empty rows.
+     */
+    @Test
+    void aDepartedTeacherStillHoldsTheDutiesHeHeld() {
+        Fixture fixture = year();
+        handOut(fixture, "A1", DutyRole.SURVEILLANCE, 2);
+        sessions.settle(fixture.sessionId());
+
+        // taken out of the very year he served — reachable by hand, and the
+        // case where the schedule and the tally can disagree
+        years.removeFromYear(fixture.yearId(), "A1");
+
+        // fetched through the query that loads absences with it, since the
+        // assembler reads them and this test is outside a transaction
+        TeacherEntity departed = teachers.findPoolOfCenter(fixture.centreId()).stream()
+                .filter(t -> t.getMatricule().equals("A1")).findFirst().orElseThrow();
+        OperationEntity operation = operations.findWithYear(fixture.sessionId()).orElseThrow();
+
+        assertTrue(teachers.findPoolOfYear(fixture.yearId()).stream()
+                        .noneMatch(t -> t.getId().equals(departed.getId())),
+                "he is out of the pool, so he is offered no new work");
+        assertNull(assembler.poolFor(operation).teacherById().get(departed.getId()),
+                "the solver's pool does not know him");
+        assertNotNull(assembler.poolFor(operation, List.of(departed))
+                        .teacherById().get(departed.getId()),
+                "but reading back a distribution does: he held those duties");
+
+        // and the year tally says the same
+        assertEquals(2, archive.of(fixture.yearId()).tally().stream()
+                .filter(t -> t.matricule().equals("A1")).findFirst().orElseThrow().total());
     }
 
     /** The pool of a year says who actually served, not only who was listed. */

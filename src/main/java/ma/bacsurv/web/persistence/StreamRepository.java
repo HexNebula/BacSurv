@@ -17,4 +17,21 @@ public interface StreamRepository extends JpaRepository<StreamEntity, Long> {
     List<StreamEntity> ofOperation(Long operationId);
 
     Optional<StreamEntity> findByOperationIdAndName(Long operationId, String name);
+
+    /**
+     * Is this room held by a filière of a session that has gone out?
+     *
+     * <p>Not a question about its name — a label is the centre's own vocabulary
+     * and may change. Removing the room is what does damage: the duties of a
+     * stored distribution are rebuilt from the live timetable, so a room that
+     * is gone produces fewer duties, and the rows for it drop out of the
+     * schedule without a word.
+     */
+    @Query("""
+            select count(s) from StreamEntity s join s.rooms r
+            where r.id = :roomId
+              and s.operation.state
+                  = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
+            """)
+    long countSettledUses(Long roomId);
 }

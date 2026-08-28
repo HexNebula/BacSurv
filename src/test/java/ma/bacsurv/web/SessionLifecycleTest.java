@@ -183,6 +183,42 @@ class SessionLifecycleTest {
     }
 
     /**
+     * Reopening must not be a one-way door.
+     *
+     * <p>Its whole purpose is that a wrong reference should not be permanent.
+     * If reopening marked the inputs as moved, the session would be stale for
+     * ever and the only route back to settled would be a fresh solve — a
+     * different répartition from the one already in everybody's hands.
+     */
+    @Test
+    void aReopenedSessionCanBeSettledAgainWithoutReSolving() {
+        Fixture fixture = typed();
+        finishedSolve(fixture.sessionId());
+        sessions.settle(fixture.sessionId());
+
+        sessions.reopen(fixture.sessionId());
+        assertDoesNotThrow(() -> sessions.settle(fixture.sessionId()),
+                "correcting a session must not cost its distribution");
+        assertEquals("SETTLED", sessions.impact(fixture.sessionId()).state());
+    }
+
+    /**
+     * Settling is a statement about the past. The centre's clock moves every
+     * time a teacher is imported or a room relabelled, and none of that makes
+     * a distribution that already went out unrecordable.
+     */
+    @Test
+    void aChangeElsewhereInTheCentreDoesNotBlockSettling() {
+        Fixture fixture = typed();
+        finishedSolve(fixture.sessionId());
+
+        teacherAdmin.add(fixture.centreId(), new TeacherAdminService.Details(
+                "Z9", "Arrivé plus tard", "Anglais", null, "MALE"));
+
+        assertDoesNotThrow(() -> sessions.settle(fixture.sessionId()));
+    }
+
+    /**
      * A distribution with unstaffed duties must not become history.
      *
      * <p>Settling locks the planning and puts the duties in the queue. What is
@@ -277,6 +313,43 @@ class SessionLifecycleTest {
         assertEquals("session.settled.locked", assertThrows(RefusedException.class,
                 () -> config.save(fixture.sessionId(), 3, "PERCENTAGE", 0.1, 0,
                         2, "SOFT", 30, "SOFT", false, 10)).getMessage());
+    }
+
+    /**
+     * A room may be renamed for ever; it may not be removed once a settled
+     * session sits in it.
+     *
+     * <p>The label is the centre's own vocabulary and does change — a
+     * renovation, a renumbering — and the distribution that went out remembers
+     * the label it was printed under on its own rows. Removal is different in
+     * kind: the duties of a stored distribution are rebuilt from the live
+     * timetable, so a room that no longer exists produces fewer duties and its
+     * rows fall out of the schedule with nothing said.
+     */
+    @Test
+    void aSettledSessionsRoomsMayBeRenamedButNotRemoved() {
+        Fixture fixture = typed();
+        finishedSolve(fixture.sessionId());
+        sessions.settle(fixture.sessionId());
+
+        long roomId = centers.detail(fixture.centreId()).rooms().getFirst().id();
+
+        assertDoesNotThrow(() -> centers.renameRoom(roomId, "Salle rénovée", null),
+                "a centre renames its rooms and must not be frozen out of it");
+
+        RefusedException refused = assertThrows(RefusedException.class,
+                () -> centers.deleteRoom(roomId));
+        assertEquals("room.settled", refused.getMessage());
+        assertEquals(4, centers.detail(fixture.centreId()).rooms().size(),
+                "the refusal leaves the centre untouched");
+
+        // a room no settled session sits in is still free to go
+        centers.addRooms(fixture.centreId(), 1, "Annexe");
+        // addRooms numbers the reference R1, R2… and puts the prefix in the label
+        long spare = centers.detail(fixture.centreId()).rooms().stream()
+                .filter(room -> room.label() != null && room.label().startsWith("Annexe"))
+                .findFirst().orElseThrow().id();
+        assertDoesNotThrow(() -> centers.deleteRoom(spare));
     }
 
     /**

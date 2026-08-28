@@ -31,15 +31,18 @@ public class CenterAdminService {
     private final OperationRepository operations;
     private final TeacherRepository teachers;
     private final SchoolYearService schoolYears;
+    private final ma.bacsurv.web.persistence.StreamRepository streams;
 
     public CenterAdminService(CenterRepository centers, RoomRepository rooms,
                               OperationRepository operations, TeacherRepository teachers,
-                              SchoolYearService schoolYears) {
+                              SchoolYearService schoolYears,
+                              ma.bacsurv.web.persistence.StreamRepository streams) {
         this.centers = centers;
         this.rooms = rooms;
         this.operations = operations;
         this.teachers = teachers;
         this.schoolYears = schoolYears;
+        this.streams = streams;
     }
 
     /** A room as the administrator sees it. */
@@ -225,10 +228,26 @@ public class CenterAdminService {
         room.getCenter().touch();
     }
 
+    /**
+     * Removing a room, refused once a settled session sits in it.
+     *
+     * <p>Renaming stays free: a label is the centre's own vocabulary, it does
+     * change, and a distribution that went out remembers the label it was
+     * printed under on its own rows. Removal is different in kind. The duties
+     * of a stored distribution are rebuilt from the live timetable, so a room
+     * that no longer exists produces fewer duties and its rows fall out of the
+     * schedule with nothing said — a printed room sheet with no counterpart in
+     * the application.
+     */
     @Transactional
     public void deleteRoom(long roomId) {
-        rooms.findById(roomId).map(RoomEntity::getCenter).ifPresent(CenterEntity::touch);
-        rooms.deleteById(roomId);
+        RoomEntity room = rooms.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("room.unknown"));
+        if (streams.countSettledUses(roomId) > 0) {
+            throw new RefusedException("room.settled", room.getReference());
+        }
+        room.getCenter().touch();
+        rooms.delete(room);
     }
 
     @Transactional
