@@ -3,6 +3,8 @@ package ma.bacsurv.web.persistence;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,6 +41,23 @@ public class OperationEntity {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    /**
+     * Whether this session is still being prepared, or is the répartition that
+     * actually went out.
+     *
+     * <p>The distinction is not cosmetic: it is what cumulative fairness counts.
+     * A draft may be solved as often as anybody likes and none of it reaches the
+     * privilege queue, so an administrator can try the nationale in April
+     * without the régionale inheriting turns nobody took. Settling a session is
+     * the act that makes its duties history — and, from that moment, the reason
+     * it can no longer be deleted or quietly edited.
+     */
+    public enum State { DRAFT, SETTLED }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private State state = State.DRAFT;
 
     /**
      * The days the session runs over. Held on the session itself so its
@@ -94,6 +113,19 @@ public class OperationEntity {
     public String getReference() { return reference; }
     public String getType() { return type; }
     public Instant getCreatedAt() { return createdAt; }
+
+    public State getState() { return state; }
+    public boolean isSettled() { return state == State.SETTLED; }
+
+    /** This répartition is the one that goes out; from here it is history. */
+    public void settle() { this.state = State.SETTLED; }
+
+    /**
+     * Back to a draft. Whatever this session's duties were counting for in the
+     * queue, they stop counting — which is why nothing calls this without
+     * having said so first.
+     */
+    public void reopen() { this.state = State.DRAFT; }
     public List<ExamSlotEntity> getSlots() { return slots; }
 
     public LocalDate getStartsOn() { return startsOn; }

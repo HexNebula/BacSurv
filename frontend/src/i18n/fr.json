@@ -235,7 +235,8 @@
       "filieres": "Les filières",
       "timetable": "L'emploi du temps",
       "staffing": "Les effectifs",
-      "distribution": "La répartition"
+      "distribution": "La répartition",
+      "settled": "Arrêter la répartition"
     },
     "detail": {
       "rooms.none": "Aucune salle dans ce centre.",
@@ -255,7 +256,10 @@
       "distribution.none": "Pas encore de répartition.",
       "distribution.broken": "{{one}} contrainte(s) non respectée(s), {{two}} tâche(s) non pourvue(s).",
       "distribution.ok": "Répartition complète et sans conflit.",
-      "distribution.stale": "La répartition date d'avant vos derniers changements."
+      "distribution.stale": "La répartition date d'avant vos derniers changements.",
+      "settled.waiting": "En attente d'une répartition à arrêter.",
+      "settled.pending": "La répartition est prête. Arrêtez-la pour qu'elle compte dans les tours des sessions suivantes.",
+      "settled.done": "Session arrêtée : ses tours comptent pour les sessions suivantes."
     }
   },
   "setup": {

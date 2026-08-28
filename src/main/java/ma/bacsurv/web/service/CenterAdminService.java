@@ -42,9 +42,16 @@ public class CenterAdminService {
     /** A room as the administrator sees it. */
     public record RoomView(Long id, String reference, String label, Integer surveillants) {}
 
-    /** A session of a centre, with what it holds so far. */
+    /**
+     * A session of a centre, with what it holds so far.
+     *
+     * <p>The state is DRAFT or SETTLED: a draft counts for nothing and may be
+     * deleted, a settled session is the répartition that went out and is what
+     * the privilege queue is built from.
+     */
     public record SessionView(Long id, String reference, String type,
-                              LocalDate startsOn, LocalDate endsOn, int slotCount) {}
+                              LocalDate startsOn, LocalDate endsOn, int slotCount,
+                              String state) {}
 
     /**
      * How the establishment is identified on paper: the académie régionale, the
@@ -106,7 +113,7 @@ public class CenterAdminService {
                 .filter(operation -> operation.getCenter().getId().equals(centerId))
                 .map(operation -> new SessionView(operation.getId(), operation.getReference(),
                         operation.getType(), operation.getStartsOn(), operation.getEndsOn(),
-                        operation.getSlots().size()))
+                        operation.getSlots().size(), operation.getState().name()))
                 .toList();
 
         return new CenterDetail(center.getId(), center.getName(), identityOf(center),

@@ -101,7 +101,7 @@ public class TimetableService {
 
     @Transactional
     public Long addStream(long operationId, String name, List<Long> roomIds) {
-        OperationEntity operation = operation(operationId);
+        OperationEntity operation = editable(operationId);
         String cleaned = required(name, "stream.name");
 
         streams.findByOperationIdAndName(operationId, cleaned).ifPresent(existing -> {
@@ -128,6 +128,7 @@ public class TimetableService {
     @Transactional
     public void editStream(long streamId, String name, List<Long> roomIds) {
         StreamEntity stream = stream(streamId);
+        SessionAdminService.mustBeEditable(stream.getOperation());
         String cleaned = required(name, "stream.name");
 
         streams.findByOperationIdAndName(stream.getOperation().getId(), cleaned)
@@ -153,6 +154,7 @@ public class TimetableService {
     public void removeStream(long streamId) {
         StreamEntity stream = stream(streamId);
         OperationEntity operation = stream.getOperation();
+        SessionAdminService.mustBeEditable(operation);
         for (ExamEntity exam : examsOfStream(operation, stream.getName())) {
             exam.getSlot().getExams().remove(exam);
         }
@@ -172,7 +174,7 @@ public class TimetableService {
     @Transactional
     public Long setExam(long operationId, long streamId, String subject,
                         LocalDate date, LocalTime startTime, LocalTime endTime) {
-        OperationEntity operation = operation(operationId);
+        OperationEntity operation = editable(operationId);
         StreamEntity stream = stream(streamId);
         String cleaned = required(subject, "exam.subject");
 
@@ -199,7 +201,7 @@ public class TimetableService {
 
     @Transactional
     public void removeExam(long operationId, long examId) {
-        OperationEntity operation = operation(operationId);
+        OperationEntity operation = editable(operationId);
         for (ExamSlotEntity slot : operation.getSlots()) {
             if (slot.getExams().removeIf(exam -> exam.getId().equals(examId))) {
                 dropEmptySlots(operation);
@@ -220,7 +222,7 @@ public class TimetableService {
     @Transactional
     public int copyStream(long operationId, long fromStreamId, long toStreamId) {
         if (fromStreamId == toStreamId) throw new IllegalArgumentException("stream.copy.same");
-        OperationEntity operation = operation(operationId);
+        OperationEntity operation = editable(operationId);
         StreamEntity from = stream(fromStreamId);
         StreamEntity to = stream(toStreamId);
         if (to.getRooms().isEmpty()) throw new IllegalArgumentException("stream.rooms.none");
@@ -361,6 +363,21 @@ public class TimetableService {
     private OperationEntity operation(long operationId) {
         return operations.findById(operationId)
                 .orElseThrow(() -> new IllegalArgumentException("session.unknown"));
+    }
+
+    /**
+     * The session, refused if it is settled.
+     *
+     * <p>A settled session's planning is the planning the convocations were
+     * printed from. Letting an épreuve move under it would leave the paper in
+     * everyone's hands describing a session the application no longer holds,
+     * and the difference would surface on the morning of the exam. Reopening
+     * the session says what that costs and then allows it.
+     */
+    private OperationEntity editable(long operationId) {
+        OperationEntity operation = operation(operationId);
+        SessionAdminService.mustBeEditable(operation);
+        return operation;
     }
 
     private StreamEntity stream(long streamId) {

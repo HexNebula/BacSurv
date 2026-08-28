@@ -22,4 +22,8 @@ public interface SolveJobRepository extends JpaRepository<SolveJob, Long> {
             where j.id = :id
             """)
     Optional<SolveJob> findWithOperation(long id);
+
+    /** Every solve of one session, newest first. */
+    @Query("select j from SolveJob j where j.operation.id = :operationId order by j.id desc")
+    List<SolveJob> ofOperation(Long operationId);
 }

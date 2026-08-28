@@ -89,6 +89,7 @@ public class ReadinessService {
                 ? staffing(sessionId)
                 : new Step("staffing", State.TODO, "staffing.waiting", List.of(), "schedule"));
         steps.add(distribution(sessionId));
+        steps.add(settled(operation, steps.getLast()));
 
         String next = steps.stream()
                 .filter(step -> step.state() != State.READY)
@@ -208,6 +209,26 @@ public class ReadinessService {
                             String.valueOf(latest.getUnfilled())), "results");
         }
         return new Step("distribution", State.READY, "distribution.ok", List.of(), "results");
+    }
+
+    /**
+     * The last step, and the one that makes the rest count.
+     *
+     * <p>A distribution sitting on the screen is still a draft's distribution:
+     * it repays nobody, and the next session will offer réserve and permanence
+     * to the people who served in it. Arrêter la répartition is what turns the
+     * duties into history — so it belongs on the path the administrator already
+     * walks, not behind a setting he would never find.
+     */
+    private Step settled(OperationEntity operation, Step distribution) {
+        if (operation.isSettled()) {
+            return new Step("settled", State.READY, "settled.done", List.of(), "results");
+        }
+        // nothing worth settling yet: say so rather than asking for an act that
+        // would be refused
+        return distribution.state() == State.READY
+                ? new Step("settled", State.TODO, "settled.pending", List.of(), "results")
+                : new Step("settled", State.TODO, "settled.waiting", List.of(), "results");
     }
 
     /** The session's own inputs, or the centre's, moved after the job finished. */

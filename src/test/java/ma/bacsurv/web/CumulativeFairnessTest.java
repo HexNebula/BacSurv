@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CumulativeFairnessTest {
 
     @Autowired SolveService solveService;
+    @Autowired ma.bacsurv.web.service.SessionAdminService sessions;
 
     @Test
     void secondOperationCompensatesTheFirst() throws Exception {
@@ -35,6 +36,12 @@ class CumulativeFairnessTest {
 
         var june = solveService.upload("juin.json", withCenterAndReference(sample, center, "JUIN"));
         ScheduleWriter.Result juneResult = solveAndRead(june);
+
+        // June is the répartition that went out, and saying so is what makes it
+        // history. A solve on its own is only a trial: an administrator may run
+        // a dozen while the timetable is still being typed, and none of those
+        // are duties anybody served.
+        sessions.settle(june.id());
 
         var july = solveService.upload("juillet.json",
                 withCenterAndReference(sample, center, "JUILLET"));

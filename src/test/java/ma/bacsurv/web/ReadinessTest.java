@@ -52,10 +52,13 @@ class ReadinessTest {
         Fixture fixture = bare();
         var report = readiness.of(fixture.sessionId());
 
-        assertEquals(6, report.steps().size());
+        // salles, enseignants, filières, emploi du temps, effectifs,
+        // répartition, et l'arrêter — the last is what makes the duties count
+        assertEquals(7, report.steps().size());
         assertTrue(report.steps().stream().noneMatch(step -> step.state() == State.READY),
                 "nothing is set up yet: " + report.steps());
         assertEquals("rooms", report.next(), "rooms come first");
+        assertEquals("settled", report.steps().getLast().key(), "and settling comes last");
     }
 
     @Test

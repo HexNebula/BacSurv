@@ -46,6 +46,13 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
      * Duties already given to each teacher of a center by earlier operations.
      * Only the newest finished job of each other operation counts, so
      * re-solving an operation never inflates its own history.
+     *
+     * <p>And only of a <em>settled</em> operation. A finished solve is not by
+     * itself something that happened: a session may be tried a dozen times
+     * while its timetable is still being typed, and before the state existed
+     * every one of those trials was read as duties served. An administrator
+     * preparing June could make March repay turns to people who had done
+     * nothing.
      */
     @Query("""
             select a.teacher.id, a.role, count(a)
@@ -56,6 +63,8 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
               and a.job.id in (
                   select max(j.id) from SolveJob j
                   where j.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE
+                    and j.operation.state
+                        = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
                   group by j.operation.id)
             group by a.teacher.id, a.role
             """)
@@ -71,6 +80,9 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
      * the newest session cannot tell those 12 from the ones it already
      * settled. Turning these counts into a queue position is
      * OperationAssembler#carryFrom.
+     *
+     * <p>Settled sessions only, for the reason given on the query above: a turn
+     * taken in a trial is not a turn taken.
      */
     @Query("""
             select a.teacher.id, count(a)
@@ -82,6 +94,8 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
               and a.job.id in (
                   select max(j.id) from SolveJob j
                   where j.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE
+                    and j.operation.state
+                        = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
                   group by j.operation.id)
             group by a.teacher.id
             """)
