@@ -26,7 +26,8 @@
     "subjects": "Les matières",
     "streams": "Les filières",
     "groupCenter": "L'établissement",
-    "groupSession": "La session"
+    "groupSession": "La session",
+    "years": "Les années"
   },
   "centers": {
     "title": "Centres d'examen",
@@ -153,7 +154,8 @@
       "duplicateMatricule": "Le matricule {{detail}} apparaît deux fois."
     },
     "matriculeFixed": "Le matricule ne change pas : les sessions passées y sont rattachées.",
-    "thinSubject": "Un seul enseignant"
+    "thinSubject": "Un seul enseignant",
+    "deleteOrLeft": "Il a quitté l'établissement ?"
   },
   "schedule": {
     "title": "Planning",
@@ -475,5 +477,77 @@
       "seeResults": "Voir",
       "seeSubjects": "Les matières"
     }
+  },
+  "lifecycle": {
+    "settle": "Arrêter la répartition",
+    "settled": "Répartition arrêtée. Ses tours comptent désormais pour les sessions suivantes.",
+    "reopen": "Rouvrir la session",
+    "reopened": "Session rouverte. Sa répartition ne compte plus.",
+    "reopenCost": "Cette répartition compte {{duties}} tâches pour {{teachers}} enseignants. Les rouvrir les retire de la file d'attente : la prochaine session proposera réserve et permanence à des gens qu'elle considère aujourd'hui comme déjà servis.",
+    "reopenThen": "Le planning redevient modifiable. Les convocations déjà distribuées, elles, ne changent pas.",
+    "settledResults": "Cette répartition est celle qui est sortie. Elle compte dans les tours des sessions suivantes, et ne se modifie plus à la main.",
+    "settledRow": "Arrêtée — se rouvre depuis Résultats",
+    "planningLocked": "Session arrêtée : ce planning est celui des convocations distribuées. Rouvrez la session depuis Résultats pour le modifier.",
+    "state": {
+      "DRAFT": "Brouillon",
+      "SETTLED": "Arrêtée"
+    },
+    "delete": "Supprimer la session",
+    "deleteConfirm": "Supprimer",
+    "deleteCost": "{{streams}} et {{exams}} seront perdues",
+    "counting": "Vérification…",
+    "deleted": "« {{reference}} » supprimée.",
+    "fix": {
+      "none": "Lancer la répartition",
+      "stale": "Relancer la répartition"
+    },
+    "staleSettled": "Le centre a changé depuis ce calcul. La répartition arrêtée reste celle qui est sortie ; rouvrez la session pour la recalculer.",
+    "streamCount_one": "{{count}} filière",
+    "streamCount_other": "{{count}} filières",
+    "examCount_one": "{{count}} épreuve",
+    "examCount_other": "{{count}} épreuves"
+  },
+  "years": {
+    "title": "Les années scolaires",
+    "subtitle": "Qui fait partie du pool cette année, et ce que chaque année a laissé derrière elle.",
+    "rollover": "La rentrée",
+    "all": "Toutes les années",
+    "none": "Aucune année ouverte pour le moment.",
+    "current": "En cours",
+    "open": "Ouvrir une année",
+    "openHint": "2027-2028",
+    "openExplains": "L'année qui s'ouvre reprend le pool de la précédente. Vous n'aurez à corriger que les départs et les arrivées.",
+    "opened": "Année ouverte. Le pool de l'année précédente a été repris.",
+    "read": "Consulter",
+    "holds": "{{teachers}} enseignants · {{sessions}} sessions",
+    "poolExplains": "Réserve et permanence se comptent à l'intérieur d'une année : en {{label}}, tout le monde repart à égalité.",
+    "members": "Le pool de {{label}}",
+    "membersHint": "« Il a quitté l'établissement » le retire de cette année. Tout ce qu'il a fait reste attaché à son matricule.",
+    "former": "Les autres enseignants du centre",
+    "formerHint": "Quelqu'un qui revient après une année ailleurs se retrouve ici, avec son historique intact.",
+    "noMembers": "Personne dans le pool de cette année.",
+    "noFormer": "Tout le monde est dans le pool de cette année.",
+    "left": "Il a quitté",
+    "back": "Il est revenu",
+    "leftDone": "{{name}} ne fait plus partie de cette année.",
+    "backDone": "{{name}} fait de nouveau partie de cette année.",
+    "served": "A déjà travaillé cette année"
+  },
+  "archive": {
+    "title": "L'année {{label}}",
+    "plain": "L'archive de l'année",
+    "back": "Les années",
+    "print": "Imprimer",
+    "sessions": "Les sessions de l'année",
+    "countedFrom_one": "{{count}} arrêtée",
+    "countedFrom_other": "{{count}} arrêtées",
+    "noSession": "Aucune session sur cette année.",
+    "duties_one": "{{count}} tâche",
+    "duties_other": "{{count}} tâches",
+    "openSchedule": "Voir la répartition",
+    "tally": "Ce que chacun a fait",
+    "noTally": "Personne dans le pool de cette année.",
+    "total": "Total",
+    "tallyHint": "Compté sur les sessions arrêtées seulement. Un enseignant qui n'a rien fait figure ici avec des zéros, et quelqu'un qui a depuis quitté l'établissement reste dans le registre de l'année qu'il a servie."
   }
 }

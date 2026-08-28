@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Copy,
   LayoutGrid,
+  Lock,
   Pencil,
   Plus,
   SlidersHorizontal,
@@ -15,6 +16,8 @@ import {
 import { Time, parseTime } from '@internationalized/date'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
+import { useSessionState } from '../lib/session'
+import { SettleSession } from '../components/SettleSession'
 import { useApiMutation } from '../lib/mutation'
 import { Page } from '../components/Page'
 import { StreamForm, type Stream } from '../components/StreamForm'
@@ -308,7 +311,8 @@ function CopyStream({
  */
 export function SchedulePage() {
   const { t, i18n } = useTranslation()
-  const { sessionId, sessionsHere, isLoading } = useWorkspace()
+  const { sessionId, centerId, sessionsHere, isLoading } = useWorkspace()
+  const { impact, isSettled } = useSessionState(sessionId)
   const [streamForm, setStreamForm] = useState<{ open: boolean; stream?: Stream }>({ open: false })
   const [examForm, setExamForm] = useState<{
     open: boolean
@@ -388,6 +392,7 @@ export function SchedulePage() {
       actions={
         view === 'exams' &&
         sessionId !== null &&
+        !isSettled &&
         data && (
           <Button onPress={() => setStreamForm({ open: true })}>
             <Plus size={16} aria-hidden />
@@ -424,9 +429,36 @@ export function SchedulePage() {
 
       {view === 'exams' && (
         <>
+      {/*
+        Said once, at the top, so that nothing below has to explain why it will
+        not open. This planning is the one the convocations were printed from —
+        the server refuses to move it, and being told that by an error after
+        typing is worse than being told before.
+      */}
+      {isSettled && sessionId !== null && (
+        <div className="rise mb-5">
+          <Notice
+            tone="good"
+            icon={<Lock size={16} aria-hidden />}
+            /* reopening is the answer to this refusal, so it is offered here
+               rather than described and left on another screen */
+            action={
+              <SettleSession
+                sessionId={sessionId}
+                centerId={centerId}
+                impact={impact}
+                variant="compact"
+              />
+            }
+          >
+            {t('lifecycle.planningLocked')}
+          </Notice>
+        </div>
+      )}
+
       {/* a filière with no rooms can hold no épreuve at all, which is worth
           saying once above the grid rather than only inside its own row */}
-      {roomless.length > 0 && (
+      {!isSettled && roomless.length > 0 && (
         <div className="rise mb-5">
           <Notice
             tone="warn"
@@ -544,6 +576,7 @@ export function SchedulePage() {
                               variant="quiet"
                               isIcon
                               aria-label={t('schedule.copyFrom')}
+                              isDisabled={isSettled}
                               onPress={() => setCopyFor(stream)}
                             >
                               <Copy size={14} aria-hidden />
@@ -553,6 +586,7 @@ export function SchedulePage() {
                               variant="quiet"
                               isIcon
                               aria-label={t('schedule.editStream')}
+                              isDisabled={isSettled}
                               onPress={() => setStreamForm({ open: true, stream })}
                             >
                               <Pencil size={14} aria-hidden />
@@ -579,6 +613,7 @@ export function SchedulePage() {
                                   <button
                                     key={exam.id}
                                     type="button"
+                                    disabled={isSettled}
                                     onClick={() =>
                                       setExamForm({ open: true, stream, day, half, exam })
                                     }
@@ -632,6 +667,7 @@ export function SchedulePage() {
                                   one can still take a second paper */}
                               <button
                                 type="button"
+                                hidden={isSettled}
                                 onClick={() =>
                                   setExamForm({ open: true, stream, day, half, exam: undefined })
                                 }

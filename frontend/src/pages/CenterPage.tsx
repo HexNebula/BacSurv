@@ -8,6 +8,8 @@ import { useApiMutation } from '../lib/mutation'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import { NewSession } from '../components/NewSession'
+import { DeleteSession } from '../components/DeleteSession'
+import { SettledMark } from '../components/SettleSession'
 import {
   Badge,
   Button,
@@ -27,6 +29,8 @@ type Session = {
   startsOn: string | null
   endsOn: string | null
   slotCount: number
+  /** DRAFT until the administrator arrête sa répartition. */
+  state: 'DRAFT' | 'SETTLED'
 }
 
 /** How the establishment is identified on paper; every field may be absent. */
@@ -326,41 +330,58 @@ export function CenterPage() {
             <ul>
               {detail.sessions.map((session) => {
                 const current = session.id === sessionId
+                const settled = session.state === 'SETTLED'
                 return (
-                  <li key={session.id}>
+                  <li
+                    key={session.id}
+                    className={`flex flex-wrap items-center gap-3 border-b border-[var(--color-hairline)] px-5 py-4 transition-colors last:border-b-0 ${
+                      current ? 'bg-[var(--color-accent-tint)]/50' : 'hover:bg-[var(--color-sunken)]'
+                    }`}
+                  >
                     {/* choosing one here is the same act as choosing it in the
                         header: there is one session in play at a time */}
                     <button
                       type="button"
                       onClick={() => chooseSession(session.id)}
-                      className={`flex w-full items-center justify-between gap-4 border-b border-[var(--color-hairline)] px-5 py-4 text-start transition-colors last:border-b-0 ${
-                        current
-                          ? 'bg-[var(--color-accent-tint)]/50'
-                          : 'hover:bg-[var(--color-sunken)]'
-                      }`}
+                      className="min-w-0 flex-1 text-start"
                     >
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-2">
-                          <span className="truncate text-[14px] font-medium">
-                            {session.reference}
-                          </span>
-                          {current && <Badge tone="accent">{t('sessions.current')}</Badge>}
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-[14px] font-medium">
+                          {session.reference}
                         </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-quiet)]">
-                          <span>
-                            {t(`sessions.type.${session.type}`, { defaultValue: session.type })}
-                          </span>
-                          <span className="text-[var(--color-hairline)]">·</span>
-                          {/* the two dates keep their order on an Arabic page */}
-                          <bdi dir="ltr" className="numeric">
-                            {span(session)}
-                          </bdi>
-                        </span>
+                        {current && <Badge tone="accent">{t('sessions.current')}</Badge>}
+                        {settled && <SettledMark />}
                       </span>
-                      <span className="numeric shrink-0 text-[12.5px] text-[var(--color-quiet)]">
-                        {session.slotCount} {t('sessions.slots')}
+                      <span className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-quiet)]">
+                        <span>
+                          {t(`sessions.type.${session.type}`, { defaultValue: session.type })}
+                        </span>
+                        <span className="text-[var(--color-hairline)]">·</span>
+                        {/* the two dates keep their order on an Arabic page */}
+                        <bdi dir="ltr" className="numeric">
+                          {span(session)}
+                        </bdi>
+                        <span className="text-[var(--color-hairline)]">·</span>
+                        <span className="numeric">
+                          {session.slotCount} {t('sessions.slots')}
+                        </span>
                       </span>
                     </button>
+
+                    {/*
+                      A settled session offers nothing to press. Not because
+                      deleting it is dangerous and needs guarding, but because
+                      its répartition went out on paper and the privilege queue
+                      is built by counting it — the row says so, and Résultats
+                      is where reopening lives.
+                    */}
+                    {settled ? (
+                      <span className="shrink-0 text-[11.5px] text-[var(--color-quiet)]">
+                        {t('lifecycle.settledRow')}
+                      </span>
+                    ) : (
+                      <DeleteSession sessionId={session.id} reference={session.reference} />
+                    )}
                   </li>
                 )
               })}

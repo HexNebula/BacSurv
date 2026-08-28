@@ -6,6 +6,7 @@ import {
   Check,
   CircleSlash,
   ListChecks,
+  Lock,
   Pencil,
   Play,
   RotateCw,
@@ -15,6 +16,8 @@ import {
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
 import { useWorkspace } from '../context/Workspace'
+import { useSessionState } from '../lib/session'
+import { SettleSession } from '../components/SettleSession'
 import { Page } from '../components/Page'
 import { ChangeDuty } from '../components/ChangeDuty'
 import {
@@ -128,11 +131,21 @@ function hhmm(value: string): string {
 export function ResultsPage() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const { sessionId, sessionsHere, isLoading } = useWorkspace()
+  const { sessionId, centerId, sessionsHere, isLoading } = useWorkspace()
+  const { impact, isSettled } = useSessionState(sessionId)
   const [view, setView] = useState('day')
   const [search, setSearch] = useState('')
   // the duty being reassigned by hand, if any
   const [editing, setEditing] = useState<string | null>(null)
+
+  /** For the room labels: the schedule names rooms by reference, not by label. */
+  const center = useQuery({
+    queryKey: ['center', centerId],
+    queryFn: () => api.get<{ rooms: { reference: string; label: string }[] }>(
+      `/centers/${centerId}`,
+    ),
+    enabled: centerId !== null,
+  })
 
   const jobs = useQuery({
     queryKey: ['jobs'],
@@ -169,6 +182,21 @@ export function ResultsPage() {
   })
 
   const rows = schedule.data?.assignments ?? []
+
+  /**
+   * The label of each room, by the reference the schedule names it with.
+   *
+   * <p>A duty carries `roomId` — `R1`, the centre's internal reference — while
+   * the sheet pinned to a door has to say « Salle 1 », which is what the
+   * administrator typed and what is written beside the room itself. The centre
+   * is already in cache, so this costs nothing; a room removed since the solve
+   * keeps its reference rather than disappearing.
+   */
+  const roomLabel = useMemo(() => {
+    const labels = new Map((center.data?.rooms ?? []).map((room) => [room.reference, room.label]))
+    return (reference: string | null) =>
+      reference === null ? null : (labels.get(reference) ?? reference)
+  }, [center.data])
 
   /** Grouped by day, then by room: the sheet that goes on a door. */
   const byDay = useMemo(() => {
@@ -282,17 +310,45 @@ export function ResultsPage() {
       }
       actions={
         sessionId !== null && (
-          <Button
-            onPress={() => solve.mutate(undefined)}
-            isPending={solve.isPending || running}
-            isDisabled={running}
-          >
-            {job ? <RotateCw size={16} aria-hidden /> : <Play size={16} aria-hidden />}
-            {running ? t('results.running') : job ? t('results.runAgain') : t('results.run')}
-          </Button>
+          <>
+            {/* the act the whole model turns on, beside the one that produced
+                what it settles */}
+            {(isSettled || (job?.status === 'DONE' && !job.stale)) && centerId !== null && (
+              <SettleSession
+                sessionId={sessionId}
+                centerId={centerId}
+                impact={impact}
+                onSolve={() => solve.mutate(undefined)}
+                isSolving={solve.isPending || running}
+              />
+            )}
+            {!isSettled && (
+              <Button
+                onPress={() => solve.mutate(undefined)}
+                isPending={solve.isPending || running}
+                isDisabled={running}
+              >
+                {job ? <RotateCw size={16} aria-hidden /> : <Play size={16} aria-hidden />}
+                {running ? t('results.running') : job ? t('results.runAgain') : t('results.run')}
+              </Button>
+            )}
+          </>
         )
       }
     >
+      {/*
+        A settled session is not a screen with a warning on it — it is the
+        répartition that went out. It says what it is, and the way back is in
+        the same line rather than somewhere else.
+      */}
+      {isSettled && (
+        <div className="mb-5">
+          <Notice tone="good" icon={<Lock size={16} aria-hidden />}>
+            {t('lifecycle.settledResults')}
+          </Notice>
+        </div>
+      )}
+
       {job?.status === 'FAILED' && (
         <div className="mb-5">
           <Notice tone="alarm" icon={<TriangleAlert size={16} aria-hidden />}>
@@ -312,19 +368,23 @@ export function ResultsPage() {
           <Notice
             tone="warn"
             icon={<TriangleAlert size={16} aria-hidden />}
+            /* a settled session refuses to be re-solved, so offering it here
+               would be offering a refusal */
             action={
-              <Button
-                size="sm"
-                variant="secondary"
-                isPending={solve.isPending}
-                onPress={() => solve.mutate(undefined)}
-              >
-                <RotateCw size={15} aria-hidden />
-                {t('results.relaunch')}
-              </Button>
+              !isSettled && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  isPending={solve.isPending}
+                  onPress={() => solve.mutate(undefined)}
+                >
+                  <RotateCw size={15} aria-hidden />
+                  {t('results.relaunch')}
+                </Button>
+              )
             }
           >
-            {t('results.stale')}
+            {isSettled ? t('lifecycle.staleSettled') : t('results.stale')}
           </Notice>
         </div>
       )}
@@ -423,7 +483,7 @@ export function ResultsPage() {
                       duties.map((duty) => (
                         <Tr key={duty.dutyId}>
                           <Td className="font-medium">
-                            {duty.roomId ?? (
+                            {roomLabel(duty.roomId) ?? (
                               <span className="text-[var(--color-faint)]">—</span>
                             )}
                           </Td>
@@ -451,6 +511,7 @@ export function ResultsPage() {
                             <Button
                               size="sm"
                               variant="quiet"
+                              isDisabled={isSettled}
                               onPress={() => setEditing(duty.dutyId)}
                             >
                               <Pencil size={14} aria-hidden />
@@ -584,14 +645,19 @@ export function ResultsPage() {
                         {hhmm(duty.start)} — {hhmm(duty.end)}
                       </bdi>
                     </Td>
-                    <Td className="font-medium">{duty.roomId ?? '—'}</Td>
+                    <Td className="font-medium">{roomLabel(duty.roomId) ?? '—'}</Td>
                     <Td>
                       <Badge tone={ROLE_TONE[duty.role]}>{t(`results.role${duty.role}`)}</Badge>
                     </Td>
                     <Td className="text-[var(--color-quiet)]">{duty.subject ?? '—'}</Td>
                     <Td className="text-[var(--color-quiet)]">{duty.stream ?? '—'}</Td>
                     <Td className="no-print text-end">
-                      <Button size="sm" variant="secondary" onPress={() => setEditing(duty.dutyId)}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        isDisabled={isSettled}
+                        onPress={() => setEditing(duty.dutyId)}
+                      >
                         {t('change.apply')}
                       </Button>
                     </Td>

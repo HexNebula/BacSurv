@@ -17,6 +17,23 @@ export class ApiError extends Error {
     this.status = status
     this.details = details
   }
+
+  /**
+   * The key behind the sentence — `session.settle.stale` and the like.
+   *
+   * <p>The message is what the screen shows; the code is what it acts on. A
+   * refusal that has an obvious next move should offer it, and only the code
+   * says which move that is.
+   */
+  get code(): string | undefined {
+    const body = this.details as { code?: unknown } | undefined
+    return typeof body?.code === 'string' ? body.code : undefined
+  }
+}
+
+/** The code of a failed request, whatever kind of failure it was. */
+export function codeOf(error: unknown): string | undefined {
+  return error instanceof ApiError ? error.code : undefined
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
