@@ -90,6 +90,14 @@ public class SessionAdminService {
                     session.getReference(),
                     String.valueOf(teachersIn(dutiesOfNewestSolve(sessionId))));
         }
+        // a solve still running would write its result back into rows that are
+        // about to disappear: harmless, because the write is guarded by a
+        // findById, but it wastes minutes and then says nothing
+        if (jobs.ofOperation(sessionId).stream().anyMatch(
+                job -> job.getStatus() == SolveJob.Status.PENDING
+                        || job.getStatus() == SolveJob.Status.RUNNING)) {
+            throw new RefusedException("session.solving", session.getReference());
+        }
         long centerId = session.getCenter().getId();
 
         jobs.deleteAll(jobs.ofOperation(sessionId));
@@ -103,18 +111,49 @@ public class SessionAdminService {
     /**
      * Declare this session's répartition to be the one that goes out.
      *
-     * <p>Only from here do its duties become history. Refused with nothing to
-     * settle: a session with no finished distribution would enter the queue as
-     * a session in which nobody served, which is worse than not being there.
+     * <p>Only from here do its duties become history, and from here its
+     * planning and its assignments are locked. So what is settled has to be
+     * worth locking: a distribution with unstaffed duties would enter the queue
+     * as work nobody can have done, and one solved before the timetable last
+     * moved answers a question the session is no longer asking.
+     *
+     * <p>The readiness guide only offers this step once the distribution reads
+     * READY, so the happy path never reaches these refusals. They are here
+     * because the endpoint is reachable without the guide.
      */
     @Transactional
     public void settle(long sessionId) {
         OperationEntity session = session(sessionId);
         if (session.isSettled()) return;
-        if (newestSolve(sessionId) == null) {
+
+        SolveJob newest = newestSolve(sessionId);
+        if (newest == null) {
             throw new IllegalArgumentException("session.settle.noDistribution");
         }
+        if (newest.getHardViolations() > 0 || newest.getUnfilled() > 0) {
+            throw new RefusedException("session.settle.broken",
+                    String.valueOf(newest.getHardViolations()),
+                    String.valueOf(newest.getUnfilled()));
+        }
+        if (changedSince(newest, session)) {
+            throw new IllegalArgumentException("session.settle.stale");
+        }
         session.settle();
+    }
+
+    /**
+     * The session's own inputs, or the centre's, moved after the job finished.
+     *
+     * <p>Same reading as the readiness guide's "la répartition date d'avant vos
+     * derniers changements": a timetable or a set of rules edited after the
+     * solve means the paper on screen answers a question that has changed.
+     */
+    private static boolean changedSince(SolveJob job, OperationEntity session) {
+        if (job.getFinishedAt() == null) return false;
+        java.time.Instant own = session.getChangedAt();
+        java.time.Instant centre = session.getCenter().getChangedAt();
+        return (own != null && own.isAfter(job.getFinishedAt()))
+                || (centre != null && centre.isAfter(job.getFinishedAt()));
     }
 
     /**

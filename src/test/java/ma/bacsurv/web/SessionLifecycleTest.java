@@ -1,6 +1,9 @@
 package ma.bacsurv.web;
 
+import ma.bacsurv.web.persistence.AssignmentEntity;
 import ma.bacsurv.web.persistence.AssignmentRepository;
+import ma.bacsurv.web.persistence.TeacherEntity;
+import ma.bacsurv.web.persistence.TeacherRepository;
 import ma.bacsurv.web.persistence.OperationRepository;
 import ma.bacsurv.web.persistence.SolveJob;
 import ma.bacsurv.web.persistence.SolveJobRepository;
@@ -8,6 +11,10 @@ import ma.bacsurv.web.persistence.StreamRepository;
 import ma.bacsurv.web.service.CenterAdminService;
 import ma.bacsurv.web.service.RefusedException;
 import ma.bacsurv.web.service.SessionAdminService;
+import ma.bacsurv.web.service.OperationConfigService;
+import ma.bacsurv.web.service.ScheduleEditor;
+import ma.bacsurv.web.service.SolveService;
+import ma.bacsurv.web.service.TeacherAdminService;
 import ma.bacsurv.web.service.TimetableService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,10 +41,15 @@ class SessionLifecycleTest {
     @Autowired SessionAdminService sessions;
     @Autowired CenterAdminService centers;
     @Autowired TimetableService timetable;
+    @Autowired ScheduleEditor editor;
+    @Autowired SolveService solveService;
+    @Autowired OperationConfigService config;
+    @Autowired TeacherAdminService teacherAdmin;
     @Autowired OperationRepository operations;
     @Autowired StreamRepository streams;
     @Autowired SolveJobRepository jobs;
     @Autowired AssignmentRepository assignments;
+    @Autowired TeacherRepository teachers;
 
     private static final LocalDate DAY = LocalDate.of(2026, 6, 4);
 
@@ -168,6 +180,103 @@ class SessionLifecycleTest {
         sessions.reopen(fixture.sessionId());
         assertDoesNotThrow(() -> timetable.setExam(fixture.sessionId(), stream, "Arabe", DAY,
                 LocalTime.of(15, 0), LocalTime.of(18, 0)));
+    }
+
+    /**
+     * A distribution with unstaffed duties must not become history.
+     *
+     * <p>Settling locks the planning and puts the duties in the queue. What is
+     * locked has to be worth locking: an unfilled duty entered as history is
+     * work nobody can have done, and it would settle the next session's queue
+     * against a fiction.
+     */
+    @Test
+    void abrokenDistributionCannotBeSettled() {
+        Fixture fixture = typed();
+        SolveJob job = new SolveJob(operations.findById(fixture.sessionId()).orElseThrow(), null, 10);
+        job.markDone("{}", false, 2, 0, 3);
+        jobs.save(job);
+
+        RefusedException refused = assertThrows(RefusedException.class,
+                () -> sessions.settle(fixture.sessionId()));
+        assertEquals("session.settle.broken", refused.getMessage());
+        assertEquals("2", refused.args()[0], "the refusal names the violations");
+        assertEquals("3", refused.args()[1], "and the unstaffed duties");
+        assertEquals("DRAFT", sessions.impact(fixture.sessionId()).state());
+    }
+
+    /**
+     * A distribution solved before the timetable last moved answers a question
+     * the session is no longer asking.
+     */
+    @Test
+    void astaleDistributionCannotBeSettled() {
+        Fixture fixture = typed();
+        finishedSolve(fixture.sessionId());
+
+        // an épreuve added after the solve: the paper on screen is out of date
+        long stream = streams.ofOperation(fixture.sessionId()).getFirst().getId();
+        timetable.setExam(fixture.sessionId(), stream, "Arabe", DAY,
+                LocalTime.of(15, 0), LocalTime.of(18, 0));
+
+        assertEquals("session.settle.stale", assertThrows(IllegalArgumentException.class,
+                () -> sessions.settle(fixture.sessionId())).getMessage());
+    }
+
+    /**
+     * A hand edit rewrites the very rows the queue counts and the convocations
+     * were printed from. Locking the timetable and leaving this open would
+     * guard the smaller door — reassigning a duty is the thing an administrator
+     * does most often after distributing.
+     */
+    @Test
+    void aSettledSessionsAssignmentsCannotBeEditedByHand() {
+        Fixture fixture = typed();
+        // the pool is completed before the solve: adding a teacher touches the
+        // centre, and a solve older than its own inputs is refused as stale
+        teacherAdmin.add(fixture.centreId(), new TeacherAdminService.Details(
+                "H1", "Enseignant H1", "Philosophie", null, "MALE"));
+        long jobId = finishedSolve(fixture.sessionId());
+        TeacherEntity teacher = teachers
+                .findByCenterIdAndMatricule(fixture.centreId(), "H1").orElseThrow();
+        assignments.save(new AssignmentEntity(jobs.findById(jobId).orElseThrow(),
+                "D1", "S1", "E1", null, ma.bacsurv.domain.DutyRole.SURVEILLANCE, teacher));
+        sessions.settle(fixture.sessionId());
+
+        assertEquals("session.settled.locked", assertThrows(RefusedException.class,
+                () -> editor.apply(jobId, "D1", null, true)).getMessage());
+        assertEquals("session.settled.locked", assertThrows(RefusedException.class,
+                () -> editor.pin(jobId, "D1", true)).getMessage());
+
+        // reopening lifts it, rather than requiring a new session
+        sessions.reopen(fixture.sessionId());
+        assertDoesNotThrow(() -> editor.pin(jobId, "D1", true));
+    }
+
+    /**
+     * Re-solving a settled session would make a new job the newest, and the
+     * paper in everybody's hands would quietly stop being what is held here.
+     */
+    @Test
+    void aSettledSessionCannotBeReSolved() {
+        Fixture fixture = typed();
+        finishedSolve(fixture.sessionId());
+        sessions.settle(fixture.sessionId());
+
+        assertEquals("session.settled.locked", assertThrows(RefusedException.class,
+                () -> solveService.submit(fixture.sessionId(), 5)).getMessage());
+    }
+
+    /** Its rules decide how many people each hour takes, so they are locked too. */
+    @Test
+    void aSettledSessionsRulesAreLocked() {
+        Fixture fixture = typed();
+        finishedSolve(fixture.sessionId());
+        sessions.settle(fixture.sessionId());
+
+        assertEquals("session.settled.locked", assertThrows(RefusedException.class,
+                () -> config.save(fixture.sessionId(), 3, "PERCENTAGE", 0.1, 0,
+                        2, "SOFT", 30, "SOFT", false, 10)).getMessage());
     }
 
     /**

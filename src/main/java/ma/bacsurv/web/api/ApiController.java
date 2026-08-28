@@ -13,6 +13,8 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import ma.bacsurv.web.service.RefusedException;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -159,9 +161,23 @@ public class ApiController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.review());
     }
 
+    /**
+     * Service faults carry a message key, so the same refusal reads in French
+     * or Arabic — the same contract as every other controller.
+     *
+     * <p>This used to hand the key straight to the screen, so refusing a solve
+     * on a settled session put the words "session.settled.locked" in front of
+     * an administrator. A message that has no translation still passes through
+     * unchanged: a parse fault names a line of somebody's file and is more use
+     * verbatim than swallowed.
+     */
     @ExceptionHandler({InputMapper.InputException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, String>> badInput(RuntimeException e) {
-        return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+        String key = String.valueOf(e.getMessage());
+        Object[] args = e instanceof RefusedException named ? named.args() : null;
+        String sentence = messages.getMessage("error." + key, args, key,
+                LocaleContextHolder.getLocale());
+        return ResponseEntity.badRequest().body(Map.of("error", sentence, "code", key));
     }
 
     /** 409: the request is well formed, the pool simply cannot cover the work. */

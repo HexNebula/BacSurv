@@ -19,10 +19,28 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
     Optional<AssignmentEntity> findByJobIdAndDutyId(Long jobId, String dutyId);
 
     /**
-     * Has this teacher ever been given a duty? Removing somebody who has would
-     * take their réserve and permanence turns out of the queue with them.
+     * Has this teacher been given a duty by a session that actually went out?
+     *
+     * <p>Settled sessions only, and the newest finished solve of each — the
+     * same reading as the fairness queries. A trial solve is not work anybody
+     * did, so a row typed by mistake and swept into one must stay deletable;
+     * counting it would tell an administrator that somebody has already served
+     * when nobody has, and leave the wrong name in the pool for good.
      */
-    long countByTeacherId(Long teacherId);
+    @Query("""
+            select count(a) from AssignmentEntity a
+            where a.teacher.id = :teacherId
+              and a.job.id in (
+                  select max(j.id) from SolveJob j
+                  where j.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE
+                    and j.operation.state
+                        = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
+                  group by j.operation.id)
+            """)
+    long countServedByTeacherId(Long teacherId);
+
+    /** Every duty row pointing at a teacher, whatever session it belongs to. */
+    List<AssignmentEntity> findByTeacherId(Long teacherId);
 
     /**
      * The pinned assignments of the newest finished job of an operation:

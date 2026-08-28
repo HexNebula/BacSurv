@@ -115,6 +115,11 @@ public class SolveService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "no operation with id " + operationId));
 
+        // a settled session's répartition is the one that went out; a new solve
+        // would become the newest finished job, and the paper in everybody's
+        // hands would quietly stop being what the application holds
+        SessionAdminService.mustBeEditable(operation);
+
         // refuse impossible work up front rather than after a long solve
         List<StaffingCheck.Shortage> shortages = staffingShortages(operationId);
         List<StaffingCheck.Unfillable> unfillable = unfillableDuties(operationId);

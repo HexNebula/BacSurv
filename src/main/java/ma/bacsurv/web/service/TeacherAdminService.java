@@ -160,9 +160,18 @@ public class TeacherAdminService {
     @Transactional
     public void remove(long centerId, String matricule) {
         TeacherEntity teacher = teacher(centerId, matricule);
-        if (assignments.countByTeacherId(teacher.getId()) > 0) {
+        if (assignments.countServedByTeacherId(teacher.getId()) > 0) {
             throw new IllegalArgumentException("teacher.hasHistory");
         }
+        // What is left can only be trials, and a trial is not a record of
+        // anything. The duty rows stay — an unheld duty is a real state, the
+        // one an unfilled duty is already in — but they stop naming somebody
+        // who was entered by mistake. Without this the database refuses the
+        // delete outright: assignment.teacher_id does not cascade, on purpose,
+        // so that nothing can quietly erase a duty that did happen.
+        assignments.findByTeacherId(teacher.getId()).forEach(row -> row.assignTo(null));
+        assignments.flush();
+
         teacher.getCenter().touch();
         teachers.delete(teacher);
     }

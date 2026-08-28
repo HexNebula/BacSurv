@@ -6,6 +6,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import ma.bacsurv.web.service.RefusedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -95,12 +96,11 @@ public class CatalogueApiController {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> refused(IllegalArgumentException e) {
         String key = String.valueOf(e.getMessage());
-        String sentence;
-        try {
-            sentence = messages.getMessage("error." + key, null, LocaleContextHolder.getLocale());
-        } catch (RuntimeException untranslated) {
-            sentence = key;
-        }
+        // a refusal that names particulars carries them: without the arguments
+        // "« {0} » est arrêtée" reaches the screen with the braces still in it
+        Object[] args = e instanceof RefusedException named ? named.args() : null;
+        String sentence = messages.getMessage("error." + key, args, key,
+                LocaleContextHolder.getLocale());
         return ResponseEntity.badRequest().body(Map.of("error", sentence, "code", key));
     }
 }

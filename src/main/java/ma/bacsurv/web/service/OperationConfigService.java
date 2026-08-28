@@ -73,6 +73,10 @@ public class OperationConfigService {
                      String consecutiveDaysStrength, int minGapMinutes, String ownSubjectStrength,
                      boolean forbidOwnSubjectReserve, int solveSeconds) {
         OperationEntity target = operation(operationId); // fails fast when unknown
+        // the rules decide how many people each hour takes, so changing them on
+        // a settled session would leave its printed répartition answering a
+        // different question — the same reason its planning is locked
+        SessionAdminService.mustBeEditable(target);
         check(defaultSurveillantsPerRoom, reserveMode, reservePercentage, reserveFixedCount,
                 maxConsecutiveDays, minGapMinutes);
         OperationConfigEntity config = configs.findById(operationId)

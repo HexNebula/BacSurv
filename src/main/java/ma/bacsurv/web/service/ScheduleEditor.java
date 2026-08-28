@@ -9,6 +9,8 @@ import ma.bacsurv.rules.Eligibility;
 import ma.bacsurv.web.persistence.AssignmentEntity;
 import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.TeacherEntity;
+import ma.bacsurv.web.persistence.SolveJob;
+import ma.bacsurv.web.persistence.SolveJobRepository;
 import ma.bacsurv.web.persistence.TeacherRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,13 +62,15 @@ public class ScheduleEditor {
     private final ScheduleService schedules;
     private final AssignmentRepository assignments;
     private final TeacherRepository teachers;
+    private final SolveJobRepository jobs;
     private final Eligibility eligibility = Eligibility.withDefaults();
 
     public ScheduleEditor(ScheduleService schedules, AssignmentRepository assignments,
-                          TeacherRepository teachers) {
+                          TeacherRepository teachers, SolveJobRepository jobs) {
         this.schedules = schedules;
         this.assignments = assignments;
         this.teachers = teachers;
+        this.jobs = jobs;
     }
 
     /** A teacher who could be put on a duty, as offered in the change form. */
@@ -139,6 +143,7 @@ public class ScheduleEditor {
      */
     @Transactional
     public ChangeReview apply(long jobId, String dutyId, Long newTeacherId, boolean force) {
+        mustBeEditable(jobId);
         ChangeReview review = review(jobId, dutyId, newTeacherId);
         if (!review.isLegal() && !force) {
             throw new IllegalChangeException(review);
@@ -155,9 +160,25 @@ public class ScheduleEditor {
     /** Pinning protects a hand-made decision from the next solve. */
     @Transactional
     public void pin(long jobId, String dutyId, boolean pinned) {
+        mustBeEditable(jobId);
         assignments.findByJobIdAndDutyId(jobId, dutyId)
                 .orElseThrow(() -> new IllegalArgumentException("no duty " + dutyId))
                 .setPinned(pinned);
+    }
+
+    /**
+     * A hand edit changes the very rows the queue counts and the convocations
+     * were printed from, so it is refused on a settled session for the same
+     * reason its planning is.
+     *
+     * <p>Locking the timetable and leaving this open would guard the smaller
+     * door: moving an épreuve is rare, and reassigning a duty is the thing an
+     * administrator does most often after distributing.
+     */
+    private void mustBeEditable(long jobId) {
+        jobs.findWithOperation(jobId)
+                .map(SolveJob::getOperation)
+                .ifPresent(SessionAdminService::mustBeEditable);
     }
 
     /** The four hard rules a single reassignment can break. */

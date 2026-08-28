@@ -35,6 +35,7 @@ class TeacherAdminTest {
     @Autowired CenterAdminService centers;
     @Autowired TeacherRepository teachers;
     @Autowired AssignmentRepository assignments;
+    @Autowired ma.bacsurv.web.service.SessionAdminService sessions;
     @Autowired SolveJobRepository jobs;
     @Autowired OperationRepository operations;
 
@@ -184,17 +185,48 @@ class TeacherAdminTest {
         admin.add(centre, details("D500008", "Rachid Bennani", "Anglais"));
         TeacherEntity teacher = teachers.findByCenterIdAndMatricule(centre, "D500008").orElseThrow();
 
-        // one finished duty is enough history to protect: no solve needed
+        // a duty of a session that was arrêtée: that is what "served" means
         long sessionId = centers.createSession(centre, "Bac 2026", "NATIONAL_2BAC",
                 LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 6));
-        SolveJob job = jobs.save(new SolveJob(operations.findById(sessionId).orElseThrow(), null, 5));
+        SolveJob job = new SolveJob(operations.findById(sessionId).orElseThrow(), null, 5);
+        job.markDone("{}", true, 0, 0, 0);
+        jobs.save(job);
         assignments.save(new AssignmentEntity(job, "S1-E1-R1-SURV-1", "S1", "E1", "R1",
                 DutyRole.SURVEILLANCE, teacher));
+        sessions.settle(sessionId);
 
         var refused = assertThrows(IllegalArgumentException.class,
                 () -> admin.remove(centre, "D500008"));
         assertEquals("teacher.hasHistory", refused.getMessage());
         assertEquals(1, pool.pool(centre).size(), "the refusal must leave the pool untouched");
+    }
+
+    /**
+     * A trial is not service.
+     *
+     * <p>A session may be solved a dozen times while its timetable is being
+     * typed, and none of it is work anybody did. Somebody entered by mistake and
+     * swept into one of those solves must stay deletable — counting it would
+     * tell the administrator that a person he has never met has already served,
+     * and leave the wrong name in the pool for good.
+     */
+    @Test
+    void aTeacherWhoOnlyAppearsInATrialCanStillBeRemoved() {
+        long centre = centre();
+        admin.add(centre, details("D500009", "Saisi par erreur", "Anglais"));
+        TeacherEntity teacher = teachers.findByCenterIdAndMatricule(centre, "D500009").orElseThrow();
+
+        long sessionId = centers.createSession(centre, "Essai", "NATIONAL_2BAC",
+                LocalDate.of(2026, 6, 4), LocalDate.of(2026, 6, 6));
+        SolveJob job = new SolveJob(operations.findById(sessionId).orElseThrow(), null, 5);
+        job.markDone("{}", true, 0, 0, 0);
+        jobs.save(job);
+        assignments.save(new AssignmentEntity(job, "S1-E1-R1-SURV-1", "S1", "E1", "R1",
+                DutyRole.SURVEILLANCE, teacher));
+        // the session is never arrêtée, so nothing here is history
+
+        assertDoesNotThrow(() -> admin.remove(centre, "D500009"));
+        assertEquals(0, pool.pool(centre).size());
     }
 
     @Test
