@@ -1,5 +1,6 @@
 package ma.bacsurv.web.api;
 
+import ma.bacsurv.web.service.ArchiveService;
 import ma.bacsurv.web.service.RefusedException;
 import ma.bacsurv.web.service.SchoolYearService;
 import org.springframework.context.MessageSource;
@@ -29,10 +30,13 @@ import java.util.Map;
 public class SchoolYearApiController {
 
     private final SchoolYearService years;
+    private final ArchiveService archive;
     private final MessageSource messages;
 
-    public SchoolYearApiController(SchoolYearService years, MessageSource messages) {
+    public SchoolYearApiController(SchoolYearService years, ArchiveService archive,
+                                   MessageSource messages) {
         this.years = years;
+        this.archive = archive;
         this.messages = messages;
     }
 
@@ -48,6 +52,30 @@ public class SchoolYearApiController {
                                                                  @RequestBody NewYear body) {
         years.open(id, body.label());
         return ResponseEntity.status(HttpStatus.CREATED).body(years.yearsOf(id));
+    }
+
+    /**
+     * The pool of one year, and the people of the centre who are not in it.
+     *
+     * <p>Both halves at once, because September needs both: who is carried over
+     * and can be taken out, and who could be put back — including somebody who
+     * left two years ago and has returned.
+     */
+    @GetMapping("/{yearId}/teachers")
+    public ArchiveService.YearPool pool(@PathVariable long id, @PathVariable long yearId) {
+        return archive.poolOf(yearId);
+    }
+
+    /**
+     * The record of a year: its sessions, and what each teacher did over it.
+     *
+     * <p>Counted from settled sessions only. Each settled session carries the
+     * id of the solve it went out with, so the room-by-room detail comes from
+     * {@code GET /jobs/{jobId}/schedule} rather than being copied in here.
+     */
+    @GetMapping("/{yearId}/archive")
+    public ArchiveService.Archive archive(@PathVariable long id, @PathVariable long yearId) {
+        return archive.of(yearId);
     }
 
     /** He has arrived, or he is back after a year elsewhere. */
