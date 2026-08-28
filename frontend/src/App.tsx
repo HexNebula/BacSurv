@@ -7,6 +7,8 @@ import { RoomsPage } from './pages/RoomsPage'
 import { SetupPage } from './pages/SetupPage'
 import { StreamsPage } from './pages/StreamsPage'
 import { StatisticsPage } from './pages/StatisticsPage'
+import { YearsPage } from './pages/YearsPage'
+import { ArchivePage } from './pages/ArchivePage'
 import { SubjectsPage } from './pages/SubjectsPage'
 import { TeachersPage } from './pages/TeachersPage'
 import { SchedulePage } from './pages/SchedulePage'
@@ -35,6 +37,8 @@ export default function App() {
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/statistics" element={<StatisticsPage />} />
+        <Route path="/years" element={<YearsPage />} />
+        <Route path="/years/:yearId" element={<ArchivePage />} />
       </Route>
     </Routes>
   )

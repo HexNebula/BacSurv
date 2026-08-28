@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { CalendarOff, FileUp, Layers, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
@@ -373,6 +374,7 @@ function TeacherRow({
 }) {
   const { t } = useTranslation()
   const [confirming, setConfirming] = useState(false)
+  const navigate = useNavigate()
 
   const remove = useApiMutation({
     run: () => api.del<Teacher[]>(`/centers/${centerId}/teachers/${teacher.matricule}`),
@@ -406,7 +408,19 @@ function TeacherRow({
         {/* the confirmation stays in the row: what you are about to lose is
             still on the screen while you decide */}
         {confirming ? (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/*
+              Supprimer is not the same act as leaving, and offering it where
+              the other is meant is how a year of history goes. This one is for
+              a row typed by mistake; somebody who has actually left comes out
+              of next year's pool and keeps everything he did.
+            */}
+            <span className="text-[11.5px] text-[var(--color-quiet)]">
+              {t('teachers.deleteOrLeft')}
+            </span>
+            <Button size="sm" variant="secondary" onPress={() => void navigate('/years')}>
+              {t('years.left')}
+            </Button>
             <Button
               size="sm"
               variant="danger"

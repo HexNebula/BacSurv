@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   BookOpen,
   Building2,
+  CalendarRange,
   CalendarCheck,
   ChartNoAxesColumn,
   DoorOpen,
@@ -42,6 +43,7 @@ const GROUPS = [
       { to: '/subjects', key: 'nav.subjects', Icon: BookOpen },
       { to: '/streams', key: 'nav.streams', Icon: GraduationCap },
       { to: '/teachers', key: 'nav.teachers', Icon: Users },
+      { to: '/years', key: 'nav.years', Icon: CalendarRange },
     ],
   },
   {

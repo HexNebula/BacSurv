@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { SessionPicker } from './SessionPicker'
+import { YearMark } from './YearMark'
 import { LanguageSwitch } from './LanguageSwitch'
 
 /**
@@ -34,6 +35,8 @@ export function Page({
     <div className="mx-auto max-w-6xl px-8 pb-16 pt-6">
       {/* the file's own header line: what this is relative to, then a rule */}
       <div className="no-print mb-5 flex flex-wrap items-center justify-end gap-2.5 border-b border-[var(--color-hairline)] pb-3">
+        {/* the year, then the session inside it, then the language */}
+        <YearMark />
         <SessionPicker />
         <LanguageSwitch />
       </div>
