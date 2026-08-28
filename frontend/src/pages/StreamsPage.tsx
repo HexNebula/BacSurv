@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { GraduationCap, Layers, Pencil, Plus, TriangleAlert } from 'lucide-react'
+import { GraduationCap, Pencil, Plus, SquarePen, TriangleAlert } from 'lucide-react'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
@@ -102,8 +102,8 @@ export function StreamsPage() {
             },
             {
               id: 'catalogue',
-              label: t('catalogue.streams.title'),
-              icon: <Layers size={15} aria-hidden />,
+              label: t('catalogue.edit'),
+              icon: <SquarePen size={15} aria-hidden />,
               count: catalogue.data?.length,
             },
           ]}

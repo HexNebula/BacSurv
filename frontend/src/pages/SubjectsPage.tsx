@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { BookOpen, Layers, TriangleAlert, Users } from 'lucide-react'
+import { BookOpen, SquarePen, TriangleAlert, Users } from 'lucide-react'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import { CatalogueList } from '../components/CatalogueList'
 import {
   Badge,
+  Button,
   Card,
   CardHead,
   CardRule,
@@ -99,12 +100,21 @@ export function SubjectsPage() {
             },
             {
               id: 'catalogue',
-              label: t('catalogue.subjects.title'),
-              icon: <Layers size={15} aria-hidden />,
+              label: t('catalogue.edit'),
+              icon: <SquarePen size={15} aria-hidden />,
               count: subjects.data?.length,
             },
           ]}
         />
+      }
+      actions={
+        view === 'coverage' &&
+        subjects.isSuccess && (
+          <Button variant="secondary" onPress={() => setView('catalogue')}>
+            <SquarePen size={16} aria-hidden />
+            {t('catalogue.edit')}
+          </Button>
+        )
       }
     >
       {view === 'coverage' ? (
@@ -131,7 +141,15 @@ export function SubjectsPage() {
 
             {subjects.isSuccess &&
               (rows.length === 0 ? (
-                <Empty icon={<BookOpen size={22} aria-hidden />}>
+                <Empty
+                  icon={<BookOpen size={22} aria-hidden />}
+                  action={
+                    <Button onPress={() => setView('catalogue')}>
+                      <SquarePen size={16} aria-hidden />
+                      {t('catalogue.edit')}
+                    </Button>
+                  }
+                >
                   {t('catalogue.subjects.empty')}
                 </Empty>
               ) : (
