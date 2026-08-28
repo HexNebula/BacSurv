@@ -125,7 +125,9 @@ export function DashboardPage() {
   return (
     <Page title={session.reference} subtitle={`${center.name} · ${t(`sessions.type.${session.type}`)}`}>
       {/* the size of the thing, before any of the detail */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* the three figures arrive left to right; the sheets carry .rise
+          themselves, so only their order has to be said here */}
+      <div className="mb-6 grid gap-4 [&>*:nth-child(2)]:[--i:3] [&>*:nth-child(3)]:[--i:4] sm:grid-cols-2 lg:grid-cols-3">
         <Stat
           label={t('dashboard.stat.teachers')}
           value={detail.data?.teacherCount ?? center.teacherCount}
@@ -150,12 +152,10 @@ export function DashboardPage() {
         row of a list, where it read as one item among six.
       */}
       {next && (
-        <Card className="mb-6 overflow-hidden">
-          <div className="flex flex-wrap items-center gap-5 bg-[var(--color-accent-tint)] px-6 py-5">
+        <Card className="rise mb-6 overflow-hidden [--i:5]">
+          <div className="flex flex-wrap items-center gap-5 border-s-[3px] border-[var(--color-accent)] bg-[var(--color-accent-tint)] px-6 py-5">
             <div className="min-w-0 flex-1">
-              <div className="text-[11.5px] font-semibold tracking-[0.04em] text-[var(--color-accent-ink)]">
-                {t('dashboard.next')}
-              </div>
+              <div className="eyebrow text-[var(--color-accent)]">{t('dashboard.next')}</div>
               <h2 className="mt-1.5 text-[19px] font-semibold tracking-[-0.01em]">
                 {t(`readiness.step.${next.key}`)}
               </h2>
@@ -177,9 +177,9 @@ export function DashboardPage() {
       )}
 
       {!next && steps.length > 0 && (
-        <Card className="mb-6">
+        <Card className="rise mb-6 [--i:5]">
           <div className="flex flex-wrap items-center gap-5 px-6 py-5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-good-tint)] text-[var(--color-good)]">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-[5px] border border-[var(--color-good)]/25 bg-[var(--color-good-tint)] text-[var(--color-good)]">
               <Check size={20} aria-hidden />
             </span>
             <p className="min-w-0 flex-1 text-[14px] font-medium">{t('dashboard.allReady')}</p>
@@ -191,7 +191,7 @@ export function DashboardPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="rise [--i:6]">
         <CardHead
           title={t('dashboard.steps')}
           count={steps.length || undefined}
@@ -214,9 +214,9 @@ export function DashboardPage() {
           {steps.map((step) => {
             const { tone, Icon } = MARKS[step.state]
             const marks = {
-              good: 'bg-[var(--color-good-tint)] text-[var(--color-good)]',
-              warn: 'bg-[var(--color-warn-tint)] text-[var(--color-warn)]',
-              plain: 'bg-[var(--color-sunken)] text-[var(--color-faint)]',
+              good: 'border-[var(--color-good)]/25 bg-[var(--color-good-tint)] text-[var(--color-good)]',
+              warn: 'border-[var(--color-warn)]/25 bg-[var(--color-warn-tint)] text-[var(--color-warn)]',
+              plain: 'border-[var(--color-hairline)] bg-[var(--color-sunken)] text-[var(--color-faint)]',
             }[tone]
 
             return (
@@ -226,7 +226,7 @@ export function DashboardPage() {
                   className="flex items-center gap-4 border-b border-[var(--color-hairline)] px-5 py-4 transition-colors last:border-b-0 hover:bg-[var(--color-sunken)]"
                 >
                   <span
-                    className={`flex size-8 shrink-0 items-center justify-center rounded-full ${marks}`}
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-[4px] border ${marks}`}
                     aria-hidden
                   >
                     <Icon size={15} />

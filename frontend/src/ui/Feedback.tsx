@@ -5,14 +5,20 @@ import { RotateCw, TriangleAlert } from 'lucide-react'
 export type Tone = 'good' | 'warn' | 'alarm' | 'accent' | 'plain'
 
 const TONES: Record<Tone, string> = {
-  good: 'bg-[var(--color-good-tint)] text-[var(--color-good)]',
-  warn: 'bg-[var(--color-warn-tint)] text-[var(--color-warn)]',
-  alarm: 'bg-[var(--color-alarm-tint)] text-[var(--color-alarm)]',
-  accent: 'bg-[var(--color-accent-tint)] text-[var(--color-accent-ink)]',
-  plain: 'bg-[var(--color-sunken)] text-[var(--color-quiet)]',
+  good: 'border-[var(--color-good)]/25 bg-[var(--color-good-tint)] text-[var(--color-good)]',
+  warn: 'border-[var(--color-warn)]/25 bg-[var(--color-warn-tint)] text-[var(--color-warn)]',
+  alarm: 'border-[var(--color-alarm)]/25 bg-[var(--color-alarm-tint)] text-[var(--color-alarm)]',
+  accent: 'border-[var(--color-accent)]/25 bg-[var(--color-accent-tint)] text-[var(--color-accent-ink)]',
+  plain: 'border-[var(--color-rule)] bg-[var(--color-sunken)] text-[var(--color-quiet)]',
 }
 
-/** A word carrying a state: a role, a count, a step that is done. */
+/**
+ * A word carrying a state: a role, a count, a step that is done.
+ *
+ * <p>Written on the sheet as a tag would be — squared and ruled in its own ink —
+ * rather than as a lozenge. The rule is what makes a pale tint legible on paper
+ * that is itself warm.
+ */
 export function Badge({
   tone = 'plain',
   icon,
@@ -24,7 +30,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium ${TONES[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 text-[11.5px] font-medium ${TONES[tone]}`}
     >
       {icon}
       {children}
@@ -40,7 +46,7 @@ export function Badge({
 export function Failed({ error, onRetry }: { error: Error; onRetry?: () => void }) {
   const { t } = useTranslation()
   return (
-    <div className="m-5 flex items-start gap-3 rounded-[var(--radius-card)] bg-[var(--color-alarm-tint)] px-4 py-3.5">
+    <div className="m-5 flex items-start gap-3 rounded-[var(--radius-card)] border-s-[3px] border-[var(--color-alarm)] bg-[var(--color-alarm-tint)] px-4 py-3.5">
       <TriangleAlert size={17} className="mt-px shrink-0 text-[var(--color-alarm)]" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="text-[13px] leading-relaxed">{error.message || t('app.error')}</p>

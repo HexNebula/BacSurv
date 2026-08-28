@@ -41,7 +41,7 @@ export function SetupPage() {
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-24">
         <div className="mb-7 text-center">
           <span
-            className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-[var(--color-accent)] text-white shadow-[var(--shadow-card)]"
+            className="mx-auto mb-5 flex size-14 items-center justify-center rounded-[6px] bg-[var(--color-accent)] text-[var(--color-surface)]"
             aria-hidden
           >
             <Building2 size={24} />

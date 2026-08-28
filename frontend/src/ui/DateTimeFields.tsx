@@ -14,7 +14,7 @@ const FRAME =
 
 const SEGMENT =
   `numeric rounded px-0.5 outline-none caret-transparent
-   focus:bg-[var(--color-accent)] focus:text-white
+   focus:bg-[var(--color-accent)] focus:text-[var(--color-surface)]
    type-literal:px-0 type-literal:text-[var(--color-faint)]
    placeholder-shown:text-[var(--color-faint)]`
 

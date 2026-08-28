@@ -20,10 +20,10 @@ export function LoadBar({ value, of }: { value: number; of: number }) {
           reader, and a second reading of the same number is noise */}
       <span
         aria-hidden
-        className="h-1.5 min-w-0 flex-1 rounded-full bg-[var(--color-sunken)]"
+        className="h-2 min-w-0 flex-1 rounded-[2px] border border-[var(--color-hairline)] bg-[var(--color-sunken)]"
       >
         <span
-          className="block h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-300"
+          className="block h-full rounded-[1px] bg-[var(--color-accent)] transition-[width] duration-300"
           style={{ width: `${share * 100}%` }}
         />
       </span>

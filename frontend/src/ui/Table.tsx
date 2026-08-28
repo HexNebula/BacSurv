@@ -28,8 +28,8 @@ export function Th({
   return (
     <th
       style={width ? { width } : undefined}
-      className={`border-b border-[var(--color-hairline)] px-5 pb-2.5 pt-1 text-start text-[11.5px]
-        font-medium tracking-[0.02em] text-[var(--color-faint)] ${className}`}
+      className={`border-b border-[var(--color-rule)] px-5 pb-2 pt-1 text-start text-[10.5px]
+        font-semibold uppercase tracking-[0.1em] text-[var(--color-faint)] ${className}`}
     >
       {children}
     </th>
@@ -72,7 +72,7 @@ export function Empty({
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
       {icon && (
-        <span className="mb-1 flex size-12 items-center justify-center rounded-2xl bg-[var(--color-sunken)] text-[var(--color-faint)]">
+        <span className="mb-1 flex size-12 items-center justify-center rounded-[6px] border border-[var(--color-hairline)] bg-[var(--color-sunken)] text-[var(--color-faint)]">
           {icon}
         </span>
       )}
@@ -92,12 +92,12 @@ export function Skeleton({ rows = 5 }: { rows?: number }) {
           key={row}
           className="flex items-center gap-4 border-b border-[var(--color-hairline)] px-5 py-4 last:border-b-0"
         >
-          <div className="h-3 w-20 animate-pulse rounded-full bg-[var(--color-hairline)]" />
+          <div className="h-3 w-20 animate-pulse rounded-[2px] bg-[var(--color-hairline)]" />
           <div
-            className="h-3 animate-pulse rounded-full bg-[var(--color-hairline)]"
+            className="h-3 animate-pulse rounded-[2px] bg-[var(--color-hairline)]"
             style={{ width: `${170 - row * 14}px` }}
           />
-          <div className="h-3 w-24 animate-pulse rounded-full bg-[var(--color-hairline)]/60" />
+          <div className="h-3 w-24 animate-pulse rounded-[2px] bg-[var(--color-hairline)]/60" />
         </div>
       ))}
     </div>

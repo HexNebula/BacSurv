@@ -16,8 +16,9 @@ export type TabDef = {
  *
  * <p>Sub-states of a screen are tabs rather than a filter dropdown, because the
  * fact that there *are* three unqualified teachers should be visible without
- * opening anything. The active tab is a raised white pill on a sunken track —
- * the same paper-on-table idea as the cards, one level down.
+ * opening anything. They are the tabs of a dossier: names written along a rule,
+ * the open one marked underneath in the administration's green. No pill, no
+ * raised track — the rule is the thing they all belong to.
  */
 export function SegmentedTabs({
   tabs,
@@ -38,16 +39,16 @@ export function SegmentedTabs({
     >
       <TabList
         aria-label=""
-        className="inline-flex flex-wrap items-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-sunken)] p-1 ring-1 ring-[var(--color-hairline)]"
+        className="inline-flex flex-wrap items-end gap-1 border-b border-[var(--color-rule)]"
       >
         {tabs.map((tab) => (
           <Tab
             key={tab.id}
             id={tab.id}
-            className="group relative flex cursor-pointer items-center gap-2 rounded-[10px] px-3.5 py-2 text-[13px]
-              font-medium text-[var(--color-quiet)] outline-none transition-colors
-              hover:text-[var(--color-ink)]
-              selected:bg-[var(--color-surface)] selected:text-[var(--color-accent-ink)] selected:shadow-[var(--shadow-card)]
+            className="group relative -mb-px flex cursor-pointer items-center gap-2 border-b-2 border-transparent px-3.5 pb-2 pt-1.5
+              text-[13px] font-medium text-[var(--color-quiet)] outline-none transition-colors
+              hover:border-[var(--color-hairline)] hover:text-[var(--color-ink)]
+              selected:border-[var(--color-accent)] selected:text-[var(--color-accent-ink)]
               focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45"
           >
             {tab.icon && (
@@ -63,7 +64,7 @@ export function SegmentedTabs({
             )}
             {tab.flag && (
               <span
-                className="size-1.5 rounded-full bg-[var(--color-warn)]"
+                className="size-1.5 rounded-[1px] bg-[var(--color-warn)]"
                 aria-hidden
               />
             )}

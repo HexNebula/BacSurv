@@ -55,7 +55,7 @@ export function Select({
 
       <AriaButton
         className="flex h-10 w-full items-center gap-2.5 rounded-[var(--radius-field)] bg-[var(--color-surface)] px-3.5
-          text-[13.5px] ring-1 ring-[var(--color-hairline)] outline-none transition-shadow
+          text-[13.5px] ring-1 ring-[var(--color-rule)] outline-none transition-shadow
           hover:ring-[var(--color-faint)]/45
           focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
       >
@@ -73,7 +73,7 @@ export function Select({
       <Popover
         offset={6}
         className="min-w-[var(--trigger-width)] overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)]
-          p-1.5 shadow-[var(--shadow-raised)] ring-1 ring-[var(--color-hairline)]
+          p-1.5 shadow-[var(--shadow-raised)] ring-1 ring-[var(--color-rule)]
           entering:animate-in entering:fade-in entering:zoom-in-95 exiting:animate-out exiting:fade-out"
       >
         <ListBox className="max-h-72 overflow-auto outline-none">
@@ -82,7 +82,7 @@ export function Select({
               key={choice.id}
               id={choice.id}
               textValue={choice.label}
-              className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] outline-none
+              className="group flex cursor-pointer items-center gap-2.5 rounded-[4px] px-3 py-2 text-[13.5px] outline-none
                 selected:bg-[var(--color-accent-tint)] selected:text-[var(--color-accent-ink)]
                 hover:bg-[var(--color-sunken)] focus:bg-[var(--color-sunken)]
                 selected:hover:bg-[var(--color-accent-tint)]"

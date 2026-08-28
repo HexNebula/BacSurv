@@ -87,7 +87,7 @@ export function SearchField({
       <Input placeholder={placeholder} className={`${FIELD} ps-10 pe-9`} />
       {value !== '' && (
         <div className="absolute inset-y-0 my-auto flex items-center ltr:right-1.5 rtl:left-1.5">
-          <Button variant="quiet" size="sm" isIcon aria-label={label} onPress={() => onChange('')}>
+          <Button variant="quiet" size="sm" isIcon bare aria-label={label} onPress={() => onChange('')}>
             <X size={14} aria-hidden />
           </Button>
         </div>

@@ -25,14 +25,33 @@ import { useWorkspace } from '../context/Workspace'
  */
 const SECTIONS = [
   { to: '/sessions', key: 'nav.home', Icon: Home },
-  { to: '/center', key: 'nav.center', Icon: Building2 },
-  { to: '/rooms', key: 'nav.rooms', Icon: DoorOpen },
-  { to: '/subjects', key: 'nav.subjects', Icon: BookOpen },
-  { to: '/streams', key: 'nav.streams', Icon: GraduationCap },
-  { to: '/teachers', key: 'nav.teachers', Icon: Users },
-  { to: '/schedule', key: 'nav.schedule', Icon: LayoutGrid },
-  { to: '/results', key: 'nav.results', Icon: ListChecks },
-  { to: '/statistics', key: 'nav.statistics', Icon: ChartNoAxesColumn },
+] as const
+
+/*
+ * The rail is the index of a dossier, so it is divided the way the work is: what
+ * the établissement is and holds, then what this session does with it. Nine flat
+ * links in a column made the eye count them; two short lists under their own
+ * headings are read at a glance.
+ */
+const GROUPS = [
+  {
+    key: 'nav.groupCenter',
+    items: [
+      { to: '/center', key: 'nav.center', Icon: Building2 },
+      { to: '/rooms', key: 'nav.rooms', Icon: DoorOpen },
+      { to: '/subjects', key: 'nav.subjects', Icon: BookOpen },
+      { to: '/streams', key: 'nav.streams', Icon: GraduationCap },
+      { to: '/teachers', key: 'nav.teachers', Icon: Users },
+    ],
+  },
+  {
+    key: 'nav.groupSession',
+    items: [
+      { to: '/schedule', key: 'nav.schedule', Icon: LayoutGrid },
+      { to: '/results', key: 'nav.results', Icon: ListChecks },
+      { to: '/statistics', key: 'nav.statistics', Icon: ChartNoAxesColumn },
+    ],
+  },
 ] as const
 
 type Step = { key: string; state: 'READY' | 'CHECK' | 'TODO'; screen: string }
@@ -60,11 +79,9 @@ function useReadiness() {
 function Progress({ done, total }: { done: number; total: number }) {
   const { t } = useTranslation()
   return (
-    <div className="rounded-[var(--radius-card)] bg-[var(--color-sunken)] px-3.5 py-3">
+    <div className="rounded-[var(--radius-card)] border border-[var(--color-hairline)] bg-[var(--color-sunken)] px-3.5 py-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[11.5px] font-medium text-[var(--color-quiet)]">
-          {t('readiness.title')}
-        </span>
+        <span className="eyebrow">{t('readiness.title')}</span>
         <span className="numeric text-[11.5px] font-semibold text-[var(--color-accent-ink)]">
           {done}/{total}
         </span>
@@ -73,8 +90,10 @@ function Progress({ done, total }: { done: number; total: number }) {
         {Array.from({ length: total }, (_, step) => (
           <span
             key={step}
-            className={`h-1.5 flex-1 rounded-full ${
-              step < done ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-hairline)]'
+            className={`h-2 flex-1 rounded-[1px] ${
+              step < done
+                ? 'bg-[var(--color-accent)]'
+                : 'border border-[var(--color-hairline)] bg-[var(--color-surface)]'
             }`}
           />
         ))}
@@ -84,10 +103,66 @@ function Progress({ done, total }: { done: number; total: number }) {
 }
 
 /**
- * The frame every screen sits in: a white rail on the left in French, on the
- * right in Arabic. The direction lives on `<html>`, so nothing here needs to
- * know which way round it is — the rail is a flex child, not a thing pinned to
- * a side.
+ * One entry in the index: an icon, a name, and — when it is the one you are on —
+ * a mark down its spine in the administration's green, the way a tab is turned
+ * out of a file to show where you stopped reading.
+ */
+function Entry({
+  to,
+  label,
+  Icon,
+  flagged,
+  flagLabel,
+}: {
+  to: string
+  label: string
+  Icon: typeof Home
+  flagged: boolean
+  flagLabel: string
+}) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `group flex items-center gap-3 border-s-2 py-2 pe-2 ps-3 text-[13.5px] transition-colors ${
+          isActive
+            ? 'border-[var(--color-accent)] bg-[var(--color-accent-tint)] font-semibold text-[var(--color-accent-ink)]'
+            : 'border-transparent font-medium text-[var(--color-quiet)] hover:border-[var(--color-rule)] hover:bg-[var(--color-sunken)] hover:text-[var(--color-ink)]'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon
+            size={16}
+            strokeWidth={2}
+            aria-hidden
+            className={isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-faint)]'}
+          />
+          <span className="min-w-0 flex-1 truncate">{label}</span>
+          {/* the section holding the next thing to do, marked where the eye
+              already is rather than only on the session screen */}
+          {!isActive && flagged && (
+            <span
+              className="size-1.5 shrink-0 rounded-[1px] bg-[var(--color-warn)]"
+              aria-label={flagLabel}
+            />
+          )}
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+/**
+ * The frame every screen sits in: the index on the left in French, on the right
+ * in Arabic. The direction lives on `<html>`, so nothing here needs to know
+ * which way round it is — the rail is a flex child, not a thing pinned to a
+ * side.
+ *
+ * <p>It is paper too, but a plainer sheet than the ones in the middle: no
+ * ruling, one rule down its edge, so the eye reads the desk as a bound folder
+ * with the work opened beside it.
  */
 export function AppShell() {
   const { t } = useTranslation()
@@ -102,13 +177,13 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="no-print sticky top-0 flex h-screen w-[248px] shrink-0 flex-col bg-[var(--color-surface)] px-4 py-6">
-        <div className="mb-7 flex items-center gap-3 px-2">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--color-accent)] text-white">
-            <CalendarCheck size={18} aria-hidden />
+      <aside className="no-print sticky top-0 flex h-screen w-[244px] shrink-0 flex-col gap-6 overflow-y-auto border-e border-[var(--color-rule)] bg-[var(--color-surface)] px-3 py-5">
+        <div className="flex items-center gap-3 px-2">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[4px] bg-[var(--color-accent)] text-[var(--color-surface)]">
+            <CalendarCheck size={17} aria-hidden />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold tracking-[-0.01em]">
+            <span className="block truncate text-[14.5px] font-semibold tracking-[-0.01em]">
               {t('app.name')}
             </span>
             <span className="block truncate text-[11.5px] text-[var(--color-faint)]">
@@ -117,41 +192,34 @@ export function AppShell() {
           </span>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1">
-          {SECTIONS.map(({ to, key, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-[var(--radius-field)] px-3 py-2.5 text-[13.5px] transition-colors ${
-                  isActive
-                    ? 'bg-[var(--color-accent-tint)] font-semibold text-[var(--color-accent-ink)]'
-                    : 'font-medium text-[var(--color-quiet)] hover:bg-[var(--color-sunken)] hover:text-[var(--color-ink)]'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon
-                    size={17}
-                    strokeWidth={2}
-                    aria-hidden
-                    className={
-                      isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-faint)]'
-                    }
-                  />
-                  <span className="min-w-0 flex-1 truncate">{t(key)}</span>
-                  {/* the section holding the next thing to do, marked where the
-                      eye already is rather than only on the session screen */}
-                  {!isActive && to === nextScreen && (
-                    <span
-                      className="size-1.5 shrink-0 rounded-full bg-[var(--color-warn)]"
-                      aria-label={t('readiness.go')}
-                    />
-                  )}
-                </>
-              )}
-            </NavLink>
+        <nav className="flex flex-1 flex-col gap-5">
+          <div className="flex flex-col">
+            {SECTIONS.map(({ to, key, Icon }) => (
+              <Entry
+                key={to}
+                to={to}
+                label={t(key)}
+                Icon={Icon}
+                flagged={to === nextScreen}
+                flagLabel={t('readiness.go')}
+              />
+            ))}
+          </div>
+
+          {GROUPS.map((group) => (
+            <div key={group.key} className="flex flex-col">
+              <h2 className="eyebrow mb-1.5 px-3">{t(group.key)}</h2>
+              {group.items.map(({ to, key, Icon }) => (
+                <Entry
+                  key={to}
+                  to={to}
+                  label={t(key)}
+                  Icon={Icon}
+                  flagged={to === nextScreen}
+                  flagLabel={t('readiness.go')}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 

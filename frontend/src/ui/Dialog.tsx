@@ -57,7 +57,7 @@ export function Dialog({
                 <p className="mt-1 text-[12.5px] text-[var(--color-quiet)]">{subtitle}</p>
               )}
             </div>
-            <Button variant="quiet" size="sm" isIcon aria-label={t('app.cancel')} onPress={onClose}>
+            <Button variant="quiet" size="sm" isIcon bare aria-label={t('app.cancel')} onPress={onClose}>
               <X size={16} aria-hidden />
             </Button>
           </header>

@@ -24,7 +24,9 @@
     "home": "Accueil",
     "rooms": "Les salles",
     "subjects": "Les matières",
-    "streams": "Les filières"
+    "streams": "Les filières",
+    "groupCenter": "L'établissement",
+    "groupSession": "La session"
   },
   "centers": {
     "title": "Centres d'examen",
@@ -198,6 +200,7 @@
     "usedByTeachers_other": "enseignants",
     "usedByExams_one": "épreuve",
     "usedByExams_other": "épreuves",
+    "edit": "Modifier la liste",
     "subjects": {
       "title": "Les matières",
       "hint": "Les matières que ce centre examine. Elles alimentent la liste des enseignants et celle des épreuves.",
@@ -416,5 +419,57 @@
     "ownSubjectHint": "Un enseignant de réserve peut être appelé dans n'importe quelle salle.",
     "relaunch": "Relancer la répartition",
     "minutes": "min"
+  },
+  "statistics": {
+    "title": "Les statistiques",
+    "subtitle": "Comment la charge tombe sur le pool, et ce qui reste découvert.",
+    "noneTitle": "Aucune répartition pour cette session.",
+    "none": "Les chiffres de cette page viennent d’une répartition calculée. Lancez-la d’abord.",
+    "goSolve": "Aller à la répartition",
+    "stale": "La session a bougé depuis ce calcul : ces chiffres décrivent l’ancienne répartition.",
+    "teacherCount_one": "{{count}} enseignant",
+    "teacherCount_other": "{{count}} enseignants",
+    "surveillanceCount_one": "{{count}} surveillance",
+    "surveillanceCount_other": "{{count}} surveillances",
+    "dutyCount_one": "{{count}} tâche",
+    "dutyCount_other": "{{count}} tâches",
+    "stat": {
+      "duties": "Tâches réparties",
+      "working": "Enseignants mobilisés",
+      "workingHint": "sur le pool du centre",
+      "spread": "Écart de charge",
+      "spreadHint": "du plus léger ({{least}}) au plus chargé ({{most}})"
+    },
+    "load": {
+      "title": "La charge",
+      "median": "médiane {{value}}",
+      "hint": "Chaque colonne : combien d’enseignants ont ce nombre de surveillances. Une seule colonne haute, c’est une semaine équilibrée."
+    },
+    "roles": {
+      "median": "médiane",
+      "most": "le plus chargé : {{count}}"
+    },
+    "extremes": {
+      "title": "Les deux bouts du pool",
+      "most": "Le plus chargé",
+      "least": "Le moins chargé"
+    },
+    "days": {
+      "title": "Les journées"
+    },
+    "carried": {
+      "title": "Charge cumulée",
+      "hint": "Sessions passées comprises : ce que juin a déjà demandé compte dans l’équilibre de juillet."
+    },
+    "gaps": {
+      "title": "Ce qui manque",
+      "none": "Rien ne manque : chaque tâche a quelqu’un, et chaque matière a un spécialiste.",
+      "unfilled_one": "{{count}} tâche sans personne.",
+      "unfilled_other": "{{count}} tâches sans personne.",
+      "untaught_one": "{{count}} matière que personne n’enseigne : {{names}}.",
+      "untaught_other": "{{count}} matières que personne n’enseignent : {{names}}.",
+      "seeResults": "Voir",
+      "seeSubjects": "Les matières"
+    }
   }
 }

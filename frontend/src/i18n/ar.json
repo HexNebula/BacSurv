@@ -24,7 +24,9 @@
     "home": "الرئيسية",
     "rooms": "القاعات",
     "subjects": "المواد",
-    "streams": "المسالك"
+    "streams": "المسالك",
+    "groupCenter": "المؤسسة",
+    "groupSession": "الدورة"
   },
   "centers": {
     "title": "مراكز الامتحان",
@@ -234,6 +236,7 @@
     "usedByExams_few": "اختبارات",
     "usedByExams_many": "اختبارًا",
     "usedByExams_other": "اختبار",
+    "edit": "تعديل اللائحة",
     "subjects": {
       "title": "المواد",
       "hint": "المواد التي يمتحن فيها هذا المركز. تغذي لائحة الأساتذة ولائحة الاختبارات.",
@@ -468,5 +471,69 @@
     "ownSubjectHint": "الأستاذ الاحتياطي قد يُستدعى إلى أي قاعة.",
     "relaunch": "إعادة إطلاق التوزيع",
     "minutes": "د"
+  },
+  "statistics": {
+    "title": "الإحصائيات",
+    "subtitle": "كيف يتوزّع العبء على الأساتذة، وما بقي دون تغطية.",
+    "noneTitle": "لا يوجد توزيع لهذه الدورة.",
+    "none": "أرقام هذه الصفحة تأتي من توزيع محسوب. أطلقوه أولا.",
+    "goSolve": "الذهاب إلى التوزيع",
+    "stale": "تغيّرت الدورة بعد هذا الحساب: هذه الأرقام تصف التوزيع القديم.",
+    "teacherCount_zero": "لا أحد",
+    "teacherCount_one": "أستاذ واحد",
+    "teacherCount_two": "أستاذان",
+    "teacherCount_few": "{{count}} أساتذة",
+    "teacherCount_many": "{{count}} أستاذا",
+    "teacherCount_other": "{{count}} أستاذ",
+    "surveillanceCount_zero": "بدون حراسة",
+    "surveillanceCount_one": "حراسة واحدة",
+    "surveillanceCount_two": "حراستان",
+    "surveillanceCount_few": "{{count}} حراسات",
+    "surveillanceCount_many": "{{count}} حراسة",
+    "surveillanceCount_other": "{{count}} حراسة",
+    "dutyCount_zero": "بدون مهمة",
+    "dutyCount_one": "مهمة واحدة",
+    "dutyCount_two": "مهمتان",
+    "dutyCount_few": "{{count}} مهام",
+    "dutyCount_many": "{{count}} مهمة",
+    "dutyCount_other": "{{count}} مهمة",
+    "stat": {
+      "duties": "المهام الموزّعة",
+      "working": "الأساتذة المعبّؤون",
+      "workingHint": "من أساتذة المركز",
+      "spread": "الفارق في العبء",
+      "spreadHint": "من الأخف ({{least}}) إلى الأثقل ({{most}})"
+    },
+    "load": {
+      "title": "العبء",
+      "median": "الوسيط {{value}}",
+      "hint": "كل عمود: كم أستاذا لديه هذا العدد من الحراسات. عمود واحد مرتفع يعني أسبوعا متوازنا."
+    },
+    "roles": {
+      "median": "الوسيط",
+      "most": "الأثقل: {{count}}"
+    },
+    "extremes": {
+      "title": "طرفا القائمة",
+      "most": "الأثقل عبئا",
+      "least": "الأخف عبئا"
+    },
+    "days": {
+      "title": "الأيام"
+    },
+    "carried": {
+      "title": "العبء التراكمي",
+      "hint": "بما في ذلك الدورات السابقة: ما طلبته دورة يونيو يدخل في توازن يوليوز."
+    },
+    "gaps": {
+      "title": "ما ينقص",
+      "none": "لا شيء ينقص: كل مهمة لها صاحبها، وكل مادة لها متخصّص.",
+      "unfilled_one": "مهمة واحدة بلا أحد.",
+      "unfilled_other": "{{count}} مهام بلا أحد.",
+      "untaught_one": "مادة واحدة لا يدرّسها أحد: {{names}}.",
+      "untaught_other": "{{count}} مواد لا يدرّسها أحد: {{names}}.",
+      "seeResults": "عرض",
+      "seeSubjects": "المواد"
+    }
   }
 }

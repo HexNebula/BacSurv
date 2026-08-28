@@ -595,7 +595,7 @@ export function SchedulePage() {
                                         '--i': Math.min(streamIndex + dayIndex, 8) + 2,
                                       } as CSSProperties
                                     }
-                                    className={`rise w-full rounded-[10px] border-s-[3px] px-2.5 py-2 text-start transition-[background-color,transform] duration-[var(--duration-quick)] hover:-translate-y-px active:translate-y-0 ${
+                                    className={`rise w-full rounded-[4px] border-s-[3px] px-2.5 py-2 text-start transition-[background-color,transform] duration-[var(--duration-quick)] hover:-translate-y-px active:translate-y-0 ${
                                       unstaffable
                                         ? 'border-s-[var(--color-warn)] bg-[var(--color-warn-tint)] hover:brightness-[0.98]'
                                         : 'border-s-[var(--color-accent)] bg-[var(--color-accent-tint)]/70 hover:bg-[var(--color-accent-tint)]'
@@ -635,7 +635,7 @@ export function SchedulePage() {
                                 onClick={() =>
                                   setExamForm({ open: true, stream, day, half, exam: undefined })
                                 }
-                                className={`no-print w-full items-center gap-1.5 rounded-[10px] px-2 text-[11.5px] text-[var(--color-faint)] transition-colors hover:text-[var(--color-accent)] ${
+                                className={`no-print w-full items-center gap-1.5 rounded-[4px] px-2 text-[11.5px] text-[var(--color-faint)] transition-colors hover:text-[var(--color-accent)] ${
                                   exams.length === 0
                                     ? 'flex justify-center py-3 ring-1 ring-dashed ring-[var(--color-hairline)] hover:bg-[var(--color-sunken)] hover:ring-[var(--color-accent)]/40'
                                     : 'hidden py-1 group-focus-within:flex group-hover:flex'

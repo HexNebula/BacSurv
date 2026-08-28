@@ -131,7 +131,7 @@ export function Toaster() {
                       close(note.id)
                     }}
                     className="mt-2 rounded-[var(--radius-field)] bg-[var(--color-accent)] px-3 py-1.5
-                      text-[12.5px] font-medium text-white transition-opacity hover:opacity-90"
+                      text-[12.5px] font-medium text-[var(--color-surface)] transition-opacity hover:opacity-90"
                   >
                     {note.action.label}
                   </button>

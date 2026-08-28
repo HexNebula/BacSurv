@@ -19,7 +19,25 @@
 @import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
 @import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
 @import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
 
+/*
+ * ── Le dossier ───────────────────────────────────────────────────────────────
+ *
+ * What this application makes is paper: convocations handed to teachers, room
+ * sheets pinned to a door, a répartition signed at the bottom. So the screen is
+ * the register that paper comes out of, not a dashboard that happens to print.
+ *
+ * That decides everything below. The ground is bone rather than grey, ruled
+ * faintly like a ledger. A card is a sheet with an edge, held by a rule and not
+ * by a drop shadow — paper has edges, it does not glow. Figures are set in a
+ * monospace so a column of matricules is a column. Green carries the
+ * administration's own colour and does the work: the section you are in, the
+ * action that commits, the duty that is settled. Red is not decoration and
+ * never a button you meant to press twice — it is the stamp, spent only on what
+ * is wrong or about to be destroyed.
+ */
 @theme {
   /*
    * One family drawn for both scripts, so a French label and its Arabic
@@ -29,45 +47,59 @@
    */
   --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', sans-serif;
   --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans Variable', sans-serif;
+  /* matricules, hours, counts — entries in a register, not prose */
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   /*
-   * Cards of paper on a cool grey table. The ground is never white, so a white
-   * surface reads as a raised object rather than as the page itself — that lift
-   * carries the layout, in place of the hairline boxes drawn before.
+   * Paper, and the desk it is on. Nothing here is white: a sheet at #fbf7f1
+   * reads as paper against bone, where pure white against grey reads as a
+   * screen pretending to be paper.
    */
-  --color-ground: #eef1f5;
-  --color-surface: #ffffff;
-  --color-sunken: #f7f9fb;
+  --color-ground: #f1ebe0;
+  --color-surface: #fbf7f1;
+  --color-sunken: #ece5d8;
 
-  --color-ink: #0f172a;
-  --color-quiet: #64748b;
-  --color-faint: #94a3b8;
-  --color-hairline: #e9edf2;
+  --color-ink: #17130f;
+  --color-quiet: #6a5e50;
+  /* dark enough to be read at 10px on paper: 4.6:1, not a decorative grey */
+  --color-faint: #7d6f5a;
+  /* two weights of rule: the hairline between rows, the rule under a heading */
+  --color-hairline: #ded5c6;
+  --color-rule: #c6b9a4;
 
   /*
-   * One saturated colour, spent with confidence rather than sparingly: the
-   * active section, the primary action, the figure that matters. Its tint is a
-   * real surface — the nav pill sits on it — not a ten-percent wash.
+   * Green is the administration's colour and it is spent with confidence: the
+   * section you are in, the primary action, the figure that matters, the duty
+   * that is settled. Its tint is a real surface — a nav entry sits on it — not
+   * a ten-percent wash.
    */
-  --color-accent: #0891b2;
-  --color-accent-strong: #0e7490;
-  --color-accent-tint: #e1f5fa;
-  --color-accent-ink: #0b6a80;
+  --color-accent: #1f6b4a;
+  --color-accent-strong: #17533a;
+  --color-accent-tint: #e3eee6;
+  --color-accent-ink: #164a33;
 
-  /* State carries colour of its own: done, needs looking at, not started. The
-     interface says which without spending a sentence on it. */
-  --color-good: #0f9d76;
-  --color-good-tint: #e3f6f0;
-  --color-warn: #d97706;
-  --color-warn-tint: #fdf1de;
-  --color-alarm: #dc2626;
-  --color-alarm-tint: #fdeaea;
+  /*
+   * State has its own ink. Green for settled, ochre for wants looking at, and
+   * the oxide red of a stamp for refused, missing, destructive — that red is
+   * reserved, which is what makes it mean something when it appears.
+   */
+  --color-good: #1f6b4a;
+  --color-good-tint: #e3eee6;
+  --color-warn: #8d610f;
+  --color-warn-tint: #f6ecd6;
+  --color-alarm: #b0341f;
+  --color-alarm-tint: #f8e3dc;
 
-  --radius-card: 16px;
-  --radius-field: 10px;
+  /* a document has corners, not pills */
+  --radius-card: 6px;
+  --radius-field: 5px;
 
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 26px -14px rgb(15 23 42 / 0.16);
-  --shadow-raised: 0 2px 4px rgb(15 23 42 / 0.05), 0 16px 34px -14px rgb(15 23 42 / 0.22);
+  /*
+   * Paper does not glow. What was a drop shadow is now an edge and the barest
+   * lift off the desk, so a sheet is read by its border and its ground.
+   */
+  --shadow-card: 0 1px 0 rgb(23 19 15 / 0.03);
+  --shadow-raised: 0 1px 2px rgb(23 19 15 / 0.08), 0 12px 28px -18px rgb(23 19 15 / 0.35);
 
   /* Movement is short and decelerating — a sheet settling, not a slide show. */
   --ease-settle: cubic-bezier(0.16, 0.84, 0.44, 1);
@@ -83,9 +115,9 @@
   --danger: var(--color-alarm);
   --border: var(--color-hairline);
   --separator: var(--color-hairline);
-  --radius: 0.625rem;
+  --radius: var(--radius-card);
   --field-radius: var(--radius-field);
-  --field-border: var(--color-hairline);
+  --field-border: var(--color-rule);
   --field-border-width: 1px;
   --field-background: var(--color-surface);
   --field-shadow: none;
@@ -102,25 +134,56 @@ html[lang='ar'] body {
 }
 
 /*
- * The table the cards lie on is not a flat fill: two very wide, very weak
- * washes — accent at the top corner where the session lives, a cool shadow at
- * the far bottom — give the grey somewhere to go, so a white card lifts off it
- * more at the head of the page than at the foot. Fixed, so scrolling moves the
- * paper and not the light.
+ * The desk: bone, ruled every 34 pixels at almost nothing, with the warmth of
+ * a lamp at the top corner and the room falling away at the far one. The rules
+ * are on the ground only — a sheet laid on top covers them, which is how you
+ * know it is a sheet. Fixed, so scrolling moves the paper and not the light.
  */
 body {
   background:
-    radial-gradient(120rem 60rem at 0% -10%, rgb(8 145 178 / 0.07), transparent 60%),
-    radial-gradient(90rem 50rem at 100% 110%, rgb(15 23 42 / 0.06), transparent 65%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 33px,
+      rgb(23 19 15 / 0.028) 33px,
+      rgb(23 19 15 / 0.028) 34px
+    ),
+    radial-gradient(90rem 45rem at 0% -15%, rgb(154 107 18 / 0.07), transparent 62%),
+    radial-gradient(80rem 45rem at 100% 115%, rgb(23 19 15 / 0.05), transparent 65%),
     var(--color-ground);
   background-attachment: fixed;
   color: var(--color-ink);
   @apply antialiased;
 }
 
-/* Tabular figures keep matricules and counts aligned down a column. */
+/*
+ * A matricule is not a word. Set in the mono face with tabular figures, a
+ * column of them lines up digit under digit and a wrong one is visible without
+ * being read — which is the whole reason the number is printed at all.
+ */
 .numeric {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * The heading of a section, as a register labels a column: small, spaced, and
+ * sitting above a rule rather than inside a coloured bar.
+ */
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+html[lang='ar'] .eyebrow {
+  /* uppercase does nothing to Arabic, and the wide tracking breaks its joins */
+  letter-spacing: 0;
+  font-size: 11.5px;
 }
 
 /*
@@ -147,7 +210,27 @@ body {
 
 .rise {
   animation: rise var(--duration-settle) var(--ease-settle) backwards;
+  animation-delay: calc(var(--i, 2) * 45ms);
+}
+
+/*
+ * A rule that draws itself under a heading as the page settles — the one piece
+ * of theatre in the interface, and it is over in a third of a second.
+ */
+@keyframes rule-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.rule-in {
+  transform-origin: left center;
+  animation: rule-in var(--duration-settle) var(--ease-settle) backwards;
   animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+html[dir='rtl'] .rule-in {
+  transform-origin: right center;
 }
 
 /*
@@ -155,7 +238,8 @@ body {
  * not a preference to be weighed against a nice arrival.
  */
 @media (prefers-reduced-motion: reduce) {
-  .rise {
+  .rise,
+  .rule-in {
     animation: none;
   }
   *,
@@ -167,7 +251,7 @@ body {
 }
 
 /*
- * Paper is not a screen: the shadows, the ground and the navigation are for
+ * Paper is not a screen: the ground, the ruling and the navigation are for
  * working, not for the sheet pinned to a door.
  */
 @media print {
@@ -176,12 +260,22 @@ body {
   }
   body {
     @apply bg-white text-black;
-    /* the washes are light on a screen, toner on a sheet */
+    /* the ruling and the lamp are light on a screen, toner on a sheet */
     background-image: none;
     font-size: 11pt;
   }
-  .rise {
+  .rise,
+  .rule-in {
     animation: none;
+  }
+  /*
+   * A bar with no fill is not a chart. Browsers drop background colour when
+   * printing unless told this, and these figures exist to be printed and shown
+   * to somebody who is asking why their week looks the way it does.
+   */
+  .chart-fill {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   .print-clean {
     box-shadow: none !important;

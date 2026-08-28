@@ -1,11 +1,16 @@
 import type { ReactNode } from 'react'
 
 /**
- * A sheet of paper on the grey table.
+ * A sheet laid on the desk.
  *
- * <p>The lift does the work the hairline border used to do: a card is an object
- * with an edge, so a screen can hold four of them without drawing a single
- * rule. `print-clean` flattens it back to a printable box.
+ * <p>Paper is read by its edge, not by a glow: the card carries a real rule
+ * around it and the barest lift, so it sits on the ruled bone ground the way a
+ * document sits on a table. `print-clean` flattens it back to a printable box.
+ *
+ * <p>Every sheet arrives with the page rather than being painted onto it: the
+ * card carries `.rise` itself, so a screen settles in one movement without each
+ * page having to remember to ask for it. `--i` orders the arrival where a screen
+ * has more than one sheet.
  */
 export function Card({
   className = '',
@@ -16,7 +21,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`print-clean rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] ${className}`}
+      className={`rise print-clean rounded-[var(--radius-card)] border border-[var(--color-hairline)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] ${className}`}
     >
       {children}
     </section>
@@ -25,8 +30,8 @@ export function Card({
 
 /**
  * The line across the top of a card: what it is, how many, and what you can do
- * to it. The count sits beside the title as a tinted pill rather than in
- * parentheses — the size of the thing is legible before a single row is read.
+ * to it. The count is set as a figure in the register hand, ruled off from the
+ * title — the size of the thing is legible before a single row is read.
  */
 export function CardHead({
   title,
@@ -46,7 +51,7 @@ export function CardHead({
       <div className="flex min-w-0 items-center gap-2.5">
         <h2 className="truncate text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
         {count !== undefined && (
-          <span className="numeric rounded-full bg-[var(--color-accent-tint)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--color-accent-ink)]">
+          <span className="numeric rounded-[3px] border border-[var(--color-accent)]/25 bg-[var(--color-accent-tint)] px-1.5 py-0.5 text-[11.5px] font-medium text-[var(--color-accent-ink)]">
             {count}
           </span>
         )}
@@ -58,7 +63,7 @@ export function CardHead({
 
 /** A rule inside a card, drawn edge to edge rather than inset. */
 export function CardRule() {
-  return <div className="h-px bg-[var(--color-hairline)]" />
+  return <div className="h-px bg-[var(--color-rule)]" />
 }
 
 /**
@@ -88,7 +93,7 @@ export function Stat({
   return (
     <Card className="flex items-center gap-3.5 px-4 py-3.5">
       {icon && (
-        <span className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] ${marks}`}>
+        <span className={`flex size-9 shrink-0 items-center justify-center rounded-[4px] ${marks}`}>
           {icon}
         </span>
       )}

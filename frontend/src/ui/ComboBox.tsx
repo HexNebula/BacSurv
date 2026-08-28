@@ -60,7 +60,7 @@ export function ComboBox({
       </Label>
 
       <Group
-        className="flex h-10 items-center rounded-[var(--radius-field)] bg-[var(--color-surface)] ring-1 ring-[var(--color-hairline)]
+        className="flex h-10 items-center rounded-[var(--radius-field)] bg-[var(--color-surface)] ring-1 ring-[var(--color-rule)]
           transition-shadow hover:ring-[var(--color-faint)]/45 focus-within:ring-2 focus-within:ring-[var(--color-accent)]"
       >
         <Input
@@ -76,7 +76,7 @@ export function ComboBox({
       <Popover
         offset={6}
         className="min-w-[var(--trigger-width)] overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)]
-          p-1.5 shadow-[var(--shadow-raised)] ring-1 ring-[var(--color-hairline)]
+          p-1.5 shadow-[var(--shadow-raised)] ring-1 ring-[var(--color-rule)]
           entering:animate-in entering:fade-in entering:zoom-in-95 exiting:animate-out exiting:fade-out"
       >
         <ListBox className="max-h-64 overflow-auto outline-none">
@@ -85,7 +85,7 @@ export function ComboBox({
               key={one.id}
               id={one.id}
               textValue={one.label}
-              className="flex cursor-pointer items-baseline justify-between gap-4 rounded-lg px-3 py-2 text-[13.5px] outline-none
+              className="flex cursor-pointer items-baseline justify-between gap-4 rounded-[4px] px-3 py-2 text-[13.5px] outline-none
                 selected:bg-[var(--color-accent-tint)] selected:text-[var(--color-accent-ink)]
                 hover:bg-[var(--color-sunken)] focus:bg-[var(--color-sunken)]"
             >
