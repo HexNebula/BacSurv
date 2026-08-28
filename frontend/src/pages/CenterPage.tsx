@@ -7,17 +7,15 @@ import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
+import { NewSession } from '../components/NewSession'
 import {
   Badge,
   Button,
   Card,
   CardHead,
   CardRule,
-  DateField,
-  Dialog,
   Empty,
   Failed,
-  Select,
   Skeleton,
   TextField,
 } from '../ui'
@@ -47,8 +45,6 @@ type CenterDetail = {
   rooms: { id: number }[]
   sessions: Session[]
 }
-
-const SESSION_TYPES = ['REGIONAL_1BAC', 'NATIONAL_2BAC', 'NATIONAL_2BAC_RATTRAPAGE'] as const
 
 /**
  * The centre's name, changed in place. Renaming is rare enough that a field
@@ -221,92 +217,6 @@ function CenterIdentity({ center }: { center: CenterDetail }) {
         <p className="text-[11.5px] text-[var(--color-faint)]">{t('center.hint')}</p>
       </div>
     </Card>
-  )
-}
-
-/** A session is created with its dates; the papers themselves come later. */
-function NewSession({ centerId }: { centerId: number }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const [reference, setReference] = useState('')
-  const [type, setType] = useState<string>('NATIONAL_2BAC')
-  const [startsOn, setStartsOn] = useState<CalendarDate | null>(null)
-  const [endsOn, setEndsOn] = useState<CalendarDate | null>(null)
-
-  const create = useApiMutation({
-    run: () =>
-      api.post<CenterDetail>(`/centers/${centerId}/sessions`, {
-        reference,
-        type,
-        // the server takes a plain date; CalendarDate prints exactly that
-        startsOn: startsOn?.toString() ?? null,
-        endsOn: endsOn?.toString() ?? null,
-      }),
-    invalidate: ['center', centerId],
-    onDone: () => {
-      setOpen(false)
-      setReference('')
-      setStartsOn(null)
-      setEndsOn(null)
-      return t('sessions.created')
-    },
-  })
-
-  return (
-    <>
-      <Button onPress={() => setOpen(true)}>
-        <CalendarPlus size={16} aria-hidden />
-        {t('sessions.create')}
-      </Button>
-
-      <Dialog
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        title={t('sessions.create')}
-        footer={
-          <>
-            <Button variant="secondary" onPress={() => setOpen(false)}>
-              {t('app.cancel')}
-            </Button>
-            <Button type="submit" form="new-session" isPending={create.isPending}>
-              {t('app.save')}
-            </Button>
-          </>
-        }
-      >
-        <form
-          id="new-session"
-          className="space-y-4 pb-4"
-          onSubmit={(event) => {
-            event.preventDefault()
-            create.mutate(undefined)
-          }}
-        >
-          <TextField
-            label={t('sessions.reference.label')}
-            value={reference}
-            onChange={setReference}
-            placeholder={t('sessions.reference.hint')}
-            autoFocus
-          />
-
-          <Select
-            label={t('sessions.type.label')}
-            value={type}
-            onChange={(key) => setType(String(key))}
-            choices={SESSION_TYPES.map((value) => ({
-              id: value,
-              label: t(`sessions.type.${value}`),
-            }))}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <DateField label={t('sessions.startsOn')} value={startsOn} onChange={setStartsOn} />
-            <DateField label={t('sessions.endsOn')} value={endsOn} onChange={setEndsOn} />
-          </div>
-        </form>
-      </Dialog>
-    </>
   )
 }
 
