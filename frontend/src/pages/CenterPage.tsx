@@ -9,6 +9,7 @@ import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import { NewSession } from '../components/NewSession'
 import { DeleteSession } from '../components/DeleteSession'
+import { EditSession } from '../components/EditSession'
 import { SettledMark } from '../components/SettleSession'
 import {
   Badge,
@@ -375,13 +376,19 @@ export function CenterPage() {
                       is built by counting it — the row says so, and Résultats
                       is where reopening lives.
                     */}
-                    {settled ? (
-                      <span className="shrink-0 text-[11.5px] text-[var(--color-quiet)]">
-                        {t('lifecycle.settledRow')}
-                      </span>
-                    ) : (
-                      <DeleteSession sessionId={session.id} reference={session.reference} />
-                    )}
+                    <span className="flex shrink-0 items-center gap-2">
+                      {/* correcting the name is offered on a settled session
+                          too: that is the row whose name is already printed on
+                          the convocations */}
+                      <EditSession session={session} centerId={detail.id} />
+                      {settled ? (
+                        <span className="text-[11.5px] text-[var(--color-quiet)]">
+                          {t('lifecycle.settledRow')}
+                        </span>
+                      ) : (
+                        <DeleteSession sessionId={session.id} reference={session.reference} />
+                      )}
+                    </span>
                   </li>
                 )
               })}

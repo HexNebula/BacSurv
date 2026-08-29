@@ -10,7 +10,8 @@ import type { CalendarDate, Time } from '@internationalized/date'
 const FRAME =
   `flex h-10 w-full items-center rounded-[var(--radius-field)] bg-[var(--color-surface)] px-3
    text-[13.5px] ring-1 ring-[var(--color-hairline)] outline-none transition-shadow
-   hover:ring-[var(--color-faint)]/45 focus-within:ring-2 focus-within:ring-[var(--color-accent)]`
+   hover:ring-[var(--color-faint)]/45 focus-within:ring-2 focus-within:ring-[var(--color-accent)]
+   disabled:bg-[var(--color-sunken)] disabled:text-[var(--color-faint)] disabled:hover:ring-[var(--color-hairline)]`
 
 const SEGMENT =
   `numeric rounded px-0.5 outline-none caret-transparent
@@ -31,15 +32,23 @@ export function DateField({
   label,
   value,
   onChange,
+  isDisabled = false,
   className = '',
 }: {
   label: string
   value: CalendarDate | null
   onChange: (value: CalendarDate | null) => void
+  /** For a date a rule has closed — the dates of a settled session. */
+  isDisabled?: boolean
   className?: string
 }) {
   return (
-    <AriaDateField value={value} onChange={onChange} className={className}>
+    <AriaDateField
+      value={value}
+      onChange={onChange}
+      isDisabled={isDisabled}
+      className={className}
+    >
       <Label className={LABEL}>{label}</Label>
       <DateInput className={FRAME}>
         {(segment) => <DateSegment segment={segment} className={SEGMENT} />}
