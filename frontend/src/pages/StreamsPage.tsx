@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { GraduationCap, Pencil, Plus, SquarePen, TriangleAlert } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { CalendarPlus, GraduationCap, Pencil, Plus, SquarePen, TriangleAlert } from 'lucide-react'
 import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
@@ -33,11 +34,21 @@ type Timetable = { centerId: number; streams: Stream[]; exams: { streamId: numbe
  *
  * <p>Two views, because there are genuinely two things: the ones running in
  * this session, and the centre's own list that they are chosen from.
+ *
+ * <p>The order between them is the centre's, not the app's: the filières exist
+ * because the centre teaches them, and a session picks from that list. So the
+ * catalogue asks for a centre and nothing more — it is entered before there is
+ * any session to enter it for, which is exactly when an administrator sits down
+ * with it in September.
  */
 export function StreamsPage() {
   const { t } = useTranslation()
-  const { centerId, sessionId, sessionsHere, isLoading } = useWorkspace()
-  const [view, setView] = useState('session')
+  const navigate = useNavigate()
+  const { centerId, sessionId, sessionsHere, hasCenter, isLoading } = useWorkspace()
+  // no session yet means the catalogue is the only half that has anything to
+  // show, so it is where the screen opens rather than a tab to go and find
+  const [chosen, setChosen] = useState<string | null>(null)
+  const view = chosen ?? (isLoading || sessionsHere.length > 0 ? 'session' : 'catalogue')
   const [form, setForm] = useState<{ open: boolean; stream?: Stream }>({ open: false })
 
   const timetable = useQuery({
@@ -74,11 +85,11 @@ export function StreamsPage() {
   const examCount = (streamId: number) =>
     (timetable.data?.exams ?? []).filter((exam) => exam.streamId === streamId).length
 
-  if (!isLoading && sessionsHere.length === 0) {
+  if (!isLoading && !hasCenter) {
     return (
       <Page title={t('streams.title')}>
         <Card>
-          <Empty icon={<GraduationCap size={22} aria-hidden />}>{t('schedule.noSession')}</Empty>
+          <Empty icon={<GraduationCap size={22} aria-hidden />}>{t('teachers.noCenter')}</Empty>
         </Card>
       </Page>
     )
@@ -91,7 +102,7 @@ export function StreamsPage() {
       tabs={
         <SegmentedTabs
           value={view}
-          onChange={setView}
+          onChange={setChosen}
           tabs={[
             {
               id: 'session',
@@ -119,7 +130,23 @@ export function StreamsPage() {
         )
       }
     >
-      {view === 'session' ? (
+      {view === 'session' && sessionsHere.length === 0 ? (
+        /* the tab still exists, and says what is missing rather than taking the
+           screen with it: the catalogue next to it is the work to be done now */
+        <Card>
+          <Empty
+            icon={<GraduationCap size={22} aria-hidden />}
+            action={
+              <Button onPress={() => void navigate('/sessions')}>
+                <CalendarPlus size={16} aria-hidden />
+                {t('streams.openSession')}
+              </Button>
+            }
+          >
+            {t('streams.noSessionYet')}
+          </Empty>
+        </Card>
+      ) : view === 'session' ? (
         <>
           {clashes.length > 0 && (
             <div className="mb-5">
