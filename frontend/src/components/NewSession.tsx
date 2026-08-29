@@ -8,7 +8,21 @@ import { useApiMutation } from '../lib/mutation'
 import { useWorkspace } from '../context/Workspace'
 import { Button, DateField, Dialog, Select, TextField } from '../ui'
 
-const SESSION_TYPES = ['REGIONAL_1BAC', 'NATIONAL_2BAC', 'NATIONAL_2BAC_RATTRAPAGE'] as const
+/**
+ * The four sessions a year can hold, in the order a centre meets them.
+ *
+ * <p>The fourth is the regional rattrapage, and it exists for candidats libres:
+ * they sit the régionale and the nationale in the same year, so failing means
+ * sitting both rattrapages — the regional one first, on its own days. It is a
+ * first-year session held in the second-year season, which is why nothing here
+ * works a level out from a type.
+ */
+const SESSION_TYPES = [
+  'REGIONAL_1BAC',
+  'REGIONAL_1BAC_RATTRAPAGE',
+  'NATIONAL_2BAC',
+  'NATIONAL_2BAC_RATTRAPAGE',
+] as const
 
 /** Only what creating one needs back: the centre's sessions, by id. */
 type Created = { id: number; sessions: { id: number }[] }
