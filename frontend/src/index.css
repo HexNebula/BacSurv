@@ -44,11 +44,19 @@
    * translation are the same voice at the same weight instead of two fonts
    * meeting in a table cell. The latin is the width axis of the variable
    * file: 100% for reading, narrowed only where a column has no room.
+   *
+   * Both stacks carry both faces, because the interface's language says
+   * nothing about the language of what is typed into it: a centre working in
+   * French names its filières « العلوم التجريبية », and a teacher's name is
+   * Arabic whichever way the buttons read. A stack that stopped at the latin
+   * left every one of those words to whatever the machine had lying around —
+   * so the script is chosen glyph by glyph, and only the order changes with
+   * the interface.
    */
-  --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', sans-serif;
-  --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans Variable', sans-serif;
+  --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', 'IBM Plex Sans Arabic', sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans Variable', 'IBM Plex Sans', sans-serif;
   /* matricules, hours, counts — entries in a register, not prose */
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-mono: 'IBM Plex Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
 
   /*
    * Paper, and the desk it is on. Nothing here is white: a sheet at #fbf7f1
