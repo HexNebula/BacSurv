@@ -33,6 +33,7 @@ class CandidatsLibresTest {
     @Autowired TimetableService timetable;
     @Autowired CatalogueService catalogue;
     @Autowired OperationRepository operations;
+    @Autowired ma.bacsurv.web.service.SolveService solveService;
 
     private static final LocalDate JUNE = LocalDate.of(2027, 6, 10);
     private static final LocalDate JULY = LocalDate.of(2027, 7, 8);
@@ -111,6 +112,23 @@ class CandidatsLibresTest {
         assertEquals("BAC2", OperationType.NATIONAL_2BAC_RATTRAPAGE.level());
         // the persistence-side helper is now a way in, not a second copy
         assertEquals("BAC1", CenterStreamEntity.levelOf("REGIONAL_1BAC_RATTRAPAGE"));
+    }
+
+    /**
+     * The session picker reads /operations, not the centre. Without the level
+     * there, a screen holding only the chosen session had to fetch the centre
+     * to find out which filières it may offer.
+     */
+    @Test
+    void theOperationListStatesTheLevelToo() {
+        long centre = centre();
+        centers.createSession(centre, "الاستدراكية الجهوية", "REGIONAL_1BAC_RATTRAPAGE",
+                JULY, JULY);
+
+        var listed = solveService.recentOperations().stream()
+                .filter(view -> view.reference().equals("الاستدراكية الجهوية"))
+                .findFirst().orElseThrow();
+        assertEquals("BAC1", listed.level());
     }
 
     /** A session created before the level was held keeps the one it implied. */
