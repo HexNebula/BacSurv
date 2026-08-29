@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
+import { useNames } from '../lib/names'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import {
@@ -40,6 +41,7 @@ type Year = {
 type Member = {
   matricule: string
   name: string
+  nameFr: string | null
   subject: string
   establishment: string | null
   gender: string | null
@@ -107,6 +109,7 @@ export function YearsPage() {
       return people.filter(
         (one) =>
           one.name.toLowerCase().includes(needle) ||
+          (one.nameFr ?? '').toLowerCase().includes(needle) ||
           one.matricule.toLowerCase().includes(needle) ||
           one.subject.toLowerCase().includes(needle),
       )
@@ -353,6 +356,7 @@ function Person({
   direction: 'in' | 'out'
 }) {
   const { t } = useTranslation()
+  const { label } = useNames()
 
   const move = useApiMutation({
     run: () =>
@@ -362,15 +366,15 @@ function Person({
     invalidate: ['yearPool', yearId],
     onDone: () =>
       direction === 'out'
-        ? t('years.leftDone', { name: person.name })
-        : t('years.backDone', { name: person.name }),
+        ? t('years.leftDone', { name: label(person) })
+        : t('years.backDone', { name: label(person) }),
   })
 
   return (
     <li className="flex items-center gap-3 border-b border-[var(--color-hairline)] px-5 py-3 transition-colors last:border-b-0 hover:bg-[var(--color-sunken)]">
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate text-[13.5px] font-medium">{person.name}</span>
+          <bdi className="truncate text-[13.5px] font-medium">{label(person)}</bdi>
           {/* he has already stood in a room this year: leaving is a departure
               mid-year, not a correction of the list */}
           {person.served && (

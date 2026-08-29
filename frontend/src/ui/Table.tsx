@@ -47,11 +47,18 @@ export function Tr({ children }: { children: ReactNode }) {
 export function Td({
   children,
   className = '',
+  colSpan,
 }: {
   children: ReactNode
   className?: string
+  /** For a row that runs the width of the table — a heading over a group. */
+  colSpan?: number
 }) {
-  return <td className={`px-5 py-3.5 align-middle text-[13.5px] ${className}`}>{children}</td>
+  return (
+    <td colSpan={colSpan} className={`px-5 py-3.5 align-middle text-[13.5px] ${className}`}>
+      {children}
+    </td>
+  )
 }
 
 /**

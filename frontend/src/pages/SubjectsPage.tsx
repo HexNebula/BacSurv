@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { BookOpen, SquarePen, TriangleAlert, Users } from 'lucide-react'
 import { api } from '../lib/api'
+import { useNames } from '../lib/names'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import { CatalogueList } from '../components/CatalogueList'
@@ -23,7 +24,14 @@ import {
   Tr,
 } from '../ui'
 
-type Subject = { id: number; name: string; usedByTeachers: number; usedByExams: number }
+type Subject = {
+  id: number
+  /** The Arabic name: teachers store this string, so the pool is counted on it. */
+  name: string
+  nameFr: string | null
+  usedByTeachers: number
+  usedByExams: number
+}
 type Teacher = { matricule: string; name: string; subject: string }
 
 /**
@@ -37,6 +45,7 @@ type Teacher = { matricule: string; name: string; subject: string }
  */
 export function SubjectsPage() {
   const { t } = useTranslation()
+  const { label } = useNames()
   const { centerId, hasCenter, isLoading } = useWorkspace()
   const [view, setView] = useState('coverage')
 
@@ -124,7 +133,7 @@ export function SubjectsPage() {
               <Notice tone="warn" icon={<TriangleAlert size={16} aria-hidden />}>
                 {t('subjects.uncovered', {
                   count: uncovered.length,
-                  names: uncovered.map((row) => row.name).join(', '),
+                  names: uncovered.map((row) => label(row)).join(', '),
                 })}
               </Notice>
             </div>
@@ -165,7 +174,12 @@ export function SubjectsPage() {
                   <tbody>
                     {rows.map((row) => (
                       <Tr key={row.id}>
-                        <Td className="font-medium">{row.name}</Td>
+                        {/* the pool is counted by matching a teacher's stored
+                            subject to this row's Arabic name; what is printed
+                            here is only what the reader reads */}
+                        <Td className="font-medium">
+                          <bdi>{label(row)}</bdi>
+                        </Td>
                         <Td className="numeric">{row.teachers}</Td>
                         <Td className="numeric text-[var(--color-quiet)]">{row.usedByExams}</Td>
                         <Td>

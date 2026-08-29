@@ -42,7 +42,13 @@ export function ComboBox({
   className?: string
 }) {
   const needle = value.trim().toLowerCase()
-  const shown = suggestions.filter((one) => one.label.toLowerCase().includes(needle))
+  // a field already holding one of the names is not a search for it: opening
+  // the list there means changing the choice, so the whole list is offered
+  // rather than the single entry that matches what is written
+  const settled = suggestions.some((one) => one.label.toLowerCase() === needle)
+  const shown = settled
+    ? suggestions
+    : suggestions.filter((one) => one.label.toLowerCase().includes(needle))
 
   return (
     <AriaComboBox

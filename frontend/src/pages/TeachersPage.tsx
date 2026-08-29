@@ -1,9 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { CalendarOff, FileUp, Layers, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import {
+  CalendarOff,
+  FileUp,
+  Layers,
+  Mars,
+  Pencil,
+  Plus,
+  Trash2,
+  TriangleAlert,
+  Upload,
+  Users,
+  Venus,
+} from 'lucide-react'
 import { api } from '../lib/api'
+import { useNames } from '../lib/names'
 import { useWorkspace } from '../context/Workspace'
 import { useApiMutation } from '../lib/mutation'
 import { Page } from '../components/Page'
@@ -14,11 +27,14 @@ import {
   Card,
   CardHead,
   CardRule,
+  ComboBox,
   Dialog,
   Empty,
   Failed,
+  Notice,
   SearchField,
   SegmentedTabs,
+  Select,
   Skeleton,
   Table,
   Td,
@@ -29,15 +45,38 @@ import {
 
 type Teacher = {
   matricule: string
+  /** The Arabic name — always present, and the one every list leads with. */
   name: string
+  /** The same person in French, for documents written in it. Often absent. */
+  nameFr: string | null
   subject: string
   establishment: string | null
+  /** السلك — printed on the official list, read by no rule. */
+  corps: string | null
   gender: string | null
   /** How the record read before an import would change it. */
   was: string | null
   /** Days this teacher is known to be away, and so cannot be given a duty. */
   absences: number
 }
+
+type CatalogueSubject = {
+  id: number
+  name: string
+  nameFr: string | null
+  usedByTeachers: number
+}
+
+/**
+ * السلك, as the ministry writes it.
+ *
+ * <p>Offered rather than imposed: the value is printed and never compared, and
+ * a centre borrowing staff can meet a corps that is not one of these three. The
+ * French gloss is a hint beside each, so the stored string stays the Arabic one
+ * whichever language the screen is in — two spellings of one corps would be the
+ * mess the subject list was.
+ */
+const CORPS = ['ثانوي تأهيلي', 'ثانوي إعدادي', 'ابتدائي'] as const
 
 type RowError = { line: number; reason: string; detail: string | null; content: string }
 
@@ -48,6 +87,30 @@ type Preview = {
   updated: Teacher[]
   unchanged: Teacher[]
   errors: RowError[]
+}
+
+/**
+ * What a row says about a teacher's gender.
+ *
+ * <p>Shown because the solver uses it — it prefers to put a man and a woman in
+ * a room together where it can — and because a field nobody can see is a field
+ * whose mistakes nobody finds. Quiet text with its sign, not a coloured badge:
+ * every row carries one, and a mark on every row is not a mark.
+ */
+function GenderMark({ gender }: { gender: string | null }) {
+  const { t } = useTranslation()
+
+  if (gender !== 'MALE' && gender !== 'FEMALE') {
+    return <span className="text-[var(--color-faint)]">—</span>
+  }
+
+  const Sign = gender === 'MALE' ? Mars : Venus
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--color-quiet)]">
+      <Sign size={13} aria-hidden />
+      {t(`teachers.gender${gender}`)}
+    </span>
+  )
 }
 
 /** An empty field is sent as null, so the server clears it rather than storing "". */
@@ -62,6 +125,14 @@ function trimmed(value: string): string | null {
  * <p>The matricule is shown but locked when editing: it is the identity every
  * past session was recorded against, so the server refuses to move it and the
  * form should not pretend otherwise.
+ *
+ * <p>The subject is offered from the centre's own list rather than typed from
+ * memory. It is not tidiness: a teacher is barred from the paper of his own
+ * subject by matching the two names exactly, so « Maths » entered where the
+ * catalogue says « Mathématiques » makes a maths teacher eligible to invigilate
+ * maths, and nothing anywhere says so. Free text still passes, because a centre
+ * may have somebody whose subject it does not examine — but it is now a choice
+ * made against a warning instead of a spelling nobody checked.
  */
 function TeacherForm({
   centerId,
@@ -77,25 +148,47 @@ function TeacherForm({
   const { t } = useTranslation()
   const [matricule, setMatricule] = useState('')
   const [name, setName] = useState('')
+  const [nameFr, setNameFr] = useState('')
   const [subject, setSubject] = useState('')
   const [establishment, setEstablishment] = useState('')
+  const [corps, setCorps] = useState('')
+  const [gender, setGender] = useState('')
+
+  const subjects = useQuery({
+    queryKey: ['subjects', centerId],
+    queryFn: () => api.get<CatalogueSubject[]>(`/centers/${centerId}/subjects`),
+    enabled: open,
+  })
+
+  const listed = subjects.data ?? []
+  const offList =
+    subject.trim() !== '' &&
+    listed.length > 0 &&
+    !listed.some((one) => one.name === subject.trim())
 
   useEffect(() => {
     if (!open) return
     setMatricule(existing?.matricule ?? '')
     setName(existing?.name ?? '')
+    setNameFr(existing?.nameFr ?? '')
     setSubject(existing?.subject ?? '')
     setEstablishment(existing?.establishment ?? '')
+    setCorps(existing?.corps ?? '')
+    setGender(existing?.gender ?? '')
   }, [open, existing])
 
   const save = useApiMutation({
     run: () => {
+      // every field of the record is stated, because the server writes the
+      // whole of it: a field left out here is a field cleared over there
       const body = {
         matricule: matricule.trim(),
         name: name.trim(),
+        nameFr: trimmed(nameFr),
         subject: subject.trim(),
         establishment: trimmed(establishment),
-        gender: existing?.gender ?? null,
+        corps: trimmed(corps),
+        gender: gender === '' ? null : gender,
       }
       return existing
         ? api.post<Teacher[]>(`/centers/${centerId}/teachers/${existing.matricule}`, body)
@@ -142,13 +235,72 @@ function TeacherForm({
           inputClassName="numeric"
           hint={existing ? t('teachers.matriculeFixed') : undefined}
         />
+        {/* the ministry's list is Arabic, so that is the name the record is
+            built on; the French one is a label for French paperwork and stays
+            optional */}
         <TextField label={t('teachers.name')} value={name} onChange={setName} autoFocus />
-        <TextField label={t('teachers.subject')} value={subject} onChange={setSubject} />
+        <TextField
+          label={t('teachers.nameFr')}
+          value={nameFr}
+          onChange={setNameFr}
+          hint={t('teachers.nameFrHint')}
+        />
+
+        <div>
+          <ComboBox
+            label={t('teachers.subject')}
+            value={subject}
+            onChange={setSubject}
+            placeholder={t('teachers.subjectPick')}
+            suggestions={listed.map((one) => ({
+              id: one.name,
+              label: one.name,
+              hint: one.usedByTeachers,
+            }))}
+          />
+          {offList && (
+            <div className="mt-2">
+              <Notice tone="warn" icon={<TriangleAlert size={16} aria-hidden />}>
+                {t('teachers.subjectOff')}
+              </Notice>
+            </div>
+          )}
+        </div>
+
+        {/* which school he came from, and at what level: a centre short of
+            surveillants borrows, and the official list has to say both */}
         <TextField
           label={t('teachers.establishment')}
           value={establishment}
           onChange={setEstablishment}
         />
+
+        <div className="grid grid-cols-2 gap-3">
+          <ComboBox
+            label={t('teachers.corps')}
+            value={corps}
+            onChange={setCorps}
+            placeholder={t('teachers.corpsPick')}
+            suggestions={CORPS.map((one) => ({
+              id: one,
+              label: one,
+              hint: t(`teachers.corpsGloss.${one}`, { defaultValue: '' }) || undefined,
+            }))}
+          />
+          {/* the solver prefers to pair a man and a woman in a room where it
+              can, so this is a fact it uses — and the one field here that
+              makes a settled répartition worth running again */}
+          <Select
+            label={t('teachers.gender')}
+            value={gender}
+            onChange={(key) => setGender(String(key))}
+            choices={[
+              { id: '', label: t('teachers.genderUnset') },
+              { id: 'MALE', label: t('teachers.genderMALE') },
+              { id: 'FEMALE', label: t('teachers.genderFEMALE') },
+            ]}
+          />
+        </div>
       </form>
     </Dialog>
   )
@@ -164,6 +316,9 @@ function Outcome({
   teachers: Teacher[]
   tone: 'good' | 'warn' | 'plain'
 }) {
+  // `label` is taken by this component's own prop, so the helper is kept whole
+  const names = useNames()
+
   if (teachers.length === 0) return null
 
   return (
@@ -182,7 +337,7 @@ function Outcome({
               {teacher.matricule}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px]">{teacher.name}</span>
+              <bdi className="block truncate text-[13px]">{names.label(teacher)}</bdi>
               {/* what it is replacing, so a change is legible as a change */}
               {teacher.was && (
                 <span className="mt-0.5 block truncate text-[11.5px] text-[var(--color-faint)] line-through">
@@ -364,15 +519,19 @@ function ImportTeachers({
 function TeacherRow({
   centerId,
   teacher,
+  known,
   onEdit,
   onAbsences,
 }: {
   centerId: number
   teacher: Teacher
+  /** The catalogue's names; empty until it has been read. */
+  known: Set<string>
   onEdit: () => void
   onAbsences: () => void
 }) {
   const { t } = useTranslation()
+  const { label, second } = useNames()
   const [confirming, setConfirming] = useState(false)
   const navigate = useNavigate()
 
@@ -390,9 +549,46 @@ function TeacherRow({
       <Td className="numeric text-[12.5px] font-medium text-[var(--color-quiet)]">
         {teacher.matricule}
       </Td>
-      <Td className="font-medium">{teacher.name}</Td>
-      <Td>{teacher.subject}</Td>
-      <Td className="text-[12.5px] text-[var(--color-quiet)]">{teacher.establishment ?? '—'}</Td>
+      <Td className="font-medium whitespace-nowrap">
+        {/* a block of its own: the name is its own bidi paragraph, so an Arabic
+            one still reads right to left while both lines start at the same
+            edge of the cell */}
+        <span className="block">{label(teacher)}</span>
+        {/* the name he is filed under elsewhere, so a French list can still be
+            matched against the ministry's Arabic one */}
+        {second(teacher) && (
+          <span className="mt-0.5 block text-[11.5px] font-normal text-[var(--color-quiet)]">
+            {second(teacher)}
+          </span>
+        )}
+      </Td>
+      <Td>
+        {/* a name the catalogue does not hold: he is nobody's specialist, and
+            he is not barred from his own paper either */}
+        {known.size > 0 && !known.has(teacher.subject) ? (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span>{teacher.subject}</span>
+            <Badge tone="warn" icon={<TriangleAlert size={11} aria-hidden />}>
+              {t('teachers.subjectOffShort')}
+            </Badge>
+          </span>
+        ) : (
+          teacher.subject
+        )}
+      </Td>
+      {/* which school, and at what level: the two halves of where he came
+          from, kept in one cell because neither reads alone */}
+      <Td className="text-[12.5px] text-[var(--color-quiet)]">
+        <span className="block">{teacher.establishment ?? '—'}</span>
+        {teacher.corps && (
+          <span className="mt-0.5 block text-[11.5px] text-[var(--color-faint)]">
+            {teacher.corps}
+          </span>
+        )}
+      </Td>
+      <Td>
+        <GenderMark gender={teacher.gender} />
+      </Td>
       <Td>
         {/* somebody away cannot be given a duty that day, and the solver already
             knows it — the pool has to say so too */}
@@ -470,6 +666,10 @@ function TeacherRow({
   )
 }
 
+/** What a run of the pool can be cut by. Every one of them is a fact printed
+    on the row already, so a heading never says something the rows do not. */
+type Grouping = 'none' | 'subject' | 'establishment' | 'corps' | 'gender'
+
 /**
  * The pool the surveillance is shared out of.
  *
@@ -483,6 +683,7 @@ export function TeachersPage() {
   const { centerId, hasCenter, isLoading } = useWorkspace()
   const [view, setView] = useState('pool')
   const [search, setSearch] = useState('')
+  const [grouping, setGrouping] = useState<Grouping>('none')
   const [editing, setEditing] = useState<Teacher | undefined>()
   const [formOpen, setFormOpen] = useState(false)
   const [absencesFor, setAbsencesFor] = useState<Teacher | null>(null)
@@ -493,16 +694,99 @@ export function TeachersPage() {
     enabled: centerId !== null,
   })
 
+  const catalogue = useQuery({
+    queryKey: ['subjects', centerId],
+    queryFn: () => api.get<CatalogueSubject[]>(`/centers/${centerId}/subjects`),
+    enabled: centerId !== null,
+  })
+
+  /**
+   * The names the catalogue actually holds. A subject typed a second way is not
+   * a second subject — it is a teacher the solver will never recognise as the
+   * specialist of anything, so the rows carrying one are marked rather than
+   * left to be found the day a permanence goes unfilled.
+   */
+  const known = useMemo(
+    () => new Set((catalogue.data ?? []).map((one) => one.name)),
+    [catalogue.data],
+  )
+  const strays = useMemo(
+    () =>
+      // an empty catalogue means the subjects were never entered, not that
+      // every teacher is mistyped
+      known.size === 0 ? [] : (teachers.data ?? []).filter((one) => !known.has(one.subject)),
+    [teachers.data, known],
+  )
+
   const shown = useMemo(() => {
     const needle = search.trim().toLowerCase()
     if (!needle || !teachers.data) return teachers.data ?? []
     return teachers.data.filter((teacher) =>
-      [teacher.matricule, teacher.name, teacher.subject, teacher.establishment ?? '']
+      // both names are searched: he may be looking for the person on the
+      // ministry's Arabic list or on his own French one
+      [
+        teacher.matricule,
+        teacher.name,
+        teacher.nameFr ?? '',
+        teacher.subject,
+        teacher.establishment ?? '',
+        teacher.corps ?? '',
+      ]
         .join(' ')
         .toLowerCase()
         .includes(needle),
     )
   }, [teachers.data, search])
+
+  /**
+   * The pool cut into runs.
+   *
+   * <p>The server hands the register back in matricule order, which answers
+   * « où est D10002 » and nothing else. Grouped by subject it answers the
+   * question a session actually asks — who could stand for الفيزياء والكيمياء —
+   * and the same machinery answers it for the establishment somebody was
+   * borrowed from, his corps, or his gender.
+   *
+   * <p>Largest run first, because the point of grouping is to see the shape;
+   * whoever has nothing stated goes last, since an empty heading is not a
+   * group but a gap in the list.
+   */
+  const groups = useMemo(() => {
+    if (grouping === 'none') return [{ key: 'all', rows: shown }]
+
+    const runs = new Map<string, Teacher[]>()
+    for (const teacher of shown) {
+      const raw =
+        grouping === 'subject'
+          ? teacher.subject
+          : grouping === 'establishment'
+            ? teacher.establishment
+            : grouping === 'corps'
+              ? teacher.corps
+              : teacher.gender
+      const key = raw && raw.trim() !== '' ? raw : ''
+      runs.set(key, [...(runs.get(key) ?? []), teacher])
+    }
+
+    return [...runs.entries()]
+      .sort(([a, ofA], [b, ofB]) => {
+        if (a === '') return 1
+        if (b === '') return -1
+        return ofB.length - ofA.length || a.localeCompare(b)
+      })
+      .map(([key, rows]) => ({ key, rows }))
+  }, [shown, grouping])
+
+  /** Men, women, and the ones nobody stated — the figure the mixed-pair
+      preference actually has to work with. */
+  const split = useMemo(() => {
+    const pool = teachers.data ?? []
+    return {
+      male: pool.filter((one) => one.gender === 'MALE').length,
+      female: pool.filter((one) => one.gender === 'FEMALE').length,
+      unset: pool.filter((one) => one.gender !== 'MALE' && one.gender !== 'FEMALE').length,
+    }
+  }, [teachers.data])
 
   /** How many people teach each subject — the figure that decides whether a
       permanence can be staffed at all. */
@@ -540,6 +824,7 @@ export function TeachersPage() {
               label: t('teachers.pool'),
               icon: <Users size={15} aria-hidden />,
               count: teachers.data?.length,
+              flag: strays.length > 0,
             },
             {
               id: 'subjects',
@@ -569,68 +854,142 @@ export function TeachersPage() {
       }
     >
       {view === 'pool' ? (
-        <Card>
-          <CardHead
-            title={t('teachers.pool')}
-            actions={
-              (teachers.data?.length ?? 0) > 0 && (
-                <SearchField
-                  className="w-64"
-                  label={t('teachers.search')}
-                  placeholder={t('teachers.searchHint')}
-                  value={search}
-                  onChange={setSearch}
-                />
-              )
-            }
-          />
-          <CardRule />
-
-          {teachers.isPending && centerId !== null && <Skeleton rows={6} />}
-          {teachers.isError && (
-            <Failed error={teachers.error as Error} onRetry={() => void teachers.refetch()} />
+        <>
+          {strays.length > 0 && (
+            <div className="mb-5">
+              <Notice tone="warn" icon={<TriangleAlert size={16} aria-hidden />}>
+                {t('teachers.subjectsOff', {
+                  count: strays.length,
+                  names: [...new Set(strays.map((one) => one.subject))].join(', '),
+                })}
+              </Notice>
+            </div>
           )}
 
-          {teachers.isSuccess &&
-            (teachers.data.length === 0 ? (
-              <Empty
-                icon={<Users size={22} aria-hidden />}
-                title={t('teachers.title')}
-                action={centerId !== null && <ImportTeachers centerId={centerId} variant="primary" />}
-              >
-                {t('teachers.empty')}
-              </Empty>
-            ) : shown.length === 0 ? (
-              <Empty>{t('teachers.noMatch', { search })}</Empty>
-            ) : (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th width="140px">{t('teachers.matricule')}</Th>
-                    <Th>{t('teachers.name')}</Th>
-                    <Th width="200px">{t('teachers.subject')}</Th>
-                    <Th width="180px">{t('teachers.establishment')}</Th>
-                    <Th width="150px">{t('absences.title')}</Th>
-                    <Th width="150px" className="no-print" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map((teacher) => (
-                    <TeacherRow
-                      key={teacher.matricule}
-                      centerId={centerId!}
-                      teacher={teacher}
-                      onEdit={() => {
-                        setEditing(teacher)
-                        setFormOpen(true)
-                      }}
-                      onAbsences={() => setAbsencesFor(teacher)}
+          <Card>
+            <CardHead
+              title={t('teachers.pool')}
+              count={teachers.data?.length}
+              actions={
+                (teachers.data?.length ?? 0) > 0 && (
+                  <>
+                    {/* the split said once, in figures: a row with the wrong
+                        one makes the count wrong, which is how it gets found */}
+                    <span className="text-[12px] text-[var(--color-quiet)]">
+                      {[
+                        t('teachers.splitMale', { count: split.male }),
+                        t('teachers.splitFemale', { count: split.female }),
+                        split.unset > 0 ? t('teachers.splitUnset', { count: split.unset }) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                    {/* the label sits beside the field, not stacked above it:
+                        stacked, it made the control taller than the search box
+                        next to it and the two stopped lining up */}
+                    <span className="text-[12px] text-[var(--color-quiet)]">
+                      {t('teachers.groupBy')}
+                    </span>
+                    <Select
+                      label={t('teachers.groupBy')}
+                      hideLabel
+                      className="w-44"
+                      value={grouping}
+                      onChange={(key) => setGrouping(key as Grouping)}
+                      choices={[
+                        { id: 'none', label: t('teachers.groupNone') },
+                        { id: 'subject', label: t('teachers.subject') },
+                        { id: 'establishment', label: t('teachers.establishment') },
+                        { id: 'corps', label: t('teachers.corps') },
+                        { id: 'gender', label: t('teachers.gender') },
+                      ]}
                     />
-                  ))}
-                </tbody>
-              </Table>
-            ))}
-        </Card>
+                    <SearchField
+                      className="w-64"
+                      label={t('teachers.search')}
+                      placeholder={t('teachers.searchHint')}
+                      value={search}
+                      onChange={setSearch}
+                    />
+                  </>
+                )
+              }
+            />
+            <CardRule />
+
+            {teachers.isPending && centerId !== null && <Skeleton rows={6} />}
+            {teachers.isError && (
+              <Failed error={teachers.error as Error} onRetry={() => void teachers.refetch()} />
+            )}
+
+            {teachers.isSuccess &&
+              (teachers.data.length === 0 ? (
+                <Empty
+                  icon={<Users size={22} aria-hidden />}
+                  title={t('teachers.title')}
+                  action={centerId !== null && <ImportTeachers centerId={centerId} variant="primary" />}
+                >
+                  {t('teachers.empty')}
+                </Empty>
+              ) : shown.length === 0 ? (
+                <Empty>{t('teachers.noMatch', { search })}</Empty>
+              ) : (
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th width="118px">{t('teachers.matricule')}</Th>
+                      <Th>{t('teachers.name')}</Th>
+                      <Th width="180px">{t('teachers.subject')}</Th>
+                      <Th width="165px">{t('teachers.establishment')}</Th>
+                      <Th width="104px">{t('teachers.gender')}</Th>
+                      <Th width="124px">{t('absences.title')}</Th>
+                      <Th width="150px" className="no-print" />
+                    </tr>
+                  </thead>
+                  {/* one tbody, headings and rows together, so the last row of
+                      the table is the only one that loses its rule */}
+                  <tbody>
+                    {groups.map((group) => (
+                      <Fragment key={group.key}>
+                        {grouping !== 'none' && (
+                          <tr className="border-b border-[var(--color-hairline)] bg-[var(--color-sunken)]">
+                            <Td colSpan={7} className="py-2">
+                              <span className="flex items-baseline gap-2.5">
+                                <bdi className="text-[12.5px] font-semibold text-[var(--color-quiet)]">
+                                  {group.key === ''
+                                    ? t('teachers.groupUnset')
+                                    : grouping === 'gender'
+                                      ? t(`teachers.gender${group.key}`)
+                                      : group.key}
+                                </bdi>
+                                <span className="numeric text-[11.5px] text-[var(--color-faint)]">
+                                  {group.rows.length}
+                                </span>
+                              </span>
+                            </Td>
+                          </tr>
+                        )}
+
+                        {group.rows.map((teacher) => (
+                          <TeacherRow
+                            key={teacher.matricule}
+                            centerId={centerId!}
+                            teacher={teacher}
+                            known={known}
+                            onEdit={() => {
+                              setEditing(teacher)
+                              setFormOpen(true)
+                            }}
+                            onAbsences={() => setAbsencesFor(teacher)}
+                          />
+                        ))}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </Table>
+              ))}
+          </Card>
+        </>
       ) : (
         <Card>
           <CardHead title={t('teachers.subjects')} count={subjects.length} />

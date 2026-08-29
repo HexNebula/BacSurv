@@ -4,9 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { Check, Pin, TriangleAlert } from 'lucide-react'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
+import { useNames } from '../lib/names'
 import { Badge, Button, Checkbox, Dialog, Notice, Select, Skeleton } from '../ui'
 
-export type Candidate = { id: number; matricule: string; name: string; subject: string }
+export type Candidate = {
+  id: number
+  matricule: string
+  name: string
+  nameFr: string | null
+  subject: string
+}
 
 type Breach = { code: string; args: string[] }
 
@@ -49,6 +56,7 @@ export function ChangeDuty({
   onClose: () => void
 }) {
   const { t } = useTranslation()
+  const { label } = useNames()
   const queryClient = useQueryClient()
   const [chosen, setChosen] = useState<number | null>(null)
   const [review, setReview] = useState<Review | null>(null)
@@ -172,7 +180,7 @@ export function ChangeDuty({
             placeholder={t('change.replaceWith')}
             choices={(candidates.data ?? []).map((one) => ({
               id: one.id,
-              label: one.name,
+              label: label(one),
               hint: one.subject,
             }))}
           />

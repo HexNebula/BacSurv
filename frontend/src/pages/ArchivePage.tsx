@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, CalendarRange, Lock, Printer } from 'lucide-react'
 import { api } from '../lib/api'
+import { useNames } from '../lib/names'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import {
@@ -34,6 +35,7 @@ type ArchivedSession = {
 type Tally = {
   matricule: string
   name: string
+  nameFr: string | null
   subject: string
   surveillance: number
   reserve: number
@@ -65,6 +67,7 @@ type Archive = {
  */
 export function ArchivePage() {
   const { t, i18n } = useTranslation()
+  const { label, second } = useNames()
   const navigate = useNavigate()
   const { yearId } = useParams()
   const { centerId } = useWorkspace()
@@ -208,7 +211,12 @@ export function ArchivePage() {
                   {data.tally.map((row) => (
                     <Tr key={row.matricule}>
                       <Td>
-                        <span className="font-medium">{row.name}</span>
+                        <bdi className="block font-medium">{label(row)}</bdi>
+                        {second(row) && (
+                          <bdi className="mt-0.5 block text-[11.5px] text-[var(--color-quiet)]">
+                            {second(row)}
+                          </bdi>
+                        )}
                         <span className="numeric mt-0.5 block text-[11.5px] text-[var(--color-quiet)]">
                           {row.matricule}
                         </span>
