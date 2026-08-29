@@ -135,6 +135,13 @@ public class OperationEntity {
     public CenterEntity getCenter() { return center; }
     public SchoolYearEntity getSchoolYear() { return schoolYear; }
     public String getReference() { return reference; }
+
+    /**
+     * Corrects the name. A label and nothing else — nothing joins on it, no
+     * duty remembers it — so it may be changed even once the session is
+     * settled, which is exactly when a wrong name is most worth fixing.
+     */
+    public void rename(String reference) { this.reference = reference; }
     public String getType() { return type; }
 
     /** BAC1 or BAC2 — what this session examines, and whose filières it runs. */

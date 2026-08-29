@@ -109,6 +109,81 @@ public class SessionAdminService {
     }
 
     /**
+     * Corrects a session's name and its dates.
+     *
+     * <p>The two are not the same kind of thing, and are refused differently.
+     * The reference is a label: nothing joins on it, no duty remembers it, so
+     * it may be corrected at any time — including once the session is settled,
+     * which is precisely when a wrong name is worth fixing, since it is printed
+     * on every convocation that went out.
+     *
+     * <p>The dates are not a label. They bound the planning grid and they
+     * decide which school year the session belongs to, and the year is what
+     * fairness is counted inside. So they are refused while the session is
+     * settled, refused when épreuves already sit outside the new range, and
+     * refused when the move would carry the session into another year — that
+     * last one silently reshuffles the privilege queue of two years at once,
+     * and there is no version of it an administrator would recognise as what
+     * he asked for.
+     *
+     * <p>Without this, correcting a mistyped name meant deleting the session
+     * and typing its whole timetable again, and for a settled one it could not
+     * be done at all. Reopening was documented as the way out of a wrong
+     * reference; it never was, because nothing downstream of it could edit one.
+     */
+    @Transactional
+    public long edit(long sessionId, String reference, java.time.LocalDate startsOn,
+                     java.time.LocalDate endsOn) {
+        OperationEntity session = session(sessionId);
+
+        String cleaned = reference == null ? "" : reference.trim();
+        if (cleaned.isEmpty()) throw new IllegalArgumentException("session.reference.required");
+        if (startsOn == null || endsOn == null) {
+            throw new IllegalArgumentException("session.dates");
+        }
+        if (endsOn.isBefore(startsOn)) {
+            throw new IllegalArgumentException("session.dates.reversed");
+        }
+
+        boolean datesMoved = !Objects.equals(session.getStartsOn(), startsOn)
+                || !Objects.equals(session.getEndsOn(), endsOn);
+
+        if (datesMoved) {
+            if (session.isSettled()) {
+                throw new RefusedException("session.dates.settled", session.getReference());
+            }
+            // an épreuve outside the new range would vanish from the grid it is
+            // planned on, and be neither visible nor removable
+            List<java.time.LocalDate> orphaned = session.getSlots().stream()
+                    .map(slot -> slot.getDate())
+                    .filter(date -> date != null && (date.isBefore(startsOn) || date.isAfter(endsOn)))
+                    .distinct()
+                    .sorted()
+                    .toList();
+            if (!orphaned.isEmpty()) {
+                throw new RefusedException("session.dates.outsideSlots",
+                        String.valueOf(orphaned.size()),
+                        orphaned.getFirst().toString());
+            }
+            String year = ma.bacsurv.web.persistence.SchoolYearEntity.labelOf(startsOn);
+            if (!year.equals(session.getSchoolYear().getLabel())) {
+                throw new RefusedException("session.dates.otherYear",
+                        session.getSchoolYear().getLabel(), year);
+            }
+        }
+
+        session.rename(cleaned);
+        if (datesMoved) {
+            session.setDates(startsOn, endsOn);
+            // the grid the distribution was computed over has moved
+            session.touch();
+        }
+        // a reference on its own touches nothing: it reaches no rule, and
+        // marking the session as changed would make a settled one unsettleable
+        return session.getCenter().getId();
+    }
+
+    /**
      * Declare this session's répartition to be the one that goes out.
      *
      * <p>Only from here do its duties become history, and from here its

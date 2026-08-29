@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +40,24 @@ public class SessionApiController {
         this.centers = centers;
         this.messages = messages;
     }
+
+    /**
+     * Corrects the name, and the dates when they can be corrected.
+     *
+     * <p>The centre comes back rather than the session alone: the list showing
+     * it has just had a row change name or move in the calendar, and it is the
+     * list the screen is drawing.
+     */
+    @PostMapping
+    public CenterAdminService.CenterDetail edit(@PathVariable long id,
+                                                @RequestBody Edit body) {
+        return centers.detail(sessions.edit(id, body.reference(),
+                body.startsOn(), body.endsOn()));
+    }
+
+    /** The type is not here: it fixes the level, and the épreuves are entered against it. */
+    public record Edit(String reference, java.time.LocalDate startsOn,
+                       java.time.LocalDate endsOn) {}
 
     /** What deleting or reopening this session would cost. */
     @GetMapping("/impact")
