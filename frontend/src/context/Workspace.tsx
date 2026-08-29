@@ -10,6 +10,15 @@ export type Session = {
   centerId: number
   centerName: string
   type: string
+  /**
+   * The year whose candidates sit it, stated by the server.
+   *
+   * <p>Never worked out from the type here. A candidats libres rattrapage is a
+   * first-year session held in the middle of the second-year season, and the
+   * copy of that rule that used to live in the frontend got exactly that case
+   * wrong.
+   */
+  level: string
 }
 
 /**

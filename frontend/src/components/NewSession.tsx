@@ -140,6 +140,11 @@ export function NewSession({
             choices={SESSION_TYPES.map((value) => ({
               id: value,
               label: t(`sessions.type.${value}`),
+              // every type says who sits it, because naming the audience of one
+              // of them and staying silent on the other three reads as though
+              // the libres were missing from those — which is the shape of the
+              // question this list gets asked
+              hint: t(`sessions.sits.${value}`),
             }))}
           />
 

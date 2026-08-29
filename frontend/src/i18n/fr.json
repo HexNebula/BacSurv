@@ -101,6 +101,11 @@
     },
     "startsOn": "Début",
     "endsOn": "Fin",
+    "edit": "Corriger la session",
+    "corrected": "La session est corrigée.",
+    "referenceSettled": "Le nom se corrige même une fois la session arrêtée : c'est celui qui figure sur les convocations déjà distribuées.",
+    "datesSettled": "Les dates sont celles des convocations distribuées. Rouvrez la session, depuis Résultats, avant de les changer.",
+    "datesNeeded": "Les deux dates sont demandées à chaque correction.",
     "slots": "épreuves",
     "datesUnset": "Dates non renseignées",
     "type": {
@@ -109,6 +114,12 @@
       "REGIONAL_1BAC_RATTRAPAGE": "1re année — rattrapage régional (candidats libres)",
       "NATIONAL_2BAC": "2e année — national",
       "NATIONAL_2BAC_RATTRAPAGE": "2e année — rattrapage"
+    },
+    "sits": {
+      "REGIONAL_1BAC": "Scolarisés et candidats libres",
+      "REGIONAL_1BAC_RATTRAPAGE": "Candidats libres seulement, sur leurs propres jours",
+      "NATIONAL_2BAC": "Scolarisés et candidats libres",
+      "NATIONAL_2BAC_RATTRAPAGE": "Scolarisés et candidats libres, ensemble"
     },
     "current": "En cours"
   },

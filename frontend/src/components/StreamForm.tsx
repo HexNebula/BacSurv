@@ -4,23 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, TriangleAlert } from 'lucide-react'
 import { api } from '../lib/api'
 import { useApiMutation } from '../lib/mutation'
+import { useWorkspace } from '../context/Workspace'
 import { Button, Checkbox, Dialog, Notice, Select, Skeleton, TextField } from '../ui'
 
 export type RoomRef = { id: number; reference: string; label: string }
 export type Stream = { id: number; name: string; rooms: RoomRef[] }
-/**
- * The centre's own answer, which is where a session's level comes from.
- *
- * <p>`/operations` — what the header picker reads — carries the type but not
- * the level, and the level is no longer derivable from the type: a candidats
- * libres rattrapage is a first-year session held in the second-year season. So
- * it is read here, off the session the server describes.
- */
-type CenterDetail = {
-  id: number
-  rooms: RoomRef[]
-  sessions: { id: number; level: string }[]
-}
+type CenterDetail = { id: number; rooms: RoomRef[] }
 type CatalogueStream = { id: number; name: string; level: string }
 /** What the session answers with once a filière has been saved. */
 type Timetable = { streams: Stream[] }
@@ -53,6 +42,7 @@ export function StreamForm({
   onClose: () => void
 }) {
   const { t } = useTranslation()
+  const { sessionsHere } = useWorkspace()
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
   const [chosen, setChosen] = useState<number[]>([])
@@ -66,8 +56,9 @@ export function StreamForm({
   // the level this session examines: the filières of the other year are not
   // wrong choices to be corrected later, they are not choices at all. Stated by
   // the server, never worked out here — two copies of that rule already
-  // disagreed once
-  const level = center.data?.sessions.find((one) => one.id === sessionId)?.level ?? null
+  // disagreed once. Found by id rather than taken from the chosen session,
+  // since this form is opened for one session in particular
+  const level = sessionsHere.find((one) => one.id === sessionId)?.level ?? null
 
   /**
    * What the other filières of this session already hold. A room seats one
