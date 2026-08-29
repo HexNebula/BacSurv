@@ -62,7 +62,8 @@ public class CatalogueService {
      * <p>{@code level} is the filière's — {@code BAC1} or {@code BAC2}. A
      * subject has none: a paper is a paper whichever year sits it.
      */
-    public record Entry(Long id, String name, String level, int usedByTeachers, int usedByExams) {
+    public record Entry(Long id, String name, String nameFr, String level,
+                        int usedByTeachers, int usedByExams) {
 
         public boolean isUsed() {
             return usedByTeachers > 0 || usedByExams > 0;
@@ -77,7 +78,8 @@ public class CatalogueService {
         List<TeacherEntity> pool = teachers.findPoolOfCenter(centerId);
 
         return subjects.findByCenterIdOrderByNameAsc(centerId).stream()
-                .map(subject -> new Entry(subject.getId(), subject.getName(), null,
+                .map(subject -> new Entry(subject.getId(), subject.getName(),
+                        subject.getNameFr(), null,
                         (int) pool.stream()
                                 .filter(t -> subject.getName().equals(t.getSubject())).count(),
                         (int) exams.stream()
@@ -87,20 +89,46 @@ public class CatalogueService {
 
     @Transactional
     public Long addSubject(long centerId, String name) {
+        return addSubject(centerId, name, null);
+    }
+
+    /**
+     * {@code nameFr} is the label a French document prints, and only that.
+     * Uniqueness is not asked of it: two subjects sharing a French label is
+     * untidy, and refusing the second would be worse — nothing is looked up
+     * by it, so nothing breaks.
+     */
+    @Transactional
+    public Long addSubject(long centerId, String name, String nameFr) {
         CenterEntity center = center(centerId);
         String cleaned = required(name, "subject.name");
         subjects.findByCenterIdAndName(centerId, cleaned).ifPresent(existing -> {
             throw new IllegalArgumentException("subject.exists");
         });
-        return subjects.save(new SubjectEntity(center, cleaned)).getId();
+        return subjects.save(new SubjectEntity(center, cleaned, blankToNull(nameFr))).getId();
     }
 
     @Transactional
     public void renameSubject(long subjectId, String name) {
+        renameSubject(subjectId, name, null, false);
+    }
+
+    /**
+     * Renames an entry, relabels it, or both.
+     *
+     * <p>The two are not the same act. Changing the name rewrites every teacher
+     * and every épreuve that stored it, because the solver matches on that
+     * string; changing the French label touches nothing else and leaves every
+     * distribution as valid as it was. {@code relabel} says whether the label
+     * was sent at all, so a screen that edits only the name cannot blank it.
+     */
+    @Transactional
+    public void renameSubject(long subjectId, String name, String nameFr, boolean relabel) {
         SubjectEntity subject = subjects.findById(subjectId)
                 .orElseThrow(() -> new IllegalArgumentException("subject.unknown"));
         long centerId = subject.getCenter().getId();
         String cleaned = required(name, "subject.name");
+        if (relabel) subject.relabel(blankToNull(nameFr));
         if (cleaned.equals(subject.getName())) return;
 
         subjects.findByCenterIdAndName(centerId, cleaned).ifPresent(other -> {
@@ -145,7 +173,8 @@ public class CatalogueService {
                 .map(OperationEntity::getId).toList();
 
         return streams.findByCenterIdOrderByNameAsc(centerId).stream()
-                .map(stream -> new Entry(stream.getId(), stream.getName(), stream.getLevel(),
+                .map(stream -> new Entry(stream.getId(), stream.getName(), stream.getNameFr(),
+                        stream.getLevel(),
                         // a filière is "used" by the sessions that declared it
                         (int) operationIds.stream()
                                 .flatMap(id -> sessionStreams.ofOperation(id).stream())
@@ -164,6 +193,11 @@ public class CatalogueService {
      */
     @Transactional
     public Long addStream(long centerId, String name, String level) {
+        return addStream(centerId, name, null, level);
+    }
+
+    @Transactional
+    public Long addStream(long centerId, String name, String nameFr, String level) {
         CenterEntity center = center(centerId);
         String cleaned = required(name, "stream.name");
         String cleanedLevel = level(level);
@@ -171,13 +205,22 @@ public class CatalogueService {
                 .ifPresent(existing -> {
                     throw new IllegalArgumentException("stream.listed");
                 });
-        return streams.save(new CenterStreamEntity(center, cleaned, cleanedLevel)).getId();
+        return streams.save(new CenterStreamEntity(center, cleaned, blankToNull(nameFr),
+                cleanedLevel)).getId();
     }
 
     @Transactional
     public void renameStream(long streamId, String name, String level) {
+        renameStream(streamId, name, null, level, false);
+    }
+
+    /** Same division as renameSubject: the name is compared, the label is not. */
+    @Transactional
+    public void renameStream(long streamId, String name, String nameFr, String level,
+                             boolean relabel) {
         CenterStreamEntity stream = streams.findById(streamId)
                 .orElseThrow(() -> new IllegalArgumentException("stream.unknown"));
+        if (relabel) stream.relabel(blankToNull(nameFr));
         long centerId = stream.getCenter().getId();
         String cleaned = required(name, "stream.name");
         // the level may be corrected on its own: a filière listed at the wrong
@@ -281,5 +324,9 @@ public class CatalogueService {
     private static String required(String value, String field) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException(field + ".required");
         return value.trim();
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

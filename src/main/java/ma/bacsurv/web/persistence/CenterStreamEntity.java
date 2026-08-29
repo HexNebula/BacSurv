@@ -28,7 +28,11 @@ public class CenterStreamEntity extends CatalogueEntry {
     protected CenterStreamEntity() {}
 
     public CenterStreamEntity(CenterEntity center, String name, String level) {
-        super(center, name);
+        this(center, name, null, level);
+    }
+
+    public CenterStreamEntity(CenterEntity center, String name, String nameFr, String level) {
+        super(center, name, nameFr);
         this.level = level;
     }
 

@@ -50,9 +50,29 @@ public class TeacherAdminService {
         this.schoolYears = schoolYears;
     }
 
-    /** What an administrator can state about a teacher. */
-    public record Details(String matricule, String name, String subject,
-                          String establishment, String gender) {}
+    /**
+     * What an administrator can state about a teacher.
+     *
+     * <p>{@code name} is the Arabic one — the lists a centre works from are in
+     * Arabic and that is the name every document leads with. {@code nameFr} and
+     * {@code corps} may be absent; both are printed and neither is compared.
+     */
+    public record Details(String matricule, String name, String nameFr, String subject,
+                          String establishment, String corps, String gender) {
+
+        /**
+         * A teacher stated without a French name and without a corps.
+         *
+         * <p>Not a shortcut that leaves them untouched: {@code Details} is the
+         * whole of what an administrator says about somebody, and edit() writes
+         * all of it. This says both are absent, which is what a caller that
+         * knows neither is actually saying.
+         */
+        public Details(String matricule, String name, String subject,
+                       String establishment, String gender) {
+            this(matricule, name, null, subject, establishment, null, gender);
+        }
+    }
 
     @Transactional
     public void add(long centerId, Details details) {
@@ -69,7 +89,8 @@ public class TeacherAdminService {
         // not two to keep in step
         catalogue.rememberSubject(centerId, subject);
         TeacherEntity added = teachers.save(new TeacherEntity(center, matricule, matricule, name,
-                subject, blankToNull(details.establishment()), gender(details.gender())));
+                blankToNull(details.nameFr()), subject, blankToNull(details.establishment()),
+                blankToNull(details.corps()), gender(details.gender())));
         // somebody added by hand is somebody who has arrived: he joins the year
         // the centre is working in, not every year it has ever had
         added.joinYear(schoolYears.current(centerId));
@@ -80,13 +101,24 @@ public class TeacherAdminService {
     @Transactional
     public void edit(long centerId, String matricule, Details details) {
         TeacherEntity teacher = teacher(centerId, matricule);
-        catalogue.rememberSubject(centerId, details.subject());
+        String subject = required(details.subject(), "teacher.subject");
+        String gender = gender(details.gender());
+        catalogue.rememberSubject(centerId, subject);
+
+        // Only a subject or a gender changes what a distribution should be.
+        // Filling in a French name or a corps is paperwork, and telling the
+        // administrator that every session now needs re-solving because he
+        // typed a name would teach him to ignore the warning that matters.
+        boolean matters = teacher.differsWhereItMatters(subject, gender);
+
         teacher.update(teacher.getReference(),
                 required(details.name(), "teacher.name"),
-                required(details.subject(), "teacher.subject"),
+                blankToNull(details.nameFr()),
+                subject,
                 blankToNull(details.establishment()),
-                gender(details.gender()));
-        teacher.getCenter().touch();
+                blankToNull(details.corps()),
+                gender);
+        if (matters) teacher.getCenter().touch();
     }
 
     /**

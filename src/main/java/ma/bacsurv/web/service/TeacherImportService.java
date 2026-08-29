@@ -28,8 +28,9 @@ public class TeacherImportService {
      * duty, and a file being previewed states nothing about that, so a row that
      * has not been saved yet reports none.
      */
-    public record Change(String matricule, String name, String subject,
-                         String establishment, String gender, String was, int absences) {}
+    public record Change(String matricule, String name, String nameFr, String subject,
+                         String establishment, String corps, String gender,
+                         String was, int absences) {}
 
     public record Preview(long centerId, String centerName,
                           List<Change> created, List<Change> updated, List<Change> unchanged,
@@ -68,8 +69,9 @@ public class TeacherImportService {
 
         for (TeacherCsv.Row row : parsed.rows()) {
             var existing = teachers.findByCenterIdAndMatricule(centerId, row.matricule());
-            Change change = new Change(row.matricule(), row.name(), row.subject(),
-                    row.establishment(), row.gender(), existing.map(this::describe).orElse(null),
+            Change change = new Change(row.matricule(), row.name(), row.nameFr(), row.subject(),
+                    row.establishment(), row.corps(), row.gender(),
+                    existing.map(this::describe).orElse(null),
                     existing.map(t -> t.getUnavailabilities().size()).orElse(0));
             if (existing.isEmpty()) {
                 created.add(change);
@@ -99,13 +101,19 @@ public class TeacherImportService {
             catalogue.rememberSubject(centerId, row.subject());
             TeacherEntity teacher = teachers.findByCenterIdAndMatricule(centerId, row.matricule())
                     .map(existing -> {
-                        existing.update(existing.getReference(), row.name(), row.subject(),
-                                blankToNull(row.establishment()), row.gender());
+                        // a file that does not carry the French name or the
+                        // corps says nothing about them; it must not erase what
+                        // somebody typed by hand between two imports
+                        existing.update(existing.getReference(), row.name(),
+                                row.nameFr() == null ? existing.getNameFr() : row.nameFr(),
+                                row.subject(), blankToNull(row.establishment()),
+                                row.corps() == null ? existing.getCorps() : row.corps(),
+                                row.gender());
                         return existing;
                     })
                     .orElseGet(() -> teachers.save(new TeacherEntity(center, row.matricule(),
-                            row.matricule(), row.name(), row.subject(),
-                            blankToNull(row.establishment()), row.gender())));
+                            row.matricule(), row.name(), row.nameFr(), row.subject(),
+                            blankToNull(row.establishment()), row.corps(), row.gender())));
             // a matricule already in the register is the same person coming
             // back, not a new one: he rejoins, keeping everything he did before
             teacher.joinYear(year);
@@ -123,9 +131,9 @@ public class TeacherImportService {
     @Transactional(readOnly = true)
     public List<Change> pool(long centerId) {
         return teachers.findPoolOfYear(schoolYears.current(centerId).getId()).stream()
-                .map(t -> new Change(t.getMatricule(), t.getName(), t.getSubject(),
-                        t.getEstablishment(), t.getGender(), null,
-                        t.getUnavailabilities().size()))
+                .map(t -> new Change(t.getMatricule(), t.getName(), t.getNameFr(),
+                        t.getSubject(), t.getEstablishment(), t.getCorps(), t.getGender(),
+                        null, t.getUnavailabilities().size()))
                 .toList();
     }
 
@@ -142,11 +150,19 @@ public class TeacherImportService {
                 .orElseThrow(() -> new IllegalArgumentException("no center with id " + centerId));
     }
 
+    /**
+     * A column the file does not have is not a difference. {@code nameFr} and
+     * {@code corps} arrive null when the sheet omits them, and apply() leaves
+     * what is stored alone in that case — so the preview must not promise a
+     * change that will not happen.
+     */
     private boolean differs(TeacherEntity existing, TeacherCsv.Row row) {
         return !equal(existing.getName(), row.name())
                 || !equal(existing.getSubject(), row.subject())
                 || !equal(existing.getEstablishment(), blankToNull(row.establishment()))
-                || !equal(existing.getGender(), row.gender());
+                || !equal(existing.getGender(), row.gender())
+                || (row.nameFr() != null && !equal(existing.getNameFr(), row.nameFr()))
+                || (row.corps() != null && !equal(existing.getCorps(), row.corps()));
     }
 
     private String describe(TeacherEntity teacher) {

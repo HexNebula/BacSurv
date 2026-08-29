@@ -19,8 +19,8 @@ import java.util.Set;
 public final class TeacherCsv {
 
     /** One teacher as written in the file. */
-    public record Row(int line, String matricule, String name, String subject,
-                      String establishment, String gender) {}
+    public record Row(int line, String matricule, String name, String nameFr, String subject,
+                      String establishment, String corps, String gender) {}
 
     /** One row that could not be used, and why. */
     /**
@@ -45,16 +45,29 @@ public final class TeacherCsv {
         }
     }
 
-    /** Header spellings accepted for each field, matched loosely. */
-    private static final Map<String, Set<String>> HEADERS = Map.of(
-            "matricule", Set.of("matricule", "matriculenumber", "ppr", "numeromatricule",
-                    "numdematricule", "رقمالتاجير", "رقمالتأجير"),
-            "name", Set.of("nom", "name", "nomprenom", "nometprenom", "nomcomplet",
-                    "fullname", "الاسم", "الاسمالكامل", "النسبوالاسم"),
-            "subject", Set.of("matiere", "subject", "discipline", "specialite", "المادة"),
-            "establishment", Set.of("etablissement", "establishment", "school", "lycee",
-                    "المؤسسة"),
-            "gender", Set.of("genre", "gender", "sexe", "sex", "الجنس"));
+    /**
+     * Header spellings accepted for each field, matched loosely.
+     *
+     * <p>{@code name} is the Arabic one, because that is the language these
+     * lists arrive in; {@code nameFr} is the French column when a file happens
+     * to carry both. Spelt out rather than guessed: « الاسم » is the full name
+     * and « الاسم بالفرنسية » is the French one, and only exact matching keeps
+     * the second from being read as the first — which is why mapHeader tries
+     * exact spellings before it tries containment.
+     */
+    private static final Map<String, Set<String>> HEADERS = Map.ofEntries(
+            Map.entry("matricule", Set.of("matricule", "matriculenumber", "ppr",
+                    "numeromatricule", "numdematricule", "رقمالتاجير", "رقمالتأجير")),
+            Map.entry("name", Set.of("nom", "name", "nomprenom", "nometprenom", "nomcomplet",
+                    "fullname", "الاسم", "الاسمالكامل", "النسبوالاسم")),
+            Map.entry("nameFr", Set.of("nomfrancais", "nomenfrancais", "nomlatin", "namefr",
+                    "frenchname", "الاسمبالفرنسية", "الاسمبالحروفاللاتينية")),
+            Map.entry("subject", Set.of("matiere", "subject", "discipline", "specialite",
+                    "المادة", "مادةالتخصص")),
+            Map.entry("establishment", Set.of("etablissement", "establishment", "school",
+                    "lycee", "المؤسسة")),
+            Map.entry("corps", Set.of("corps", "cycle", "السلك")),
+            Map.entry("gender", Set.of("genre", "gender", "sexe", "sex", "الجنس")));
 
     private static final Set<String> MALE =
             Set.of("m", "h", "male", "homme", "masculin", "ذكر");
@@ -99,12 +112,18 @@ public final class TeacherCsv {
             } else if (!seenMatricules.add(matricule)) {
                 errors.add(new RowError(number, "duplicateMatricule", matricule, line));
             } else {
-                rows.add(new Row(number, matricule, name, subject,
+                rows.add(new Row(number, matricule, name,
+                        blankToNull(value(values, columns.get("nameFr"))), subject,
                         value(values, columns.get("establishment")),
+                        blankToNull(value(values, columns.get("corps"))),
                         normaliseGender(value(values, columns.get("gender")))));
             }
         }
         return new Parsed(List.copyOf(rows), List.copyOf(errors));
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     /**

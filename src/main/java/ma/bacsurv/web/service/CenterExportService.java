@@ -32,17 +32,20 @@ import java.util.List;
 public class CenterExportService {
 
     /** A teacher as the pool holds them, absences included. */
-    public record TeacherRecord(String matricule, String reference, String name, String subject,
-                                String establishment, String gender, List<AbsenceRecord> absences,
+    public record TeacherRecord(String matricule, String reference, String name, String nameFr,
+                                String subject, String establishment, String corps, String gender,
+                                List<AbsenceRecord> absences,
                                 int priorSurveillance, int priorPrivileges) {}
 
     public record AbsenceRecord(LocalDate date, LocalTime startTime, LocalTime endTime) {}
 
     public record RoomRecord(String reference, String label, Integer surveillants) {}
 
-    public record CatalogueRecord(List<String> subjects, List<StreamRecord> streams) {}
+    public record CatalogueRecord(List<SubjectRecord> subjects, List<StreamRecord> streams) {}
 
-    public record StreamRecord(String name, String level) {}
+    public record SubjectRecord(String name, String nameFr) {}
+
+    public record StreamRecord(String name, String nameFr, String level) {}
 
     /** A session with the timetable that was entered for it. */
     public record SessionRecord(String reference, String type, LocalDate startsOn,
@@ -94,9 +97,11 @@ public class CenterExportService {
                 .toList();
 
         CatalogueRecord catalogueRecord = new CatalogueRecord(
-                catalogue.subjectsOf(centerId).stream().map(CatalogueService.Entry::name).toList(),
+                catalogue.subjectsOf(centerId).stream()
+                        .map(entry -> new SubjectRecord(entry.name(), entry.nameFr()))
+                        .toList(),
                 catalogue.streamsOf(centerId).stream()
-                        .map(entry -> new StreamRecord(entry.name(), entry.level()))
+                        .map(entry -> new StreamRecord(entry.name(), entry.nameFr(), entry.level()))
                         .toList());
 
         // the counts each teacher carries into the next session: what the
@@ -121,7 +126,10 @@ public class CenterExportService {
                         configs.settings(operation.getId())))
                 .toList();
 
-        return new Export(java.time.Instant.now().toString(), "BacSurv", 1,
+        // 2: teachers carry a French name and a corps, and the catalogue's
+        // entries carry a French label. Version 1 files hold none of them, and
+        // a restore reads them as absent rather than as empty strings.
+        return new Export(java.time.Instant.now().toString(), "BacSurv", 2,
                 center.getName(), detail.identity(), roomRecords, catalogueRecord,
                 teacherRecords, sessionRecords);
     }
@@ -153,7 +161,8 @@ public class CenterExportService {
         int[] prior = priorWork.getOrDefault(teacher.getId(), new int[]{0, 0});
         return new TeacherRecord(
                 teacher.getMatricule(), teacher.getReference(), teacher.getName(),
-                teacher.getSubject(), teacher.getEstablishment(), teacher.getGender(),
+                teacher.getNameFr(), teacher.getSubject(), teacher.getEstablishment(),
+                teacher.getCorps(), teacher.getGender(),
                 teacher.getUnavailabilities().stream()
                         .sorted(java.util.Comparator.comparing(UnavailabilityEntity::getDate))
                         .map(absence -> new AbsenceRecord(absence.getDate(),

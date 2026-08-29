@@ -55,8 +55,8 @@ public class ArchiveService {
     }
 
     /** A teacher as a year holds them. */
-    public record Member(String matricule, String name, String subject,
-                         String establishment, String gender, boolean served) {}
+    public record Member(String matricule, String name, String nameFr, String subject,
+                         String establishment, String corps, String gender, boolean served) {}
 
     /**
      * The pool of one year, and the people of the centre who are not in it.
@@ -90,7 +90,7 @@ public class ArchiveService {
                                   Long scheduleJobId, int dutyCount) {}
 
     /** What one teacher did over the year. */
-    public record Tally(String matricule, String name, String subject,
+    public record Tally(String matricule, String name, String nameFr, String subject,
                         int surveillance, int reserve, int permanence, int total) {}
 
     /**
@@ -132,6 +132,7 @@ public class ArchiveService {
                 .map(teacher -> {
                     int[] counts = work.getOrDefault(teacher.getId(), new int[3]);
                     return new Tally(teacher.getMatricule(), teacher.getName(),
+                            teacher.getNameFr(),
                             teacher.getSubject(), counts[0], counts[1], counts[2],
                             counts[0] + counts[1] + counts[2]);
                 })
@@ -186,8 +187,9 @@ public class ArchiveService {
 
     private static Member member(TeacherEntity teacher, Map<Long, int[]> work) {
         int[] counts = work.get(teacher.getId());
-        return new Member(teacher.getMatricule(), teacher.getName(), teacher.getSubject(),
-                teacher.getEstablishment(), teacher.getGender(),
+        return new Member(teacher.getMatricule(), teacher.getName(), teacher.getNameFr(),
+                teacher.getSubject(),
+                teacher.getEstablishment(), teacher.getCorps(), teacher.getGender(),
                 counts != null && counts[0] + counts[1] + counts[2] > 0);
     }
 

@@ -36,8 +36,21 @@ public class CatalogueApiController {
         this.messages = messages;
     }
 
-    /** A subject sends only a name; a filière sends the level it belongs to. */
-    public record NewEntry(String name, String level) {}
+    /**
+     * A subject sends a name; a filière sends the level it belongs to too.
+     *
+     * <p>{@code nameFr} is the French label. It is a {@code String} that may be
+     * absent, and absent is not the same as blank: a screen that edits only the
+     * Arabic name omits the field and the label it never showed is left alone,
+     * while one that sends it empty is clearing it on purpose. That is what
+     * {@code relabel} carries into the service.
+     */
+    public record NewEntry(String name, String nameFr, String level) {
+
+        boolean sendsLabel() {
+            return nameFr != null;
+        }
+    }
 
     @GetMapping("/subjects")
     public List<CatalogueService.Entry> subjects(@PathVariable long id) {
@@ -47,7 +60,7 @@ public class CatalogueApiController {
     @PostMapping("/subjects")
     public ResponseEntity<List<CatalogueService.Entry>> addSubject(@PathVariable long id,
                                                                    @RequestBody NewEntry body) {
-        catalogue.addSubject(id, body.name());
+        catalogue.addSubject(id, body.name(), body.nameFr());
         return ResponseEntity.status(HttpStatus.CREATED).body(catalogue.subjectsOf(id));
     }
 
@@ -55,7 +68,7 @@ public class CatalogueApiController {
     public List<CatalogueService.Entry> renameSubject(@PathVariable long id,
                                                       @PathVariable long subjectId,
                                                       @RequestBody NewEntry body) {
-        catalogue.renameSubject(subjectId, body.name());
+        catalogue.renameSubject(subjectId, body.name(), body.nameFr(), body.sendsLabel());
         return catalogue.subjectsOf(id);
     }
 
@@ -74,7 +87,7 @@ public class CatalogueApiController {
     @PostMapping("/streams")
     public ResponseEntity<List<CatalogueService.Entry>> addStream(@PathVariable long id,
                                                                   @RequestBody NewEntry body) {
-        catalogue.addStream(id, body.name(), body.level());
+        catalogue.addStream(id, body.name(), body.nameFr(), body.level());
         return ResponseEntity.status(HttpStatus.CREATED).body(catalogue.streamsOf(id));
     }
 
@@ -82,7 +95,8 @@ public class CatalogueApiController {
     public List<CatalogueService.Entry> renameStream(@PathVariable long id,
                                                      @PathVariable long streamId,
                                                      @RequestBody NewEntry body) {
-        catalogue.renameStream(streamId, body.name(), body.level());
+        catalogue.renameStream(streamId, body.name(), body.nameFr(), body.level(),
+                body.sendsLabel());
         return catalogue.streamsOf(id);
     }
 

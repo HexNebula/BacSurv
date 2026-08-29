@@ -13,4 +13,8 @@ public class SubjectEntity extends CatalogueEntry {
     public SubjectEntity(CenterEntity center, String name) {
         super(center, name);
     }
+
+    public SubjectEntity(CenterEntity center, String name, String nameFr) {
+        super(center, name, nameFr);
+    }
 }

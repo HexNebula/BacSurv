@@ -75,7 +75,8 @@ public class ScheduleEditor {
     }
 
     /** A teacher who could be put on a duty, as offered in the change form. */
-    public record Candidate(Long id, String matricule, String name, String subject) {}
+    public record Candidate(Long id, String matricule, String name, String nameFr,
+                            String subject) {}
 
     /**
      * Read from the year's pool rather than from the schedule's.
@@ -93,7 +94,7 @@ public class ScheduleEditor {
                 .orElseThrow(() -> new IllegalArgumentException("no schedule for job " + jobId));
         return teachers.findPoolOfYear(operation.getSchoolYear().getId()).stream()
                 .map(teacher -> new Candidate(teacher.getId(), teacher.getMatricule(),
-                        teacher.getName(), teacher.getSubject()))
+                        teacher.getName(), teacher.getNameFr(), teacher.getSubject()))
                 .sorted(java.util.Comparator.comparing(Candidate::name))
                 .toList();
     }
