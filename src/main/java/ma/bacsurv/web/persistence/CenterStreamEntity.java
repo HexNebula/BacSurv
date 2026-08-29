@@ -42,11 +42,14 @@ public class CenterStreamEntity extends CatalogueEntry {
     /**
      * The level a session of this type examines.
      *
-     * <p>Only the régional is 1BAC; the national and its rattrapage are both
-     * 2BAC. This lives here rather than in a screen because it is a fact about
-     * the Moroccan calendar, not about how the interface is arranged.
+     * <p>Kept as a way in for callers that hold a type and no session, but the
+     * rule itself lives on {@link ma.bacsurv.domain.OperationType} — it was
+     * once written out here as « régional, therefore first year », which the
+     * candidats libres' regional rattrapage makes false. A session that exists
+     * should be asked for its own level instead of having it guessed from its
+     * type.
      */
     public static String levelOf(String operationType) {
-        return "REGIONAL_1BAC".equals(operationType) ? "BAC1" : "BAC2";
+        return ma.bacsurv.domain.OperationType.levelOf(operationType);
     }
 }

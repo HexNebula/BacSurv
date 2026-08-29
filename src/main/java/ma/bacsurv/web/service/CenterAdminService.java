@@ -54,8 +54,12 @@ public class CenterAdminService {
      * <p>The state is DRAFT or SETTLED: a draft counts for nothing and may be
      * deleted, a settled session is the répartition that went out and is what
      * the privilege queue is built from.
+     *
+     * <p>{@code level} is sent rather than left to be worked out from the type:
+     * the screen filtering a filière picker was deriving it a second time, and
+     * two copies of one rule disagree the first time a session type is added.
      */
-    public record SessionView(Long id, String reference, String type,
+    public record SessionView(Long id, String reference, String type, String level,
                               LocalDate startsOn, LocalDate endsOn, int slotCount,
                               String state) {}
 
@@ -118,7 +122,8 @@ public class CenterAdminService {
         List<SessionView> sessionViews = operations.findAllWithCenter().stream()
                 .filter(operation -> operation.getCenter().getId().equals(centerId))
                 .map(operation -> new SessionView(operation.getId(), operation.getReference(),
-                        operation.getType(), operation.getStartsOn(), operation.getEndsOn(),
+                        operation.getType(), operation.getLevel(),
+                        operation.getStartsOn(), operation.getEndsOn(),
                         operation.getSlots().size(), operation.getState().name()))
                 .toList();
 

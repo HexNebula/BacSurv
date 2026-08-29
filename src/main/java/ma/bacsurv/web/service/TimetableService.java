@@ -112,10 +112,10 @@ public class TimetableService {
         refuseRoomsHeldElsewhere(operationId, null, chosen);
 
         int ordinal = streams.ofOperation(operationId).size();
-        // a filière declared in a 2BAC session belongs to the 2BAC list: the
-        // session's type is what says which year sits it
+        // a filière declared in a 2BAC session belongs to the 2BAC list, and
+        // the session says which year sits it rather than its type implying it
         catalogue.rememberStream(operation.getCenter().getId(), cleaned,
-                CenterStreamEntity.levelOf(operation.getType()));
+                operation.getLevel());
         operation.touch();
         return streams.save(new StreamEntity(operation, cleaned, ordinal, chosen)).getId();
     }

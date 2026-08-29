@@ -48,6 +48,17 @@ public class OperationEntity {
     @Column(nullable = false, length = 40)
     private String type;
 
+    /**
+     * The year this session examines: {@code BAC1} or {@code BAC2}.
+     *
+     * <p>Held rather than derived from the type. A candidat libre's regional
+     * rattrapage is a first-year session sat in the second-year season, so
+     * « rattrapage, therefore 2BAC » is wrong — and wrong silently, since all
+     * it does is offer the wrong filières.
+     */
+    @Column(nullable = false, length = 10)
+    private String level;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -105,6 +116,7 @@ public class OperationEntity {
         this.schoolYear = schoolYear;
         this.reference = reference;
         this.type = type;
+        this.level = ma.bacsurv.domain.OperationType.levelOf(type);
         this.startsOn = startsOn;
         this.endsOn = endsOn;
         this.createdAt = Instant.now();
@@ -124,6 +136,9 @@ public class OperationEntity {
     public SchoolYearEntity getSchoolYear() { return schoolYear; }
     public String getReference() { return reference; }
     public String getType() { return type; }
+
+    /** BAC1 or BAC2 — what this session examines, and whose filières it runs. */
+    public String getLevel() { return level; }
     public Instant getCreatedAt() { return createdAt; }
 
     public State getState() { return state; }
