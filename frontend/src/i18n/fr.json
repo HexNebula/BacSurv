@@ -376,7 +376,7 @@
     "run": "Lancer la répartition",
     "runAgain": "Relancer",
     "running": "Répartition en cours…",
-    "runningHint": "Le solveur cherche pendant {{seconds}} secondes.",
+    "runningHint": "Chaque salle reçoit ses surveillants ; la réserve et la permanence suivent.",
     "failed": "La répartition a échoué.",
     "ok": "Répartition complète : chaque tâche a quelqu’un.",
     "broken_one": "La répartition enfreint une règle du centre.",

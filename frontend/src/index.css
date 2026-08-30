@@ -242,6 +242,38 @@ html[dir='rtl'] .rule-in {
 }
 
 /*
+ * Work with no measurable progress still has to look like work: a segment
+ * crosses the rail and starts again. It says the thing is running without
+ * pretending to know how far along it is — there is no honest percentage to
+ * give, and a number the administrator cannot act on is worse than none.
+ */
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes sweep-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-400%);
+  }
+}
+
+.sweep {
+  animation: sweep 1.5s var(--ease-settle) infinite;
+}
+
+html[dir='rtl'] .sweep {
+  animation-name: sweep-rtl;
+}
+
+/*
  * Some people are made ill by movement, and the browser is told which. It is
  * not a preference to be weighed against a nice arrival.
  */
@@ -249,6 +281,11 @@ html[dir='rtl'] .rule-in {
   .rise,
   .rule-in {
     animation: none;
+  }
+  /* the rail stays, filled rather than crossed: still a sign of work */
+  .sweep {
+    animation: none;
+    width: 100%;
   }
   *,
   *::before,

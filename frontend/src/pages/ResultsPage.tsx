@@ -378,7 +378,10 @@ export function ResultsPage() {
                 isPending={solve.isPending || running}
                 isDisabled={running}
               >
-                {job ? <RotateCw size={16} aria-hidden /> : <Play size={16} aria-hidden />}
+                {/* the pending button draws its own spinner: a second icon
+                    beside it reads as two things turning at once */}
+                {!running &&
+                  (job ? <RotateCw size={16} aria-hidden /> : <Play size={16} aria-hidden />)}
                 {running ? t('results.running') : job ? t('results.runAgain') : t('results.run')}
               </Button>
             )}
@@ -460,15 +463,24 @@ export function ResultsPage() {
         </div>
       )}
 
+      {/*
+        A répartition takes a moment, and the moment is not the administrator's
+        business: how long the search runs is a setting, not news, and a
+        countdown he can neither shorten nor act on only makes the wait a thing
+        to watch. So the card says what is being made, and the rail says it is
+        still being made.
+      */}
       {running && (
         <Card>
           <div className="px-5 py-6">
             <p className="text-[14px] font-medium">{t('results.running')}</p>
             <p className="mt-1 text-[12.5px] text-[var(--color-quiet)]">
-              {t('results.runningHint', { seconds: job?.timeLimitSeconds ?? 30 })}
+              {t('results.runningHint')}
             </p>
           </div>
-          <CardRule />
+          <div className="h-[3px] w-full overflow-hidden bg-[var(--color-hairline)]">
+            <div className="sweep h-full w-1/4 bg-[var(--color-accent)]" />
+          </div>
           <Skeleton rows={5} />
         </Card>
       )}
