@@ -58,7 +58,8 @@ public class SurveillanceConstraints implements ConstraintProvider {
                 balanceHalfDays(f),
                 mixedGenderPair(f),
                 balanceSurveillance(f),
-                privilegeQueue(f),
+                reserveQueue(f),
+                permanenceQueue(f),
         };
     }
 
@@ -214,30 +215,56 @@ public class SurveillanceConstraints implements ConstraintProvider {
     }
 
     /**
-     * S3+S4 — the privilege queue. Réserve and permanence draw from different
-     * pools (permanence only from the subject's specialists) but share one
-     * counter: a teacher who has had either waits until every colleague has
-     * had a turn, then the cycle opens again.
+     * S3 and S4 — two queues, not one.
      *
-     * <p>Balancing the count is what produces the cycle — giving someone a
-     * second turn while a colleague sits at zero costs more than levelling
-     * up. The seed is {@code privilegeCarry}: turns taken beyond the slowest
-     * colleague in the previous session, so an unfinished round continues
-     * where it stopped instead of restarting in everyone's favour.
+     * <p>They used to share a counter, and it produced the opposite of
+     * fairness. Permanence is not chosen: an épreuve needs a specialist of its
+     * subject, so the solver picks which of the four colleagues, never
+     * whether. With the counters joined, a teacher conscripted into three
+     * permanences read as three times served and was passed over for réserve
+     * — charged for work he never volunteered for, then locked out of the
+     * turn that is genuinely rest. Being scarce became a penalty, and it fell
+     * on exactly the subjects with fewest specialists.
      *
-     * <p>Scarcity can still force a repeat — four philosophie permanences and
-     * two specialists leaves no choice. That is why this is a strong
-     * preference and not a hard rule.
+     * <p>Worse, nothing balanced permanence itself. Five permanences over four
+     * specialists should fall 2-1-1-1; the owner's year fell 3-2-0-0, because
+     * the sum was level and the sum was all that was watched. The two who took
+     * none collected the réserves and everybody's total looked right.
+     *
+     * <p>Separately, each queue does what the joined one was meant to do: a
+     * teacher who has had a réserve waits for the next until his colleagues
+     * have had theirs, and permanence levels inside the group that can
+     * actually sit it. The seed is that role's own {@code privilegeCarry}.
+     *
+     * <p>Both stay preferences rather than rules. Scarcity can still force a
+     * repeat — five permanences and four specialists means somebody takes two
+     * — and 39 réserves among 41 teachers means two people end the year
+     * without one.
      */
-    Constraint privilegeQueue(ConstraintFactory f) {
-        return loadPerTeacher(f, DutyAssignment::isPrivilege)
+    Constraint reserveQueue(ConstraintFactory f) {
+        return queueFor(f, DutyRole.RESERVE, "reserve queue");
+    }
+
+    Constraint permanenceQueue(ConstraintFactory f) {
+        return queueFor(f, DutyRole.PERMANENCE, "permanence queue");
+    }
+
+    /**
+     * The zero rows include teachers who could never hold this role — every
+     * teacher of a subject that is not examined sits at zero permanence for
+     * good. That is a constant offset, identical for every candidate
+     * solution, so it cannot sway a comparison; taking it out would cost a
+     * per-subject grouping to buy nothing.
+     */
+    private Constraint queueFor(ConstraintFactory f, DutyRole role, String name) {
+        return loadPerTeacher(f, a -> a.getDuty().role() == role)
                 .groupBy(ConstraintCollectors.loadBalance(
                         (Teacher t, Long load) -> t,
                         (t, load) -> load,
-                        (t, load) -> t.privilegeCarry()))
+                        (t, load) -> t.privilegeCarry(role)))
                 .penalize(HardSoftScore.ONE_SOFT,
                         lb -> unfairnessPoints(lb, WEIGHT_PRIVILEGE_QUEUE))
-                .asConstraint("privilege queue");
+                .asConstraint(name);
     }
 
     /**

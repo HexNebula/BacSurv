@@ -7,6 +7,7 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import ma.bacsurv.TestFixtures;
 import ma.bacsurv.domain.Duty;
+import ma.bacsurv.domain.DutyRole;
 import ma.bacsurv.domain.Exam;
 import ma.bacsurv.domain.ExamSlot;
 import ma.bacsurv.domain.Teacher;
@@ -34,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class PrivilegeQueueTest {
 
-    private static final String QUEUE = "privilege queue";
+    private static final String QUEUE = "reserve queue";
+    private static final String PERMANENCE_QUEUE = "permanence queue";
 
     private static final Exam EXAM = Exam.of("E-FR", TestFixtures.FRENCH,
             TestFixtures.ARTS, List.of(TestFixtures.R1, TestFixtures.R2));
@@ -87,7 +89,7 @@ class PrivilegeQueueTest {
         Duty reserve = Duty.reserve("D2", s1);
 
         // Amine finished the previous session one turn ahead of Badr
-        Teacher amine = teacher("A").withPrivilegeCarry(1);
+        Teacher amine = teacher("A").withPrivilegeCarry(DutyRole.RESERVE, 1);
         Teacher badr = teacher("B");
         List<Teacher> pool = List.of(amine, badr);
 
@@ -100,11 +102,18 @@ class PrivilegeQueueTest {
                 "a second turn for Amine while Badr is still owed one must be penalised");
     }
 
+    /**
+     * The two queues are counted apart, and this is the case that used to go
+     * the other way.
+     *
+     * <p>Permanence is not offered, it is required: an épreuve needs a
+     * specialist of its subject. Charging it to the same counter as réserve
+     * meant a teacher conscripted into permanence was read as already served
+     * and passed over for the rest he had never had. So holding a permanence
+     * must cost nothing on the réserve queue.
+     */
     @Test
-    void reserveAndPermanenceShareOneQueue() {
-        // Permanence is drawn from a different pool than réserve — only the
-        // subject's specialists — but having had one still means having had a
-        // turn, so it must not be followed by the other.
+    void aPermanenceDoesNotSpendTheReserveTurn() {
         ExamSlot s1 = slot("SL1", 1);
         ExamSlot s2 = slot("SL2", 2);
         Duty reserveDay1 = Duty.reserve("D1", s1);
@@ -117,17 +126,44 @@ class PrivilegeQueueTest {
         Teacher badr = TestFixtures.teacher("B", TestFixtures.FRENCH);
         List<Teacher> pool = List.of(amine, badr);
 
-        Map<Duty, Teacher> bothToAmine = Map.of(
+        // the two differ only in who holds the permanence
+        Map<Duty, Teacher> permanenceToAmine = Map.of(
                 reserveDay1, amine, permanenceDay2, amine,
                 survDay1, badr, survDay2, badr);
-        Map<Duty, Teacher> oneEach = Map.of(
+        Map<Duty, Teacher> permanenceToBadr = Map.of(
                 reserveDay1, amine, permanenceDay2, badr,
                 survDay1, badr, survDay2, amine);
 
-        assertEquals(0, penaltyOf(QUEUE, oneEach, pool),
-                "a réserve and a permanence held by different people is one round");
-        assertTrue(penaltyOf(QUEUE, bothToAmine, pool) < 0,
-                "a réserve then a permanence is two turns, not one of each");
+        assertEquals(penaltyOf(QUEUE, permanenceToBadr, pool),
+                penaltyOf(QUEUE, permanenceToAmine, pool),
+                "who holds the permanence cannot move the réserve queue");
+    }
+
+    /** And the reverse: réserve does not level the permanence queue either. */
+    @Test
+    void permanenceIsLevelledAmongTheSpecialistsWhoCanSitIt() {
+        ExamSlot s1 = slot("SL1", 1);
+        ExamSlot s2 = slot("SL2", 2);
+        Duty perm1 = Duty.permanence("D1", s1, EXAM);
+        Duty perm2 = Duty.permanence("D2", s2, EXAM);
+        Duty surv1 = Duty.surveillance("D3", s1, EXAM, TestFixtures.R1);
+        Duty surv2 = Duty.surveillance("D4", s2, EXAM, TestFixtures.R2);
+
+        Teacher amine = TestFixtures.teacher("A", TestFixtures.FRENCH);
+        Teacher badr = TestFixtures.teacher("B", TestFixtures.FRENCH);
+        List<Teacher> pool = List.of(amine, badr);
+
+        Map<Duty, Teacher> bothToAmine = Map.of(
+                perm1, amine, perm2, amine,
+                surv1, badr, surv2, badr);
+        Map<Duty, Teacher> oneEach = Map.of(
+                perm1, amine, perm2, badr,
+                surv1, badr, surv2, amine);
+
+        assertEquals(0, penaltyOf(PERMANENCE_QUEUE, oneEach, pool),
+                "one permanence each is a clean round");
+        assertTrue(penaltyOf(PERMANENCE_QUEUE, bothToAmine, pool) < 0,
+                "five permanences over four specialists should fall 2-1-1-1, not 3-2-0-0");
     }
 
     @Test

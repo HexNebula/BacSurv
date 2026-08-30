@@ -105,11 +105,16 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
      * settled. Turning these counts into a queue position is
      * OperationAssembler#carryFrom.
      *
+     * <p>Counted per role, because réserve and permanence are two queues.
+     * Joined, a teacher conscripted into permanence — which is required of a
+     * specialist, not offered to him — read as already served and was passed
+     * over for the réserve he had never had.
+     *
      * <p>Settled sessions only, for the reason given on the query above: a turn
      * taken in a trial is not a turn taken.
      */
     @Query("""
-            select a.teacher.id, count(a)
+            select a.teacher.id, a.role, count(a)
             from AssignmentEntity a
             where a.teacher is not null
               and a.job.operation.schoolYear.id = :schoolYearId
@@ -121,7 +126,7 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
                     and j.operation.state
                         = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
                   group by j.operation.id)
-            group by a.teacher.id
+            group by a.teacher.id, a.role
             """)
     List<Object[]> privilegeTurnsOfYear(Long schoolYearId, Long excludedOperationId);
 

@@ -19,11 +19,15 @@ public final class Teacher {
     /** Duties carried from past operations of the year — cumulative fairness offset. */
     private final Map<DutyRole, Integer> priorWorkload;
     /**
-     * Privilege turns already taken beyond the slowest colleague in the
-     * previous session. Almost always 0 or 1: a completed round cancels
-     * itself out, so this cannot accumulate across sessions.
+     * Turns already taken beyond the slowest colleague in the previous
+     * session, counted per role. Almost always 0 or 1: a completed round
+     * cancels itself out, so this cannot accumulate across sessions.
+     *
+     * <p>Per role, because réserve and permanence are two queues. A teacher
+     * ahead on permanence is not thereby ahead on réserve — see
+     * {@link DutyRole#isPrivilege()}.
      */
-    private final int privilegeCarry;
+    private final Map<DutyRole, Integer> privilegeCarry;
 
     public Teacher(String id, String matricule, String name, Subject subject, String establishment,
                    Gender gender,
@@ -39,7 +43,7 @@ public final class Teacher {
                    Set<TeacherQualification> qualifications,
                    Map<DutyRole, Integer> priorWorkload) {
         this(id, matricule, name, subject, establishment, gender,
-                unavailabilities, qualifications, priorWorkload, 0);
+                unavailabilities, qualifications, priorWorkload, Map.of());
     }
 
     public Teacher(String id, String matricule, String name, Subject subject, String establishment,
@@ -47,8 +51,8 @@ public final class Teacher {
                    Set<Unavailability> unavailabilities,
                    Set<TeacherQualification> qualifications,
                    Map<DutyRole, Integer> priorWorkload,
-                   int privilegeCarry) {
-        this.privilegeCarry = privilegeCarry;
+                   Map<DutyRole, Integer> privilegeCarry) {
+        this.privilegeCarry = Map.copyOf(privilegeCarry);
         this.id = Objects.requireNonNull(id);
         this.matricule = requireText(matricule, "matricule");
         this.name = Objects.requireNonNull(name);
@@ -72,15 +76,22 @@ public final class Teacher {
                 unavailabilities, qualifications, prior, privilegeCarry);
     }
 
-    /** Copy with the privilege turns carried over from the previous session. */
-    public Teacher withPrivilegeCarry(int carry) {
+    /** Copy with the turns carried over from the previous session, per role. */
+    public Teacher withPrivilegeCarry(Map<DutyRole, Integer> carry) {
         return new Teacher(id, matricule, name, subject, establishment, gender,
                 unavailabilities, qualifications, priorWorkload, carry);
     }
 
+    /** Convenience for a teacher ahead on one queue only. */
+    public Teacher withPrivilegeCarry(DutyRole role, int carry) {
+        return withPrivilegeCarry(Map.of(role, carry));
+    }
+
     public int prior(DutyRole role) { return priorWorkload.getOrDefault(role, 0); }
 
-    public int privilegeCarry() { return privilegeCarry; }
+    public int privilegeCarry(DutyRole role) {
+        return privilegeCarry.getOrDefault(role, 0);
+    }
 
     public int priorTotal() {
         return priorWorkload.values().stream().mapToInt(Integer::intValue).sum();

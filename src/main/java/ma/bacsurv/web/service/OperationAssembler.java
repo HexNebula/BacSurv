@@ -175,7 +175,8 @@ public class OperationAssembler {
                 .map(TeacherEntity::getId).collect(java.util.stream.Collectors.toSet());
         also.stream().filter(extra -> extra != null && known.add(extra.getId()))
                 .forEach(entities::add);
-        Map<Long, Integer> carry = privilegeCarry(yearId, operation.getId(), entities);
+        Map<Long, Map<DutyRole, Integer>> carry =
+                privilegeCarry(yearId, operation.getId(), entities);
 
         List<Teacher> pool = new java.util.ArrayList<>();
         Map<String, Long> idByMatricule = new HashMap<>();
@@ -183,7 +184,7 @@ public class OperationAssembler {
         for (TeacherEntity entity : entities) {
             Teacher teacher = toDomain(entity, prior.getOrDefault(entity.getId(), Map.of()),
                     busy.getOrDefault(entity.getId(), Set.of()))
-                    .withPrivilegeCarry(carry.getOrDefault(entity.getId(), 0));
+                    .withPrivilegeCarry(carry.getOrDefault(entity.getId(), Map.of()));
             pool.add(teacher);
             idByMatricule.put(entity.getMatricule(), entity.getId());
             byId.put(entity.getId(), teacher);
@@ -203,18 +204,30 @@ public class OperationAssembler {
      * Session sizes never enter into it, since what is counted is turns per
      * teacher and never the size of a session.
      *
+     * <p>Once per queue. Réserve and permanence are counted apart, so a
+     * specialist who took three permanences is not thereby at the back of the
+     * réserve queue — permanence is asked of him, not offered.
+     *
      * <p>The floor is taken over the whole current pool, so a teacher who
      * missed the earlier sessions counts as zero and goes to the front —
      * which is right, they have not had their turn. Somebody who joined the
      * establishment this year arrives at zero for the same reason.
      */
-    private Map<Long, Integer> privilegeCarry(Long schoolYearId, Long operationId,
-                                              List<TeacherEntity> pool) {
-        Map<Long, Integer> taken = new HashMap<>();
+    private Map<Long, Map<DutyRole, Integer>> privilegeCarry(Long schoolYearId, Long operationId,
+                                                            List<TeacherEntity> pool) {
+        Map<DutyRole, Map<Long, Integer>> taken = new EnumMap<>(DutyRole.class);
         for (Object[] row : assignments.privilegeTurnsOfYear(schoolYearId, operationId)) {
-            taken.put((Long) row[0], ((Number) row[1]).intValue());
+            taken.computeIfAbsent((DutyRole) row[1], role -> new HashMap<>())
+                    .merge((Long) row[0], ((Number) row[2]).intValue(), Integer::sum);
         }
-        return carryFrom(taken, pool.stream().map(TeacherEntity::getId).toList());
+
+        List<Long> poolIds = pool.stream().map(TeacherEntity::getId).toList();
+        Map<Long, Map<DutyRole, Integer>> carry = new HashMap<>();
+        taken.forEach((role, counts) ->
+                carryFrom(counts, poolIds).forEach((teacherId, extra) ->
+                        carry.computeIfAbsent(teacherId, id -> new EnumMap<>(DutyRole.class))
+                                .put(role, extra)));
+        return Map.copyOf(carry);
     }
 
     /** The arithmetic of the rule above, kept separate so it can be read and tested alone. */
