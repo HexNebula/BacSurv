@@ -66,6 +66,36 @@ export function Failed({ error, onRetry }: { error: Error; onRetry?: () => void 
 }
 
 /**
+ * The edges of a notice, which is what tells it from the paper.
+ *
+ * <p>A tint alone cannot do it: the ground here is bone, and a pale wash of
+ * warm colour laid on warm paper is four percent of difference and no edge —
+ * it reads as a stain rather than as something placed. So the tint is taken
+ * back and the tone is carried by a rule down the leading side, the way a file
+ * is marked, with a hairline closing the other three. The same construction as
+ * a failed request, which is the one thing on the page that already looked
+ * deliberate.
+ */
+const NOTICE_TONES: Record<Tone, string> = {
+  good: 'border-[var(--color-good)]/20 border-s-[var(--color-good)] bg-[var(--color-good-tint)]/55',
+  warn: 'border-[var(--color-warn)]/20 border-s-[var(--color-warn)] bg-[var(--color-warn-tint)]/55',
+  alarm:
+    'border-[var(--color-alarm)]/20 border-s-[var(--color-alarm)] bg-[var(--color-alarm-tint)]/55',
+  accent:
+    'border-[var(--color-accent)]/20 border-s-[var(--color-accent)] bg-[var(--color-accent-tint)]/60',
+  plain: 'border-[var(--color-hairline)] border-s-[var(--color-rule)] bg-[var(--color-sunken)]/60',
+}
+
+/** The mark keeps the tone at full strength; the ground does not need it. */
+const NOTICE_MARKS: Record<Tone, string> = {
+  good: 'text-[var(--color-good)]',
+  warn: 'text-[var(--color-warn)]',
+  alarm: 'text-[var(--color-alarm)]',
+  accent: 'text-[var(--color-accent)]',
+  plain: 'text-[var(--color-faint)]',
+}
+
+/**
  * Something true about the session that the administrator should see but that
  * does not stop them: a subject nobody teaches, a filière with no rooms.
  */
@@ -82,9 +112,9 @@ export function Notice({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 rounded-[var(--radius-card)] px-4 py-3 text-[13px] ${TONES[tone]}`}
+      className={`flex items-center gap-3 rounded-[var(--radius-card)] border border-s-[3px] px-4 py-3 text-[13px] ${NOTICE_TONES[tone]}`}
     >
-      {icon}
+      {icon && <span className={`shrink-0 ${NOTICE_MARKS[tone]}`}>{icon}</span>}
       <span className="min-w-0 flex-1 leading-relaxed text-[var(--color-ink)]">{children}</span>
       {action}
     </div>
