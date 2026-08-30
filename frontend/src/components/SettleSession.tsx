@@ -7,6 +7,16 @@ import { useLifecycleRefresh, type Impact } from '../lib/session'
 import { Button, Dialog } from '../ui'
 
 /**
+ * The refusals a fresh distribution undoes, and the word for the button that
+ * does it. A refusal absent from here is one no amount of solving would move.
+ */
+const FIX: Record<string, string> = {
+  'session.settle.noDistribution': 'none',
+  'session.settle.stale': 'stale',
+  'session.settle.teachersBusy': 'busy',
+}
+
+/**
  * Arrêter la répartition, and the way back.
  *
  * <p>This is the act the whole model turns on. Until a session is arrêtée its
@@ -108,16 +118,21 @@ export function SettleSession({
   }
 
   /*
-   * Settling is refused for three different reasons, and each has its own way
-   * out: nothing solved yet, a distribution that leaves rooms unstaffed, and a
-   * distribution answering a timetable that has since moved. The sentence
-   * arrives from the server as a toast like every other refusal; what is added
-   * here is the move it implies, so he is not left reading a rule with nothing
-   * to press.
+   * Settling is refused for several reasons, and each has its own way out:
+   * nothing solved yet, a distribution that leaves rooms unstaffed, a
+   * distribution answering a timetable that has since moved, and people already
+   * on duty in a session running the same hours. The sentence arrives from the
+   * server as a toast like every other refusal; what is added here is the move
+   * it implies, so he is not left reading a rule with nothing to press.
+   *
+   * <p>The last one is undone by solving again, because a settled neighbour now
+   * reaches the solver as an unavailability and the second attempt avoids those
+   * people by itself. Rooms held by a neighbour are not in this list: no
+   * distribution frees a door, and the way out is to give this session other
+   * rooms or to reopen the other one.
    */
   const refusal = codeOf(settle.error)
-  const resolvable =
-    refusal === 'session.settle.noDistribution' || refusal === 'session.settle.stale'
+  const resolvable = refusal !== undefined && refusal in FIX
 
   return (
     <span className="flex flex-wrap items-center gap-2">
@@ -129,7 +144,7 @@ export function SettleSession({
           onPress={onSolve}
         >
           <RotateCw size={variant === 'compact' ? 15 : 16} aria-hidden />
-          {t(`lifecycle.fix.${refusal === 'session.settle.stale' ? 'stale' : 'none'}`)}
+          {t(`lifecycle.fix.${FIX[refusal ?? ''] ?? 'none'}`)}
         </Button>
       )}
 

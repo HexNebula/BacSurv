@@ -232,12 +232,14 @@ function CopyStream({
   sessionId,
   target,
   streams,
+  exams,
   open,
   onClose,
 }: {
   sessionId: number
   target: Stream | null
   streams: Stream[]
+  exams: Exam[]
   open: boolean
   onClose: () => void
 }) {
@@ -268,7 +270,7 @@ function CopyStream({
       isOpen={open}
       onClose={onClose}
       title={t('schedule.copyInto', { name: target?.name ?? '' })}
-      subtitle={t('schedule.copyExplain')}
+      subtitle={t('schedule.copyExplain', { name: target?.name ?? '' })}
       footer={
         <>
           <Button variant="secondary" onPress={onClose}>
@@ -293,7 +295,9 @@ function CopyStream({
           choices={sources.map((stream) => ({
             id: stream.id,
             label: stream.name,
-            hint: t('schedule.roomCount', { count: stream.rooms.length }),
+            hint: t('schedule.examCount', {
+              count: exams.filter((exam) => exam.streamId === stream.id).length,
+            }),
           }))}
         />
       </div>
@@ -722,6 +726,7 @@ export function SchedulePage() {
           <CopyStream
             sessionId={sessionId}
             target={copyFor}
+            exams={data.exams}
             streams={data.streams}
             open={copyFor !== null}
             onClose={() => setCopyFor(null)}

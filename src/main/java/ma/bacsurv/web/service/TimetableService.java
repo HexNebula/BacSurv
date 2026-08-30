@@ -75,7 +75,8 @@ public class TimetableService {
     public record Timetable(Long operationId, String reference,
                             Long centerId, String centerName,
                             List<LocalDate> days, List<StreamView> streams,
-                            List<ExamView> exams) {}
+                            List<ExamView> exams,
+                            List<SessionConflictService.RoomClash> roomsTaken) {}
 
     @Transactional(readOnly = true)
     public Timetable timetable(long operationId) {
@@ -98,9 +99,12 @@ public class TimetableService {
             }
         }
 
+        // the rooms a settled neighbour already holds these same days: the
+        // picker greys them out rather than letting one be chosen and refused
         return new Timetable(operation.getId(), operation.getReference(),
                 operation.getCenter().getId(), operation.getCenter().getName(),
-                List.copyOf(days), streamViews, List.copyOf(exams));
+                List.copyOf(days), streamViews, List.copyOf(exams),
+                List.copyOf(conflicts.roomsTakenAround(operation).values()));
     }
 
     @Transactional

@@ -55,7 +55,7 @@ const MARKS: Record<State, { tone: 'good' | 'warn' | 'plain'; Icon: typeof Check
  * Where the chosen session stands, and what to do next.
  *
  * <p>This is the screen an administrator arrives on, so it answers the question
- * they arrive with — not "here are six sections", but "this is the one thing
+ * they arrive with — not "here are the sections", but "this is the one thing
  * left, and here is the way in". The six steps are underneath it as a list you
  * can read at a glance: what is done, what needs looking at, what nobody has
  * started.
@@ -148,8 +148,8 @@ export function DashboardPage() {
 
       {/*
         One action, given the whole width. The readiness endpoint already picks
-        which of the six steps is blocking; the old screen buried that pick in a
-        row of a list, where it read as one item among six.
+        which step is blocking; the old screen buried that pick in a row of a
+        list, where it read as one item among the rest.
       */}
       {next && (
         <Card className="rise mb-6 overflow-hidden [--i:5]">

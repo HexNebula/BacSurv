@@ -224,13 +224,15 @@
     "copy": "Copier",
     "copyFrom": "Copier depuis",
     "copyInto": "Copier vers {{name}}",
-    "copyExplain": "Les épreuves de la filière choisie seront recopiées ici, avec les salles de cette filière-ci.",
+    "copyExplain": "Les épreuves de la filière choisie seront recopiées ici — mêmes matières, mêmes dates. Les salles restent celles de {{name}}.",
     "copied": "Épreuves copiées vers {{name}}.",
     "morning": "Matin",
     "afternoon": "Après-midi",
     "addMore": "Ajouter une autre",
     "roomCount_one": "salle",
     "roomCount_other": "salles",
+    "examCount_one": "{{count}} épreuve",
+    "examCount_other": "{{count}} épreuves",
     "unknownSubject": "Aucun enseignant de cette matière au centre : la permanence n'aura pas de spécialiste.",
     "roomlessStreams": "{{names}} : aucune salle, donc aucune épreuve possible."
   },
@@ -547,7 +549,8 @@
     "deleted": "« {{reference}} » supprimée.",
     "fix": {
       "none": "Lancer la répartition",
-      "stale": "Relancer la répartition"
+      "stale": "Relancer la répartition",
+      "busy": "Relancer la répartition"
     },
     "staleSettled": "Le centre a changé depuis ce calcul. La répartition arrêtée reste celle qui est sortie ; rouvrez la session pour la recalculer.",
     "streamCount_one": "{{count}} filière",

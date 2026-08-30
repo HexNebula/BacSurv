@@ -11,8 +11,10 @@ export type RoomRef = { id: number; reference: string; label: string }
 export type Stream = { id: number; name: string; rooms: RoomRef[] }
 type CenterDetail = { id: number; rooms: RoomRef[] }
 type CatalogueStream = { id: number; name: string; level: string }
+/** A room a settled session of the same days is already sitting in. */
+type RoomClash = { roomId: number; room: string; heldBy: string; session: string }
 /** What the session answers with once a filière has been saved. */
-type Timetable = { streams: Stream[] }
+type Timetable = { streams: Stream[]; roomsTaken: RoomClash[] }
 
 /**
  * A filière and the rooms it occupies for the whole session.
@@ -73,6 +75,11 @@ export function StreamForm({
   })
 
   const heldBy = new Map<number, string>()
+  // a neighbouring session first: those rooms are held for reasons outside
+  // this session, so they say which session as well as which filière
+  for (const taken of timetable.data?.roomsTaken ?? []) {
+    heldBy.set(taken.roomId, `${taken.heldBy} · ${taken.session}`)
+  }
   for (const stream of timetable.data?.streams ?? []) {
     if (existing && stream.id === existing.id) continue
     for (const room of stream.rooms) heldBy.set(room.id, stream.name)
