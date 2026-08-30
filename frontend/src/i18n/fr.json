@@ -488,6 +488,35 @@
     "relaunch": "Relancer la répartition",
     "minutes": "min"
   },
+  "yearLoad": {
+    "tabYear": "L’année",
+    "tabSession": "La session",
+    "noYear": "Aucune année en cours pour ce centre.",
+    "noneTitle": "Rien à comparer encore",
+    "none": "Les tâches comptent à partir du moment où une session est arrêtée. Arrêtez-en une et cette page se remplit.",
+    "summary": "L’année en quatre lignes",
+    "pool": "Le pool et ce qu’il a porté",
+    "poolValue": "{{people}} enseignants · {{duties}} tâches",
+    "perTeacher": "Tâches par enseignant",
+    "idle": "Enseignants sans aucune tâche",
+    "idleNone": "personne",
+    "idleSome_one": "{{count}} enseignant",
+    "idleSome_other": "{{count}} enseignants",
+    "lightDuties": "Réserve et permanence par enseignant",
+    "light": "Réserve et permanence",
+    "counted_one": "{{count}} session arrêtée comptée.",
+    "counted_other": "{{count}} sessions arrêtées comptées.",
+    "drafts_one": "{{names}} est un brouillon : ses tâches ne comptent pas encore.",
+    "drafts_other": "{{names}} sont des brouillons : leurs tâches ne comptent pas encore.",
+    "everyone": "Chacun, sur l’année",
+    "card": {
+      "subtitle": "{{matricule}} · {{subject}}",
+      "load_one": "{{count}} tâche (le centre : {{low}} – {{high}})",
+      "load_other": "{{count}} tâches (le centre : {{low}} – {{high}})",
+      "split": "{{surveillance}} surveillance · {{light}} réserve et permanence",
+      "with": "avec {{name}}"
+    }
+  },
   "statistics": {
     "title": "Les statistiques",
     "subtitle": "Comment la charge tombe sur le pool, et ce qui reste découvert.",

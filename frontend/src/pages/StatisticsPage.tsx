@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
+  CalendarRange,
   ChartNoAxesColumn,
   CircleSlash,
   Scale,
@@ -14,6 +15,7 @@ import { api } from '../lib/api'
 import { useWorkspace } from '../context/Workspace'
 import { Page } from '../components/Page'
 import { Bars, Columns } from '../components/Charts'
+import { YearLoad } from '../components/YearLoad'
 import {
   Badge,
   Button,
@@ -23,6 +25,7 @@ import {
   Empty,
   Failed,
   Notice,
+  SegmentedTabs,
   Skeleton,
   Stat,
   Table,
@@ -103,7 +106,45 @@ function tidy(value: number): string {
  * <p>It all comes from the same solved job La répartition already fetched, so
  * opening this screen costs no request.
  */
+/**
+ * Les statistiques, which answers two different questions with one word.
+ *
+ * <p>The session is the scope the old screen had, and it is the wrong one for
+ * the question the administrator is actually asked: 110 duties at the régionale
+ * against 30 at the rattrapage means nobody is owed an equal share of either.
+ * Fairness is a year, which is also the scope the privilege queue counts in. So
+ * the year comes first, and the session stays for reading one distribution.
+ */
 export function StatisticsPage() {
+  const { t } = useTranslation()
+  const [view, setView] = useState<'year' | 'session'>('year')
+
+  return (
+    <Page
+      title={t('statistics.title')}
+      subtitle={t('statistics.subtitle')}
+      tabs={
+        <SegmentedTabs
+          value={view}
+          onChange={(id) => setView(id as 'year' | 'session')}
+          tabs={[
+            { id: 'year', label: t('yearLoad.tabYear'), icon: <CalendarRange size={15} aria-hidden /> },
+            {
+              id: 'session',
+              label: t('yearLoad.tabSession'),
+              icon: <ChartNoAxesColumn size={15} aria-hidden />,
+            },
+          ]}
+        />
+      }
+    >
+      {view === 'year' ? <YearLoad /> : <SessionFigures />}
+    </Page>
+  )
+}
+
+/** The shape of one solved distribution, which is what this screen always was. */
+function SessionFigures() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { sessionId, centerId, sessionsHere, isLoading } = useWorkspace()
@@ -197,11 +238,9 @@ export function StatisticsPage() {
 
   if (!isLoading && sessionsHere.length === 0) {
     return (
-      <Page title={t('statistics.title')}>
-        <Card>
-          <Empty icon={<ChartNoAxesColumn size={22} aria-hidden />}>{t('schedule.noSession')}</Empty>
-        </Card>
-      </Page>
+      <Card>
+        <Empty icon={<ChartNoAxesColumn size={22} aria-hidden />}>{t('schedule.noSession')}</Empty>
+      </Card>
     )
   }
 
@@ -212,27 +251,25 @@ export function StatisticsPage() {
    */
   if (!jobs.isPending && (job === undefined || job.status !== 'DONE')) {
     return (
-      <Page title={t('statistics.title')} subtitle={t('statistics.subtitle')}>
-        <Card>
-          <Empty
-            icon={<ChartNoAxesColumn size={22} aria-hidden />}
-            title={t('statistics.noneTitle')}
-            action={
-              <Button onPress={() => void navigate('/results')}>
-                {t('statistics.goSolve')}
-                <ArrowRight size={16} className="rtl:rotate-180" aria-hidden />
-              </Button>
-            }
-          >
-            {t('statistics.none')}
-          </Empty>
-        </Card>
-      </Page>
+      <Card>
+        <Empty
+          icon={<ChartNoAxesColumn size={22} aria-hidden />}
+          title={t('statistics.noneTitle')}
+          action={
+            <Button onPress={() => void navigate('/results')}>
+              {t('statistics.goSolve')}
+              <ArrowRight size={16} className="rtl:rotate-180" aria-hidden />
+            </Button>
+          }
+        >
+          {t('statistics.none')}
+        </Empty>
+      </Card>
     )
   }
 
   return (
-    <Page title={t('statistics.title')} subtitle={t('statistics.subtitle')}>
+    <>
       {/* the distribution these figures describe is no longer the current one */}
       {job?.stale && (
         <div className="rise mb-5 [--i:1]">
@@ -482,6 +519,6 @@ export function StatisticsPage() {
           </Card>
         </>
       )}
-    </Page>
+    </>
   )
 }
