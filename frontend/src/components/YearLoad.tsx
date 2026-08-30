@@ -185,11 +185,11 @@ export function YearLoad() {
       duties: totals.reduce((sum, one) => sum + one, 0),
       idle: tally.filter((one) => one.total === 0).length,
       total: span(totals),
-      // read apart rather than added: permanence is subject-locked, so a
-      // teacher whose subject is never examined reads 0 for ever, and folding
-      // that into one figure hides which of the two is short
-      reserve: span(tally.map((one) => one.reserve)),
-      permanence: span(tally.map((one) => one.permanence)),
+      // added, here and only here. The summary exists so that he can stop
+      // reading, and the queue balances the two as one quantity — which makes
+      // the combined range the tighter and truer one. Which of the two is
+      // short is a question about a person, and it is answered a card lower.
+      light: span(tally.map((one) => one.reserve + one.permanence)),
     }
   }, [archive.data])
 
@@ -310,13 +310,7 @@ export function YearLoad() {
           <Line
             icon={<Scale size={16} aria-hidden />}
             term={t('yearLoad.lightDuties')}
-            value={
-              <>
-                <Range {...figures.reserve} />
-                <span className="px-2 text-[var(--color-faint)]">·</span>
-                <Range {...figures.permanence} />
-              </>
-            }
+            value={<Range {...figures.light} />}
           />
         </dl>
       </Card>

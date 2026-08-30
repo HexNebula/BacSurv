@@ -502,7 +502,7 @@
     "idleNone": "personne",
     "idleSome_one": "{{count}} enseignant",
     "idleSome_other": "{{count}} enseignants",
-    "lightDuties": "Réserve · permanence par enseignant",
+    "lightDuties": "Réserve et permanence par enseignant",
     "counted_one": "{{count}} session arrêtée comptée.",
     "counted_other": "{{count}} sessions arrêtées comptées.",
     "drafts_one": "{{names}} est un brouillon : ses tâches ne comptent pas encore.",

@@ -586,7 +586,7 @@
     "idleSome_few": "{{count}} أساتذة",
     "idleSome_many": "{{count}} أستاذًا",
     "idleSome_other": "{{count}} أستاذ",
-    "lightDuties": "الاحتياط · المداومة لكل أستاذ",
+    "lightDuties": "الاحتياط والمداومة لكل أستاذ",
     "counted_zero": "{{count}} دورة مصادق عليها محتسبة.",
     "counted_one": "دورة واحدة مصادق عليها محتسبة.",
     "counted_two": "دورتان مصادق عليهما محتسبتان.",
