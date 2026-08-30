@@ -586,8 +586,7 @@
     "idleSome_few": "{{count}} أساتذة",
     "idleSome_many": "{{count}} أستاذًا",
     "idleSome_other": "{{count}} أستاذ",
-    "lightDuties": "الاحتياط والمداومة لكل أستاذ",
-    "light": "الاحتياط والمداومة",
+    "lightDuties": "الاحتياط · المداومة لكل أستاذ",
     "counted_zero": "{{count}} دورة مصادق عليها محتسبة.",
     "counted_one": "دورة واحدة مصادق عليها محتسبة.",
     "counted_two": "دورتان مصادق عليهما محتسبتان.",
@@ -605,7 +604,7 @@
       "load_few": "{{count}} مهام (المركز: {{low}} – {{high}})",
       "load_many": "{{count}} مهمة (المركز: {{low}} – {{high}})",
       "load_other": "{{count}} مهمة (المركز: {{low}} – {{high}})",
-      "split": "{{surveillance}} حراسة · {{light}} احتياط ومداومة",
+      "split": "{{surveillance}} حراسة · {{reserve}} احتياط · {{permanence}} مداومة",
       "with": "مع {{name}}"
     }
   },

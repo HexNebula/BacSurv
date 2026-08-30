@@ -178,7 +178,6 @@ export function YearLoad() {
     if (tally.length === 0) return null
 
     const totals = tally.map((one) => one.total)
-    const light = tally.map((one) => one.reserve + one.permanence)
 
     return {
       tally,
@@ -186,7 +185,11 @@ export function YearLoad() {
       duties: totals.reduce((sum, one) => sum + one, 0),
       idle: tally.filter((one) => one.total === 0).length,
       total: span(totals),
-      light: span(light),
+      // read apart rather than added: permanence is subject-locked, so a
+      // teacher whose subject is never examined reads 0 for ever, and folding
+      // that into one figure hides which of the two is short
+      reserve: span(tally.map((one) => one.reserve)),
+      permanence: span(tally.map((one) => one.permanence)),
     }
   }, [archive.data])
 
@@ -307,7 +310,13 @@ export function YearLoad() {
           <Line
             icon={<Scale size={16} aria-hidden />}
             term={t('yearLoad.lightDuties')}
-            value={<Range {...figures.light} />}
+            value={
+              <>
+                <Range {...figures.reserve} />
+                <span className="px-2 text-[var(--color-faint)]">·</span>
+                <Range {...figures.permanence} />
+              </>
+            }
           />
         </dl>
       </Card>
@@ -341,7 +350,8 @@ export function YearLoad() {
               <Th>{t('results.teacher')}</Th>
               <Th className="w-[180px]">{t('teachers.subject')}</Th>
               <Th className="w-[124px] text-end">{t('results.roleSURVEILLANCE')}</Th>
-              <Th className="w-[150px] text-end">{t('yearLoad.light')}</Th>
+              <Th className="w-[112px] text-end">{t('results.roleRESERVE')}</Th>
+              <Th className="w-[124px] text-end">{t('results.rolePERMANENCE')}</Th>
               <Th className="w-[92px] text-end">{t('results.total')}</Th>
             </Tr>
           </thead>
@@ -360,7 +370,8 @@ export function YearLoad() {
                 </Td>
                 <Td className="text-[var(--color-quiet)]">{one.subject}</Td>
                 <Td className="numeric text-end">{one.surveillance}</Td>
-                <Td className="numeric text-end">{one.reserve + one.permanence}</Td>
+                <Td className="numeric text-end">{one.reserve}</Td>
+                <Td className="numeric text-end">{one.permanence}</Td>
                 <Td className="numeric text-end font-medium">{one.total}</Td>
               </Tr>
             ))}
@@ -398,7 +409,8 @@ export function YearLoad() {
                 {' · '}
                 {t('yearLoad.card.split', {
                   surveillance: opened.surveillance,
-                  light: opened.reserve + opened.permanence,
+                  reserve: opened.reserve,
+                  permanence: opened.permanence,
                 })}
               </span>
             </p>

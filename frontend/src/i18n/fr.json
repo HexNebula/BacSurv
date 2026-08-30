@@ -502,8 +502,7 @@
     "idleNone": "personne",
     "idleSome_one": "{{count}} enseignant",
     "idleSome_other": "{{count}} enseignants",
-    "lightDuties": "Réserve et permanence par enseignant",
-    "light": "Réserve et permanence",
+    "lightDuties": "Réserve · permanence par enseignant",
     "counted_one": "{{count}} session arrêtée comptée.",
     "counted_other": "{{count}} sessions arrêtées comptées.",
     "drafts_one": "{{names}} est un brouillon : ses tâches ne comptent pas encore.",
@@ -513,7 +512,7 @@
       "subtitle": "{{matricule}} · {{subject}}",
       "load_one": "{{count}} tâche (le centre : {{low}} – {{high}})",
       "load_other": "{{count}} tâches (le centre : {{low}} – {{high}})",
-      "split": "{{surveillance}} surveillance · {{light}} réserve et permanence",
+      "split": "{{surveillance}} surveillance · {{reserve}} réserve · {{permanence}} permanence",
       "with": "avec {{name}}"
     }
   },
