@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -44,13 +45,16 @@ public class TimetableService {
     private final StreamRepository streams;
     private final RoomRepository rooms;
     private final CatalogueService catalogue;
+    private final SessionConflictService conflicts;
 
     public TimetableService(OperationRepository operations, StreamRepository streams,
-                            RoomRepository rooms, CatalogueService catalogue) {
+                            RoomRepository rooms, CatalogueService catalogue,
+                            SessionConflictService conflicts) {
         this.operations = operations;
         this.streams = streams;
         this.rooms = rooms;
         this.catalogue = catalogue;
+        this.conflicts = conflicts;
     }
 
     public record RoomRef(Long id, String reference, String label) {}
@@ -109,7 +113,7 @@ public class TimetableService {
         });
 
         List<RoomEntity> chosen = roomsOf(roomIds);
-        refuseRoomsHeldElsewhere(operationId, null, chosen);
+        refuseRoomsHeldElsewhere(operation, null, chosen);
 
         int ordinal = streams.ofOperation(operationId).size();
         // a filière declared in a 2BAC session belongs to the 2BAC list, and
@@ -139,7 +143,7 @@ public class TimetableService {
 
         String previous = stream.getName();
         List<RoomEntity> occupied = roomsOf(roomIds);
-        refuseRoomsHeldElsewhere(stream.getOperation().getId(), streamId, occupied);
+        refuseRoomsHeldElsewhere(stream.getOperation(), streamId, occupied);
         stream.rename(cleaned);
         stream.occupy(occupied);
 
@@ -325,13 +329,13 @@ public class TimetableService {
      * because "these rooms are taken" leaves the administrator comparing two
      * screens to find out which.
      */
-    private void refuseRoomsHeldElsewhere(long operationId, Long selfStreamId,
+    private void refuseRoomsHeldElsewhere(OperationEntity operation, Long selfStreamId,
                                           List<RoomEntity> chosen) {
         if (chosen.isEmpty()) return;
         Set<Long> wanted = chosen.stream().map(RoomEntity::getId)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
 
-        for (StreamEntity other : streams.ofOperation(operationId)) {
+        for (StreamEntity other : streams.ofOperation(operation.getId())) {
             if (selfStreamId != null && other.getId().equals(selfStreamId)) continue;
             List<String> clash = other.getRooms().stream()
                     .filter(room -> wanted.contains(room.getId()))
@@ -340,6 +344,16 @@ public class TimetableService {
             if (!clash.isEmpty()) {
                 throw new RefusedException("stream.rooms.taken",
                         String.join(", ", clash), other.getName());
+            }
+        }
+
+        // and the same door cannot open on another session running these days
+        Map<Long, SessionConflictService.RoomClash> busy = conflicts.roomsTakenAround(operation);
+        for (Long roomId : wanted) {
+            SessionConflictService.RoomClash held = busy.get(roomId);
+            if (held != null) {
+                throw new RefusedException("stream.rooms.otherSession",
+                        held.room(), held.session(), held.heldBy());
             }
         }
     }

@@ -146,4 +146,39 @@ public interface AssignmentRepository extends JpaRepository<AssignmentEntity, Lo
             group by a.teacher.id, a.job.operation.schoolYear.label, a.role
             """)
     List<Object[]> lifetimeWorkOfCenter(Long centerId);
+
+    /**
+     * Who is already standing somewhere, and when, in the settled sessions of
+     * a centre — one row per duty, with the moment it occupies.
+     *
+     * <p>The slot is joined by reference rather than held by a foreign key,
+     * because an assignment names the slot the way the solver named it. The
+     * pair (operation, reference) is what identifies it, and both halves are
+     * needed or a session's S1 would match every other session's S1.
+     *
+     * <p>Only the newest finished job of each settled session, the same reading
+     * as the fairness queries: earlier trials of the same session describe
+     * afternoons that were never worked.
+     */
+    @Query("""
+            select a.teacher.id, a.teacher.name, s.date, s.startTime, s.endTime,
+                   o.id, o.reference
+            from AssignmentEntity a
+            join a.job j
+            join j.operation o
+            join ExamSlotEntity s on s.operation = o and s.reference = a.slotRef
+            where a.teacher is not null
+              and o.center.id = :centerId
+              and o.id <> :excludedOperationId
+              and o.state = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
+              and s.date between :from and :to
+              and j.id in (
+                  select max(k.id) from SolveJob k
+                  where k.status = ma.bacsurv.web.persistence.SolveJob$Status.DONE
+                    and k.operation.state
+                        = ma.bacsurv.web.persistence.OperationEntity$State.SETTLED
+                  group by k.operation.id)
+            """)
+    List<Object[]> settledOccupancy(Long centerId, Long excludedOperationId,
+                                    java.time.LocalDate from, java.time.LocalDate to);
 }

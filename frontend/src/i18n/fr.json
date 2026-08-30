@@ -280,6 +280,7 @@
       "timetable": "L'emploi du temps",
       "staffing": "Les effectifs",
       "distribution": "La répartition",
+      "concurrent": "Les sessions simultanées",
       "settled": "Arrêter la répartition"
     },
     "detail": {
@@ -301,6 +302,9 @@
       "distribution.broken": "{{one}} contrainte(s) non respectée(s), {{two}} tâche(s) non pourvue(s).",
       "distribution.ok": "Répartition complète et sans conflit.",
       "distribution.stale": "La répartition date d'avant vos derniers changements.",
+      "concurrent.clear": "« {{one}} » tourne aux mêmes dates, sans partager ni salle ni enseignant.",
+      "concurrent.rooms": "{{one}} salle(s) déjà occupée(s) par « {{three}} » aux mêmes heures, dont {{two}}.",
+      "concurrent.teachers": "{{one}} enseignant(s) déjà en poste dans « {{three}} » aux mêmes heures, dont {{two}}.",
       "settled.waiting": "En attente d'une répartition à arrêter.",
       "settled.pending": "La répartition est prête. Arrêtez-la pour qu'elle compte dans les tours des sessions suivantes.",
       "settled.done": "Session arrêtée : ses tours comptent pour les sessions suivantes."

@@ -44,16 +44,19 @@ public class ReadinessService {
     private final TeacherRepository teachers;
     private final SolveJobRepository jobs;
     private final SolveService solveService;
+    private final SessionConflictService conflicts;
 
     public ReadinessService(OperationRepository operations, StreamRepository streams,
                             RoomRepository rooms, TeacherRepository teachers,
-                            SolveJobRepository jobs, SolveService solveService) {
+                            SolveJobRepository jobs, SolveService solveService,
+                            SessionConflictService conflicts) {
         this.operations = operations;
         this.streams = streams;
         this.rooms = rooms;
         this.teachers = teachers;
         this.jobs = jobs;
         this.solveService = solveService;
+        this.conflicts = conflicts;
     }
 
     public enum State { READY, CHECK, TODO }
@@ -88,8 +91,15 @@ public class ReadinessService {
         steps.add(canBeChecked
                 ? staffing(sessionId)
                 : new Step("staffing", State.TODO, "staffing.waiting", List.of(), "schedule"));
-        steps.add(distribution(sessionId));
-        steps.add(settled(operation, steps.getLast()));
+        Step distribution = distribution(sessionId);
+        steps.add(distribution);
+
+        // only when there is actually a neighbour: a centre running one session
+        // at a time — which is most centres, most of the year — has no use for
+        // a step that says nothing else is happening
+        Step concurrent = concurrent(operation);
+        if (concurrent != null) steps.add(concurrent);
+        steps.add(settled(operation, distribution, concurrent));
 
         String next = steps.stream()
                 .filter(step -> step.state() != State.READY)
@@ -185,6 +195,41 @@ public class ReadinessService {
         return new Step("staffing", State.READY, "staffing.ok", List.of(), "schedule");
     }
 
+    /**
+     * Another session of the centre running these same hours.
+     *
+     * <p>Last of the checks and not the least: it is the only one that can fail
+     * for a reason outside the session being looked at. Settling refuses on it,
+     * so saying it here is what keeps that refusal from arriving as a surprise
+     * at the final click.
+     *
+     * <p>Absent when nothing else runs these days, which is the ordinary case:
+     * a step reporting the absence of a problem the centre does not have is
+     * one more thing to read past. It appears only once a neighbour exists,
+     * and then says whether the two can stand side by side.
+     *
+     * @return the step, or null when this session runs alone
+     */
+    private Step concurrent(OperationEntity operation) {
+        SessionConflictService.Conflicts found = conflicts.of(operation);
+        if (found.alone()) return null;
+
+        if (found.isEmpty()) {
+            return new Step("concurrent", State.READY, "concurrent.clear",
+                    List.of(String.join(", ", found.neighbours())), "schedule");
+        }
+
+        String named = String.join(", ", found.sessions());
+        if (!found.rooms().isEmpty()) {
+            return new Step("concurrent", State.CHECK, "concurrent.rooms",
+                    List.of(String.valueOf(found.rooms().size()),
+                            found.rooms().getFirst().room(), named), "schedule");
+        }
+        return new Step("concurrent", State.CHECK, "concurrent.teachers",
+                List.of(String.valueOf(found.teachers().size()),
+                        found.teachers().getFirst().teacher(), named), "results");
+    }
+
     private Step distribution(long sessionId) {
         List<SolveJob> ofSession = jobs.findAll().stream()
                 .filter(job -> job.getOperation() != null
@@ -221,13 +266,17 @@ public class ReadinessService {
      * duties into history — so it belongs on the path the administrator already
      * walks, not behind a setting he would never find.
      */
-    private Step settled(OperationEntity operation, Step distribution) {
+    private Step settled(OperationEntity operation, Step distribution, Step concurrent) {
         if (operation.isSettled()) {
             return new Step("settled", State.READY, "settled.done", List.of(), "results");
         }
         // nothing worth settling yet: say so rather than asking for an act that
-        // would be refused
-        return distribution.state() == State.READY
+        // would be refused. Both conditions are the settle refusals read
+        // forwards — a broken distribution, and a session that cannot stand
+        // beside the ones already out.
+        boolean offerable = distribution.state() == State.READY
+                && (concurrent == null || concurrent.state() == State.READY);
+        return offerable
                 ? new Step("settled", State.TODO, "settled.pending", List.of(), "results")
                 : new Step("settled", State.TODO, "settled.waiting", List.of(), "results");
     }

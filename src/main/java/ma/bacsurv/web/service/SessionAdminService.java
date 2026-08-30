@@ -37,13 +37,16 @@ public class SessionAdminService {
     private final SolveJobRepository jobs;
     private final AssignmentRepository assignments;
     private final StreamRepository streams;
+    private final SessionConflictService conflicts;
 
     public SessionAdminService(OperationRepository operations, SolveJobRepository jobs,
-                               AssignmentRepository assignments, StreamRepository streams) {
+                               AssignmentRepository assignments, StreamRepository streams,
+                               SessionConflictService conflicts) {
         this.operations = operations;
         this.jobs = jobs;
         this.assignments = assignments;
         this.streams = streams;
+        this.conflicts = conflicts;
     }
 
     /**
@@ -213,7 +216,41 @@ public class SessionAdminService {
         if (changedSince(newest, session)) {
             throw new IllegalArgumentException("session.settle.stale");
         }
+        refuseIfConcurrent(session);
         session.settle();
+    }
+
+    /**
+     * Refuse a répartition that cannot happen beside the ones already settled.
+     *
+     * <p>Settling is where a plan stops being a proposal and becomes a claim
+     * about the building, so it is the only place this can be checked and mean
+     * something. Checking at distribution time would not: the other session may
+     * still be a draft then, and comparing against a draft finds nothing —
+     * which is exactly how a centre ends up with two settled sessions putting
+     * one teacher in two rooms at eight o'clock.
+     *
+     * <p>Here the order does not matter. Whichever of two colliding sessions is
+     * settled second is the one refused, so there is no sequence of steps that
+     * reaches the broken state.
+     *
+     * <p>The refusal names what collides rather than saying the sessions
+     * overlap, because the administrator's next act is to move a room or
+     * redistribute, and he cannot choose between them without knowing which.
+     */
+    private void refuseIfConcurrent(OperationEntity session) {
+        SessionConflictService.Conflicts found = conflicts.of(session);
+        if (found.isEmpty()) return;
+
+        String named = String.join(", ", found.sessions());
+        if (!found.rooms().isEmpty()) {
+            throw new RefusedException("session.settle.roomsBusy", named,
+                    String.valueOf(found.rooms().size()),
+                    found.rooms().getFirst().room());
+        }
+        throw new RefusedException("session.settle.teachersBusy", named,
+                String.valueOf(found.teachers().size()),
+                found.teachers().getFirst().teacher());
     }
 
     /**
