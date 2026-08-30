@@ -169,6 +169,7 @@ public class OperationAssembler {
     public Pool poolFor(OperationEntity operation, java.util.Collection<TeacherEntity> also) {
         Long yearId = operation.getSchoolYear().getId();
         Map<Long, Map<DutyRole, Integer>> prior = priorWorkload(yearId, operation.getId());
+        Map<Long, Set<Unavailability>> busy = heldByConcurrentSessions(operation);
         List<TeacherEntity> entities = new java.util.ArrayList<>(teachers.findPoolOfYear(yearId));
         java.util.Set<Long> known = entities.stream()
                 .map(TeacherEntity::getId).collect(java.util.stream.Collectors.toSet());
@@ -180,7 +181,8 @@ public class OperationAssembler {
         Map<String, Long> idByMatricule = new HashMap<>();
         Map<Long, Teacher> byId = new HashMap<>();
         for (TeacherEntity entity : entities) {
-            Teacher teacher = toDomain(entity, prior.getOrDefault(entity.getId(), Map.of()))
+            Teacher teacher = toDomain(entity, prior.getOrDefault(entity.getId(), Map.of()),
+                    busy.getOrDefault(entity.getId(), Set.of()))
                     .withPrivilegeCarry(carry.getOrDefault(entity.getId(), 0));
             pool.add(teacher);
             idByMatricule.put(entity.getMatricule(), entity.getId());
@@ -241,11 +243,48 @@ public class OperationAssembler {
         return prior;
     }
 
-    private Teacher toDomain(TeacherEntity entity, Map<DutyRole, Integer> prior) {
+    /**
+     * The hours each teacher is already standing somewhere, because another
+     * session of the same centre runs these days and has been settled.
+     *
+     * <p>Carried as unavailability rather than as a constraint of its own, and
+     * that is the whole of the design: a teacher held by the rattrapage of the
+     * scolarisés at eight o'clock is, from the point of view of the libres
+     * being distributed, exactly as unavailable as one who declared an absence.
+     * The application already refuses to give work to an unavailable teacher in
+     * five places — eligibility, the solver's hard constraints, the validator,
+     * the hand-edit screen and the staffing check — so saying it once here says
+     * it in all five.
+     *
+     * <p>This does not make the collision impossible; settling is what does
+     * that, and it does it whatever order the administrator works in. What this
+     * removes is the loop: without it he presses distribute, is refused at
+     * arrêter, presses distribute again and is refused again, with nothing on
+     * any screen saying why. With it the first distribution simply avoids them.
+     *
+     * <p>Settled sessions only — a draft is still being typed, and its people
+     * are not committed to anything.
+     */
+    private Map<Long, Set<Unavailability>> heldByConcurrentSessions(OperationEntity operation) {
+        if (operation.getStartsOn() == null || operation.getEndsOn() == null) return Map.of();
+
+        Map<Long, Set<Unavailability>> busy = new HashMap<>();
+        for (Object[] row : assignments.settledOccupancy(operation.getCenter().getId(),
+                operation.getId(), operation.getStartsOn(), operation.getEndsOn())) {
+            busy.computeIfAbsent((Long) row[0], id -> new java.util.HashSet<>())
+                    .add(new Unavailability((java.time.LocalDate) row[2],
+                            (java.time.LocalTime) row[3], (java.time.LocalTime) row[4]));
+        }
+        return busy;
+    }
+
+    private Teacher toDomain(TeacherEntity entity, Map<DutyRole, Integer> prior,
+                             Set<Unavailability> alreadyStanding) {
         Subject subject = new Subject(entity.getSubject());
-        Set<Unavailability> unavailabilities = entity.getUnavailabilities().stream()
+        Set<Unavailability> unavailabilities = new java.util.HashSet<>(alreadyStanding);
+        entity.getUnavailabilities().stream()
                 .map(u -> new Unavailability(u.getDate(), u.getStartTime(), u.getEndTime()))
-                .collect(java.util.stream.Collectors.toSet());
+                .forEach(unavailabilities::add);
 
         return new Teacher(entity.getReference(), entity.getMatricule(), entity.getName(),
                 subject, entity.getEstablishment(),

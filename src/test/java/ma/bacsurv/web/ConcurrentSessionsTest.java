@@ -1,6 +1,8 @@
 package ma.bacsurv.web;
 
 import ma.bacsurv.domain.DutyRole;
+import ma.bacsurv.domain.ExamSlot;
+import ma.bacsurv.domain.Teacher;
 import ma.bacsurv.web.persistence.AssignmentEntity;
 import ma.bacsurv.web.persistence.AssignmentRepository;
 import ma.bacsurv.web.persistence.ExamSlotEntity;
@@ -10,6 +12,7 @@ import ma.bacsurv.web.persistence.SolveJobRepository;
 import ma.bacsurv.web.persistence.TeacherEntity;
 import ma.bacsurv.web.persistence.TeacherRepository;
 import ma.bacsurv.web.service.CenterAdminService;
+import ma.bacsurv.web.service.OperationAssembler;
 import ma.bacsurv.web.service.ReadinessService;
 import ma.bacsurv.web.service.RefusedException;
 import ma.bacsurv.web.service.SessionAdminService;
@@ -48,6 +51,7 @@ class ConcurrentSessionsTest {
     @Autowired TeacherAdminService teacherAdmin;
     @Autowired ReadinessService readiness;
     @Autowired SessionConflictService conflicts;
+    @Autowired OperationAssembler assembler;
     @Autowired OperationRepository operations;
     @Autowired SolveJobRepository jobs;
     @Autowired AssignmentRepository assignments;
@@ -273,6 +277,92 @@ class ConcurrentSessionsTest {
         distribute(afternoon, shared);
 
         assertDoesNotThrow(() -> sessions.settle(afternoon));
+    }
+
+    // ---- what the next distribution is told --------------------------------
+
+    /**
+     * The sign before the wall.
+     *
+     * <p>Settling refuses a distribution that collides, but on its own it
+     * leaves the administrator pressing the same button again with nothing
+     * changed: the solver never learned why. Once the neighbouring session is
+     * arrêtée, the people it holds arrive in the pool as unavailable for those
+     * exact hours — the same shape as a declared absence — so the next
+     * distribution does not offer them at all.
+     */
+    @Test
+    void aTeacherHeldByASettledNeighbourIsUnavailableToTheNextDistribution() {
+        long centre = centre();
+        List<Long> all = rooms(centre);
+        TeacherEntity shared = teacher(centre, "براد يوسف");
+
+        long first = session(centre, "Rattrapage scolarisés", JULY, JULY.plusDays(2),
+                all.subList(0, 3));
+        distribute(first, shared);
+        sessions.settle(first);
+
+        long second = session(centre, "Rattrapage libres", JULY, JULY.plusDays(2),
+                all.subList(3, 6));
+
+        Teacher asSeen = inTransaction(() -> assembler
+                .poolFor(operations.findById(second).orElseThrow())
+                .teacherById().get(shared.getId()));
+
+        ExamSlot theHour = inTransaction(() -> assembler
+                .toDomain(operations.findById(second).orElseThrow()).slots().getFirst());
+
+        assertFalse(asSeen.isAvailable(theHour),
+                "he is standing in the other session at that hour");
+    }
+
+    /** And nobody else is touched: only the hours actually held are taken. */
+    @Test
+    void theRestOfThePoolStaysAvailable() {
+        long centre = centre();
+        List<Long> all = rooms(centre);
+        TeacherEntity busy = teacher(centre, "المشغول");
+        TeacherEntity free = teacher(centre, "الحر");
+
+        long first = session(centre, "Rattrapage scolarisés", JULY, JULY.plusDays(2),
+                all.subList(0, 3));
+        distribute(first, busy);
+        sessions.settle(first);
+
+        long second = session(centre, "Rattrapage libres", JULY, JULY.plusDays(2),
+                all.subList(3, 6));
+
+        ExamSlot theHour = inTransaction(() -> assembler
+                .toDomain(operations.findById(second).orElseThrow()).slots().getFirst());
+        OperationAssembler.Pool pool = inTransaction(() -> assembler
+                .poolFor(operations.findById(second).orElseThrow()));
+
+        assertFalse(pool.teacherById().get(busy.getId()).isAvailable(theHour));
+        assertTrue(pool.teacherById().get(free.getId()).isAvailable(theHour));
+    }
+
+    /** A draft neighbour commits nobody: its people are still free to be given work. */
+    @Test
+    void aDraftNeighbourDoesNotHoldItsTeachers() {
+        long centre = centre();
+        List<Long> all = rooms(centre);
+        TeacherEntity shared = teacher(centre, "غير مصادق");
+
+        long first = session(centre, "Rattrapage scolarisés", JULY, JULY.plusDays(2),
+                all.subList(0, 3));
+        distribute(first, shared);
+        // deliberately not settled
+
+        long second = session(centre, "Rattrapage libres", JULY, JULY.plusDays(2),
+                all.subList(3, 6));
+
+        ExamSlot theHour = inTransaction(() -> assembler
+                .toDomain(operations.findById(second).orElseThrow()).slots().getFirst());
+        Teacher asSeen = inTransaction(() -> assembler
+                .poolFor(operations.findById(second).orElseThrow())
+                .teacherById().get(shared.getId()));
+
+        assertTrue(asSeen.isAvailable(theHour));
     }
 
     // ---- what the screen says before the click -----------------------------
