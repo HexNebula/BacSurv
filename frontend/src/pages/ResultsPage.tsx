@@ -80,6 +80,56 @@ type Workload = {
   total: number
 }
 
+/**
+ * The centre's rules the distribution breaks, named.
+ *
+ * <p>The server answers with one line per violation, written for whoever reads
+ * a log: an English sentence with a rule code in front of it and, in some
+ * cases, the solver's own idea of a duty printed inside. None of that belongs
+ * on screen. What is worth keeping is the code — six of them, a closed list —
+ * because it says which of the centre's rules gave way, which is the one thing
+ * "1 règle(s) non respectée(s)" never said.
+ *
+ * <p>Identical violations are counted rather than repeated: forty duties left
+ * unfilled are one problem stated once, not forty lines to scroll.
+ */
+function Broken({ details }: { details: string[] }) {
+  const { t } = useTranslation()
+
+  const RULES = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+  const counted = new Map<string, number>()
+  for (const line of details) {
+    const code = line.slice(0, line.indexOf('-'))
+    const known = RULES.includes(code) ? code : 'other'
+    counted.set(known, (counted.get(known) ?? 0) + 1)
+  }
+  const listed = [...RULES, 'other'].filter((code) => counted.has(code))
+
+  return (
+    <div className="flex items-start gap-3 rounded-[var(--radius-card)] border border-[var(--color-alarm)]/20 border-s-[3px] border-s-[var(--color-alarm)] bg-[var(--color-alarm-tint)] px-4 py-3.5">
+      <TriangleAlert size={17} className="mt-px shrink-0 text-[var(--color-alarm)]" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium">
+          {t('results.broken', { count: details.length })}
+        </p>
+        <ul className="mt-2.5 space-y-1.5">
+          {listed.map((code) => (
+            <li key={code} className="flex items-baseline gap-2.5 text-[12.5px]">
+              <span className="numeric min-w-[22px] shrink-0 rounded-[3px] bg-[var(--color-alarm)]/12 px-1.5 py-px text-center font-medium text-[var(--color-alarm)]">
+                {counted.get(code)}
+              </span>
+              <span className="min-w-0">{t(`results.rule.${code}`)}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2.5 text-[12px] leading-relaxed text-[var(--color-quiet)]">
+          {t('results.brokenHint')}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 type Schedule = {
   feasible: boolean
   hardViolations: number
@@ -400,9 +450,7 @@ export function ResultsPage() {
             </Notice>
           )}
           {schedule.data.hardViolations > 0 && (
-            <Notice tone="alarm" icon={<TriangleAlert size={16} aria-hidden />}>
-              {t('results.broken', { count: schedule.data.hardViolations })}
-            </Notice>
+            <Broken details={schedule.data.hardViolationDetails} />
           )}
           {schedule.data.unfilled === 0 && schedule.data.hardViolations === 0 && (
             <Notice tone="good" icon={<Check size={16} aria-hidden />}>

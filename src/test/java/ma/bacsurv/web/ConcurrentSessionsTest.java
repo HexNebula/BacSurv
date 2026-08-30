@@ -365,6 +365,40 @@ class ConcurrentSessionsTest {
         assertTrue(asSeen.isAvailable(theHour));
     }
 
+    /**
+     * Reopening drops a session out of the settled set, so while it is a draft
+     * it holds nobody. The question is whether the one that was settled in the
+     * meantime is left protected — and it is, because settling is checked every
+     * time, including the second time.
+     */
+    @Test
+    void reSettlingAReopenedSessionIsCheckedAgain() {
+        long centre = centre();
+        List<Long> all = rooms(centre);
+        TeacherEntity shared = teacher(centre, "المشترك");
+
+        long libres = session(centre, "Rattrapage libres", JULY, JULY.plusDays(2),
+                all.subList(0, 3));
+        distribute(libres, shared);
+        sessions.settle(libres);
+
+        // the second session is distributed onto the same man deliberately:
+        // this is the state a reopen would leave behind
+        long scolarises = session(centre, "Rattrapage scolarisés", JULY, JULY.plusDays(2),
+                all.subList(3, 6));
+        distribute(scolarises, shared);
+        assertThrows(RefusedException.class, () -> sessions.settle(scolarises));
+
+        // reopen the first, and the second may now be settled: nothing holds him
+        sessions.reopen(libres);
+        assertDoesNotThrow(() -> sessions.settle(scolarises));
+
+        // the first one back: it collides with what went out in the meantime
+        RefusedException refused = assertThrows(RefusedException.class,
+                () -> sessions.settle(libres));
+        assertEquals("session.settle.teachersBusy", refused.getMessage());
+    }
+
     // ---- what the screen says before the click -----------------------------
 
     /**
