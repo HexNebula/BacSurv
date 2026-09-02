@@ -116,7 +116,7 @@ class ConcurrentSessionsTest {
     // ---- rooms -------------------------------------------------------------
 
     /**
-     * The refusal your uncle would have wanted three weeks ago: the room is
+     * The refusal an administrator wants before the evening is spent: the room is
      * simply not available while the other session holds it.
      */
     @Test

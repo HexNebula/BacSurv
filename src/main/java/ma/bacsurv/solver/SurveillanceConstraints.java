@@ -227,7 +227,7 @@ public class SurveillanceConstraints implements ConstraintProvider {
      * on exactly the subjects with fewest specialists.
      *
      * <p>Worse, nothing balanced permanence itself. Five permanences over four
-     * specialists should fall 2-1-1-1; the owner's year fell 3-2-0-0, because
+     * specialists should fall 2-1-1-1; a real centre's year fell 3-2-0-0, because
      * the sum was level and the sum was all that was watched. The two who took
      * none collected the réserves and everybody's total looked right.
      *
