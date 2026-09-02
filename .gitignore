@@ -15,3 +15,6 @@ Exam Surveillance in Morocco_files/
 # frontend build artefacts
 frontend/node_modules/
 frontend/dist/
+
+# le README de Vite, laissé sur le disque
+frontend/README.md
