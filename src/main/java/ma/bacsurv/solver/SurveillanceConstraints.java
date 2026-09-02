@@ -18,11 +18,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * MODEL.md encoded for Timefold. Hard = legality, soft = quality.
+ * The rules encoded for Timefold. Hard = legality, soft = quality.
  *
- * <p>Fairness is two objectives, not one: surveillance — the work — is spread
- * evenly, while réserve and permanence share a single queue of turns. The
- * privilege queue outweighs the rest, since a repeated turn is the unfairness
+ * <p>Fairness is three objectives, not one: surveillance — the work — is
+ * spread evenly, while réserve and permanence each keep their own queue of
+ * turns. The queues outweigh the rest, since a repeated turn is the unfairness
  * teachers actually notice.
  */
 public class SurveillanceConstraints implements ConstraintProvider {

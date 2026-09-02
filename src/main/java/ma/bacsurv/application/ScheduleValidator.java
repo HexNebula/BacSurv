@@ -22,7 +22,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
- * Independent check of a schedule against MODEL.md — no solver involved.
+ * Independent check of a schedule against the rules — no solver involved.
  * Hard: H1 coverage, H2 no overlap, H3 availability, H4 qualification,
  *       H5 subject conflict (when configured hard), H6 optional cap.
  * Soft (reported, never fail feasibility): repeated room, repeated pair,
