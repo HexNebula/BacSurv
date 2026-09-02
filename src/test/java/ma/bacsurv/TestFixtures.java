@@ -27,6 +27,26 @@ public final class TestFixtures {
     public static final Room R4 = new Room("R4", "Room 4");
     public static final Room R5 = new Room("R5", "Room 5");
 
+    /**
+     * A day inside the school year the centre is working in <em>today</em>.
+     *
+     * <p>A date written into the source cannot be used by any test that also
+     * creates a centre. Creating one opens the year of the day it runs, a
+     * teacher added by hand joins that year, and a session belongs to the year
+     * its own dates fall in — so `LocalDate.of(2026, 6, 4)` matched the pool
+     * while it was still 2025-2026 and stopped matching on the first of
+     * September, leaving the session in one year and every teacher in another.
+     * The pool then reads as empty and the failure blames staffing.
+     *
+     * <p>The year turns over in September, so a month before then belongs to
+     * the second calendar year of the label: June of 2026-2027 is June 2027.
+     */
+    public static LocalDate examDay(int month, int day) {
+        LocalDate today = LocalDate.now();
+        int start = today.getMonthValue() >= 9 ? today.getYear() : today.getYear() - 1;
+        return LocalDate.of(month >= 9 ? start : start + 1, month, day);
+    }
+
     public static Teacher teacher(String id, Subject subject) {
         return Teacher.withDefaults(id, "M-" + id, "Teacher-" + id, subject, "Lycée Test");
     }

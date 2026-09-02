@@ -31,7 +31,7 @@ class ReadinessTest {
     @Autowired TeacherAdminService teacherAdmin;
     @Autowired TimetableService timetable;
 
-    private static final LocalDate DAY = LocalDate.of(2026, 6, 4);
+    private static final LocalDate DAY = ma.bacsurv.TestFixtures.examDay(6, 4);
 
     private record Fixture(long centreId, long sessionId) {}
 

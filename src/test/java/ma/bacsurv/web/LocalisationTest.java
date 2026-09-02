@@ -44,7 +44,7 @@ class LocalisationTest {
     @Autowired TeacherAdminService teacherAdmin;
     @Autowired TimetableService timetable;
 
-    private static final LocalDate DAY = LocalDate.of(2026, 6, 4);
+    private static final LocalDate DAY = ma.bacsurv.TestFixtures.examDay(6, 4);
 
     /**
      * An apostrophe in a message that carries arguments must be doubled.
@@ -169,7 +169,8 @@ class LocalisationTest {
                 .andExpect(status().isConflict())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
-        assertTrue(french.contains("04/06/2026") && french.contains("08:00"),
+        String spelled = DAY.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        assertTrue(french.contains(spelled) && french.contains("08:00"),
                 "the refusal must say which hour is short: " + french);
         assertTrue(french.contains("surveillants"), french);
     }

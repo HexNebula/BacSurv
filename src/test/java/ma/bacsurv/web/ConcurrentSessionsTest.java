@@ -64,7 +64,9 @@ class ConcurrentSessionsTest {
                 .execute(status -> work.get());
     }
 
-    private static final LocalDate JULY = LocalDate.of(2026, 7, 2);
+    /** An épreuve inside the year the centre is working in — see {@link ma.bacsurv.TestFixtures#examDay}. */
+    private static final LocalDate JULY = ma.bacsurv.TestFixtures.examDay(7, 2);
+
     private static final LocalTime MORNING = LocalTime.of(8, 0);
     private static final LocalTime NOON = LocalTime.of(11, 0);
 
